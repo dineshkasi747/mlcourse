@@ -1,0 +1,1254 @@
+<!-- stacking-blending.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stacking & Blending — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,165,0,0.09),rgba(251,146,60,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:16px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+    .flow-box{background:var(--bg-input);border:2px solid var(--border);border-radius:var(--r-md);padding:14px 18px;text-align:center;position:relative;}
+    .flow-box.layer1{border-color:rgba(96,165,250,0.5);}
+    .flow-box.layer2{border-color:rgba(240,165,0,0.5);}
+    .flow-box.meta{border-color:rgba(62,207,142,0.5);}
+    .flow-title{font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .flow-subtitle{font-size:11px;color:var(--text-3);}
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:26px;height:26px;border-radius:50%;background:rgba(240,165,0,0.1);border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border-left:3px solid var(--accent);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(240,165,0,0.15)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--accent);color:#1a1916;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.12);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="stacking-blending">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Stacking & Blending</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <span class="current">Stacking &amp; Blending</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(240,165,0,.3);background:rgba(240,165,0,0.08);color:var(--accent);margin-bottom:14px;">Advanced Ensembles</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Stacking &amp; Blending</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Voting says "average the predictions." Stacking says "train a new model
+              to <strong>learn how to combine</strong> the predictions."
+              Instead of a fixed rule (majority vote), a meta-learner figures out
+              which base models to trust and when.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#8987; 20 min</span>
+              <span class="topic-meta-item">&#9670; Intermediate</span>
+              <span class="topic-meta-item">sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — INTUITION -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#127775;</div>
+              Intuition — a manager who learned from the experts
+            </h2>
+            <p>
+              In voting, you treat all models equally (or assign fixed weights).
+              In <strong>stacking</strong>, you add a smarter step: you train a
+              <em>meta-learner</em> whose only job is to look at what all the base models
+              predicted and decide the final answer.
+            </p>
+            <p>
+              The meta-learner learns patterns like:
+              <em>"When the Decision Tree and SVM agree, trust them. When they disagree,
+              trust the Logistic Regression."</em>
+              This is much smarter than simple averaging.
+            </p>
+
+            <div class="callout info">
+              <span class="callout-icon">&#128161;</span>
+              <p><strong>Simple analogy:</strong> Five weather forecasters each give a prediction.
+              Voting says "take the average." Stacking says "hire a chief meteorologist
+              who has studied how accurate each forecaster is in different conditions,
+              and let them decide." The chief meteorologist is the meta-learner.</p>
+            </div>
+
+            <!-- ARCHITECTURE DIAGRAM -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Stacking architecture — animated step by step</span>
+                <button class="ctrl-btn active" onclick="animateStack()">&#9654; Animate</button>
+                <button class="ctrl-btn" onclick="resetStackAnim()">Reset</button>
+              </div>
+              <canvas id="stack-canvas" width="700" height="380" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);" id="stack-step-label">
+                Click Animate to see how data flows through the stacking pipeline
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — STACKING vs BLENDING -->
+          <section class="section" id="stack-vs-blend">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#8660;</div>
+              Stacking vs Blending — what is the difference?
+            </h2>
+            <p>
+              Both approaches train base models and then combine them with a meta-learner.
+              The difference is <strong>how you create the training data for the meta-learner</strong>.
+            </p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+              <div class="flow-box layer1" style="padding:18px;">
+                <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px;">Stacking — cross-validation</div>
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.8;">
+                  1. Split training data into K folds<br>
+                  2. For each fold: train on other folds, predict this fold<br>
+                  3. Build meta-features = out-of-fold predictions<br>
+                  4. No data wasted, but slower
+                </div>
+                <div style="margin-top:10px;font-size:11px;color:var(--text-3);">Uses ALL training data. No data leak. Preferred approach.</div>
+              </div>
+              <div class="flow-box layer2" style="padding:18px;">
+                <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;">Blending — holdout set</div>
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.8;">
+                  1. Split: 70% train / 20% blend / 10% test<br>
+                  2. Train base models on 70%<br>
+                  3. Predict the 20% blend set<br>
+                  4. Train meta-learner on these predictions
+                </div>
+                <div style="margin-top:10px;font-size:11px;color:var(--text-3);">Simpler to implement. Wastes some data. Good first try.</div>
+              </div>
+            </div>
+
+            <!-- Animated comparison -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Data flow: Stacking (CV) vs Blending (holdout)</span>
+                <button class="ctrl-btn active" id="btn-stack" onclick="setCompareMode('stack')">Stacking</button>
+                <button class="ctrl-btn" id="btn-blend" onclick="setCompareMode('blend')">Blending</button>
+              </div>
+              <canvas id="compare-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — LIVE STACKING DEMO -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9650;</div>
+              Live stacking — watch meta-features being built
+            </h2>
+            <p>
+              Below you can see the actual process. The base models generate predictions
+              (meta-features). These become the inputs to the meta-learner.
+              You can see the meta-learner's learned weights — how much it trusts each base model.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Meta-features heatmap — base model predictions per sample</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Samples shown:</span>
+                  <input type="range" min="5" max="30" value="15" step="1" class="ctrl-slider"
+                    id="sample-count" oninput="updateMetaHeatmap(this.value)" style="width:80px;"/>
+                  <span class="ctrl-value" id="sample-count-val">15</span>
+                </div>
+                <button class="ctrl-btn" onclick="reshuffleDemo()">New data</button>
+              </div>
+              <canvas id="meta-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Each row = one sample. Each column = one base model's prediction. The meta-learner uses this grid as its training data.
+              </div>
+            </div>
+
+            <!-- Meta-learner weights -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Meta-learner coefficients — how much it trusts each base model</span>
+                <select class="ctrl-select" id="meta-model" onchange="updateMetaWeights()">
+                  <option value="lr">Logistic Regression (meta)</option>
+                  <option value="ridge">Ridge Regression (meta)</option>
+                </select>
+              </div>
+              <canvas id="meta-weights-canvas" width="700" height="200" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — HYPERPARAMETER TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">&#9881;</div>
+              Tune your stacking setup — watch accuracy improve
+            </h2>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="hp-base-avg" style="color:var(--blue);">—</div>
+                <div class="acc-label">Avg Base Model</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-base-bar" style="background:var(--blue);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-voting" style="color:var(--teal);">—</div>
+                <div class="acc-label">Voting Ensemble</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-voting-bar" style="background:var(--teal);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-stack" style="color:var(--accent);">—</div>
+                <div class="acc-label">Stacking</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-stack-bar" style="background:var(--accent);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-gain" style="color:var(--green);">—</div>
+                <div class="acc-label">Gain over voting</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-gain-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:16px;">&#9881; Stacking configuration</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Number of base models</span><span class="hp-val" id="hp-n-val">3</span></div>
+                  <input type="range" min="2" max="6" value="3" step="1" class="ctrl-slider" id="hp-n" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More base models = richer meta-features. But diminishing returns.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Cross-validation folds (k)</span><span class="hp-val" id="hp-k-val">5</span></div>
+                  <input type="range" min="2" max="10" value="5" step="1" class="ctrl-slider" id="hp-k" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More folds = more reliable meta-features. 5 is standard.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Base model diversity</span><span class="hp-val" id="hp-div-val">High</span></div>
+                  <input type="range" min="1" max="3" value="3" step="1" class="ctrl-slider" id="hp-div" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">High diversity (different model types) helps stacking more than low diversity.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Meta-learner</span><span class="hp-val" id="hp-meta-val">LR</span></div>
+                  <input type="range" min="1" max="3" value="1" step="1" class="ctrl-slider" id="hp-meta" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">1=Logistic Reg (simple), 2=Ridge, 3=Decision Tree. Simple is usually best.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Accuracy comparison — base models vs voting vs stacking</span>
+              </div>
+              <canvas id="hp-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — MATH -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#8721;</div>
+              How stacking works — step by step
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Train base models with cross-validation</div>
+                  <div class="derive-desc">Use K-fold cross-validation. For each fold, train on K-1 folds, predict the held-out fold. This gives you "out-of-fold" predictions for every training sample without data leakage.</div>
+                  <div class="derive-formula">For each fold k in [1..K]:
+  base_model.fit( X_train[folds != k] )
+  oof_preds[folds == k] = base_model.predict( X_train[folds == k] )
+
+Result: oof_preds has predictions for EVERY training sample
+        But each prediction was made on unseen data (no leakage!)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Build the meta-feature matrix</div>
+                  <div class="derive-desc">Stack the out-of-fold predictions from all base models side by side. Each column is one base model's predictions. This new matrix becomes the training data for the meta-learner.</div>
+                  <div class="derive-formula">For 3 base models, meta-features look like:
+  [ DT_pred | LR_pred | KNN_pred ]  <- new feature matrix
+  [  0.72   |  0.81   |  0.65   ]  <- sample 1
+  [  0.23   |  0.19   |  0.31   ]  <- sample 2
+  [  0.89   |  0.95   |  0.77   ]  <- sample 3
+  ...
+
+The meta-learner trains on this and learns which model to trust</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Train the meta-learner</div>
+                  <div class="derive-desc">Train any model (usually Logistic Regression or Ridge) on the meta-features to predict y. The meta-learner's coefficients tell you how much it weights each base model.</div>
+                  <div class="derive-formula">meta_model.fit( meta_features, y_train )
+
+# Meta-learner might learn:
+# final_pred = 0.2 * DT_pred + 0.5 * LR_pred + 0.3 * KNN_pred
+# (these weights are LEARNED, not hand-set like in voting)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Making predictions on new data</div>
+                  <div class="derive-desc">For a new test point: get predictions from all base models, assemble the meta-feature row, feed it to the meta-learner. The meta-learner gives the final prediction.</div>
+                  <div class="derive-formula">For a new test sample x_test:
+  1. dt_pred  = dt_model.predict(x_test)   = 0.68
+  2. lr_pred  = lr_model.predict(x_test)   = 0.82
+  3. knn_pred = knn_model.predict(x_test)  = 0.71
+
+  meta_row = [0.68, 0.82, 0.71]
+  final    = meta_model.predict(meta_row)  = Class A</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">stacking_intro.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Data leakage in stacking.</strong> The biggest pitfall. If you train base models on the full training set and then predict the same training set for meta-features, the meta-learner sees "perfect" predictions and massively overfits. Always use out-of-fold predictions (cross-validation) or a separate holdout set.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Using a complex meta-learner.</strong> The meta-learner should be simple (Logistic Regression, Ridge). A complex meta-learner (like a deep tree) will overfit the meta-features. Keep it simple.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not using diverse base models.</strong> If all base models are Decision Trees, stacking won't help. You need different model types — trees, linear models, KNN, neural nets — that make different errors.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Over-engineering on small datasets.</strong> Stacking needs enough data for base models to generalise AND for the meta-learner to learn. With less than ~500 samples, simple cross-validated models often beat stacking.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9733;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Stacking trains a <strong>meta-learner</strong> to combine base model predictions — instead of using fixed rules like majority vote or averaging.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>out-of-fold predictions</strong> (cross-validation) to build meta-features. This prevents data leakage. Never predict on the same data you trained on.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The meta-learner should be <strong>simple</strong> — Logistic Regression or Ridge are standard choices.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Blending</strong> is the simpler version: hold out 20% of data, train base models on 80%, use the 20% predictions as meta-features. Faster to implement but wastes data.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>sklearn's <strong>StackingClassifier</strong> and <strong>StackingRegressor</strong> handle the cross-validation and meta-training automatically.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="voting-ensembles.html">
+              <span class="pn-dir">&#8592; Previous</span>
+              <span class="pn-title">Voting Ensembles</span>
+            </a>
+            <a class="pn-card next" href="random-forest.html">
+              <span class="pn-dir">Next &#8594;</span>
+              <span class="pn-title">Random Forest</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Intuition</a></li>
+            <li class="toc-item"><a href="#stack-vs-blend">Stacking vs Blending</a></li>
+            <li class="toc-item"><a href="#live-demo">Meta-features live</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Tune stacking</a></li>
+            <li class="toc-item"><a href="#math">How it works</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){ return document.getElementById(id); }
+function isDark(){ return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg(){ return isDark() ? '#18181d' : '#e9e7e1'; }
+function bgIn(){ return isDark() ? '#1e1e25' : '#e2e0d9'; }
+function tc(){ return isDark() ? '#a09e98' : '#5c5a54'; }
+function gc(){ return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'; }
+function delay(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+var seed = 42;
+function srnd(){ seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+function rseed(s){ seed = s || 42; }
+
+/* ═════════════════════════════════════
+   SECTION 1 — STACK ARCHITECTURE ANIM
+═════════════════════════════════════ */
+var stackStep = 0;
+var stackTimer = null;
+
+var STEPS = [
+  'Step 1: Training data arrives',
+  'Step 2: Train base models (DT, LR, KNN) on training folds',
+  'Step 3: Each base model predicts the held-out fold',
+  'Step 4: Collect out-of-fold predictions as meta-features',
+  'Step 5: Train meta-learner on meta-features',
+  'Step 6: Final prediction — meta-learner combines base predictions'
+];
+
+function resetStackAnim() {
+  if(stackTimer){ clearInterval(stackTimer); stackTimer = null; }
+  stackStep = 0;
+  drawStackCanvas(0);
+  C('stack-step-label').textContent = 'Click Animate to see how data flows through the stacking pipeline';
+}
+
+async function animateStack() {
+  if(stackTimer){ clearInterval(stackTimer); stackTimer = null; return; }
+  stackStep = 0;
+  var step = 0;
+  stackTimer = setInterval(function(){
+    if(step > STEPS.length){ clearInterval(stackTimer); stackTimer = null; return; }
+    drawStackCanvas(step);
+    C('stack-step-label').textContent = step < STEPS.length ? STEPS[step] : 'Done! Ready to make predictions on new data.';
+    step++;
+  }, 900);
+}
+
+function drawStackCanvas(step) {
+  var cv = C('stack-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var baseColors = ['#60a5fa', '#3ecf8e', '#fb923c'];
+  var baseNames  = ['Decision\nTree', 'Logistic\nReg', 'KNN'];
+
+  // Layout
+  var dataBox  = { x:30, y:H/2-25, w:100, h:50 };
+  var baseBoxes= [
+    {x:200, y:60,  w:110, h:50},
+    {x:200, y:165, w:110, h:50},
+    {x:200, y:270, w:110, h:50}
+  ];
+  var metaFeat = { x:390, y:H/2-40, w:110, h:80 };
+  var metaBox  = { x:570, y:H/2-25, w:110, h:50 };
+
+  function drawBox(box, label, color, filled) {
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(box.x, box.y, box.w, box.h, 8);
+    else ctx.rect(box.x, box.y, box.w, box.h);
+    if(filled) {
+      ctx.fillStyle = color + '22';
+      ctx.fill();
+    }
+    ctx.strokeStyle = filled ? color : isDark() ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = filled ? 2 : 1;
+    ctx.stroke();
+
+    var lines = label.split('\n');
+    ctx.fillStyle = filled ? color : tc();
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    lines.forEach(function(line, i) {
+      ctx.fillText(line, box.x + box.w/2, box.y + box.h/2 - (lines.length-1)*7 + i*15 + 4);
+    });
+    ctx.textAlign = 'start';
+  }
+
+  function drawArrow(x1, y1, x2, y2, color, visible) {
+    if(!visible) return;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color || 'rgba(240,165,0,0.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Arrowhead
+    var angle = Math.atan2(y2-y1, x2-x1);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 10*Math.cos(angle-0.4), y2 - 10*Math.sin(angle-0.4));
+    ctx.lineTo(x2 - 10*Math.cos(angle+0.4), y2 - 10*Math.sin(angle+0.4));
+    ctx.closePath();
+    ctx.fillStyle = color || 'rgba(240,165,0,0.6)';
+    ctx.fill();
+  }
+
+  // Data box
+  drawBox(dataBox, 'Training\nData', '#60a5fa', step >= 1);
+
+  // Base models
+  baseBoxes.forEach(function(box, i) {
+    drawBox(box, baseNames[i], baseColors[i], step >= 2);
+  });
+
+  // Arrows data -> base models
+  baseBoxes.forEach(function(box, i) {
+    drawArrow(
+      dataBox.x + dataBox.w, dataBox.y + dataBox.h/2,
+      box.x, box.y + box.h/2,
+      baseColors[i], step >= 2
+    );
+  });
+
+  // Meta-features box
+  drawBox(metaFeat, 'Meta\nFeatures', '#f0a500', step >= 4);
+
+  // Arrows base models -> meta features
+  baseBoxes.forEach(function(box, i) {
+    drawArrow(
+      box.x + box.w, box.y + box.h/2,
+      metaFeat.x, metaFeat.y + metaFeat.h/2,
+      baseColors[i], step >= 3
+    );
+  });
+
+  // Meta-learner
+  drawBox(metaBox, 'Meta\nLearner', '#34d399', step >= 5);
+
+  // Arrow meta-features -> meta-learner
+  drawArrow(
+    metaFeat.x + metaFeat.w, metaFeat.y + metaFeat.h/2,
+    metaBox.x, metaBox.y + metaBox.h/2,
+    '#f0a500', step >= 5
+  );
+
+  // Final prediction label
+  if(step >= 6) {
+    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Final', metaBox.x + metaBox.w/2, metaBox.y + metaBox.h + 20);
+    ctx.fillText('Prediction', metaBox.x + metaBox.w/2, metaBox.y + metaBox.h + 35);
+  }
+
+  // CV folds illustration (step 2-3)
+  if(step >= 2 && step <= 4) {
+    var foldY = 340;
+    ctx.fillStyle = tc();
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('K-fold cross-validation:', 200, foldY);
+    var foldColors = ['rgba(96,165,250,0.7)', 'rgba(62,207,142,0.7)', 'rgba(251,146,60,0.7)', 'rgba(233,121,249,0.7)', 'rgba(240,165,0,0.7)'];
+    for(var f = 0; f < 5; f++) {
+      ctx.fillStyle = f === (step-2) % 5 ? foldColors[f] : isDark() ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+      ctx.fillRect(200 + f*45, foldY + 8, 40, 18);
+      ctx.fillStyle = tc();
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('f' + (f+1), 200 + f*45 + 20, foldY + 21);
+    }
+    ctx.fillStyle = tc();
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('highlighted fold = validation', 440, foldY + 21);
+  }
+  ctx.textAlign = 'start';
+}
+
+/* ═════════════════════════════════════
+   SECTION 2 — COMPARE CANVAS
+═════════════════════════════════════ */
+var compareMode = 'stack';
+
+function setCompareMode(m) {
+  compareMode = m;
+  C('btn-stack').classList.toggle('active', m === 'stack');
+  C('btn-blend').classList.toggle('active', m === 'blend');
+  drawCompareCanvas();
+}
+
+function drawCompareCanvas() {
+  var cv = C('compare-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var n = 100; // number of samples shown as blocks
+  var blockW = (W - 40) / n;
+  var blockH = 28;
+
+  function drawDataRow(label, y, color, pattern) {
+    ctx.fillStyle = tc();
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(label, 34, y + blockH/2 + 4);
+
+    for(var i = 0; i < n; i++) {
+      var col;
+      if(pattern === 'all') col = color;
+      else if(pattern === 'train70') col = i < 70 ? color : isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+      else if(pattern === 'blend20') col = (i >= 70 && i < 90) ? color : isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+      else if(pattern === 'test10') col = i >= 90 ? color : isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+      else if(typeof pattern === 'number') {
+        // fold k
+        var fold = Math.floor(i / (n/5));
+        col = fold === pattern ? color : isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+      }
+      ctx.fillStyle = col;
+      ctx.fillRect(36 + i*blockW, y, blockW - 1, blockH);
+    }
+    ctx.textAlign = 'start';
+  }
+
+  if(compareMode === 'stack') {
+    ctx.fillStyle = '#60a5fa';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Stacking: K-fold cross-validation', W/2, 18);
+
+    drawDataRow('All data', 30, 'rgba(96,165,250,0.5)', 'all');
+    ctx.fillStyle = tc(); ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Fold structure (5-fold):', 36, 75);
+
+    var fColors = ['rgba(96,165,250,0.7)','rgba(62,207,142,0.7)','rgba(251,146,60,0.7)','rgba(233,121,249,0.7)','rgba(240,165,0,0.7)'];
+    for(var k = 0; k < 5; k++) {
+      drawDataRow('Fold '+(k+1)+' OOF', 80 + k*36, fColors[k], k);
+      ctx.fillStyle = fColors[k];
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('train on other folds, predict this fold', W - 220, 80 + k*36 + blockH/2 + 4);
+    }
+
+    ctx.fillStyle = tc(); ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Result: every sample gets an OOF prediction. No data wasted!', 36, 270);
+  } else {
+    ctx.fillStyle = '#f0a500';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Blending: Holdout set approach', W/2, 18);
+
+    drawDataRow('All data', 30, 'rgba(240,165,0,0.5)', 'all');
+    drawDataRow('Train (70%)', 80, 'rgba(96,165,250,0.7)', 'train70');
+    drawDataRow('Blend (20%)', 125, 'rgba(62,207,142,0.7)', 'blend20');
+    drawDataRow('Test (10%)', 170, 'rgba(240,96,96,0.7)', 'test10');
+
+    ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Step 1: Train base models on blue (70%)', 36, 225);
+    ctx.fillText('Step 2: Predict green (20%) blend set - these become meta-features', 36, 245);
+    ctx.fillText('Step 3: Train meta-learner on meta-features, evaluate on red (10%)', 36, 265);
+    ctx.fillText('Downside: 20% of data never trains the base models!', 36, 285);
+  }
+  ctx.textAlign = 'start';
+}
+
+/* ═════════════════════════════════════
+   SECTION 3 — META FEATURES HEATMAP
+═════════════════════════════════════ */
+var metaData = null;
+
+function reshuffleDemo() {
+  rseed(Date.now() & 0xffff);
+  metaData = null;
+  updateMetaHeatmap(C('sample-count').value);
+  updateMetaWeights();
+}
+
+function generateMetaData(nSamples) {
+  rseed(42);
+  var samples = [];
+  for(var i = 0; i < nSamples; i++) {
+    var trueClass = i < nSamples/2 ? 0 : 1;
+    // Simulate each base model predicting with some noise
+    var dtP  = Math.max(0, Math.min(1, trueClass + (srnd()-0.5)*0.7));
+    var lrP  = Math.max(0, Math.min(1, trueClass + (srnd()-0.5)*0.5));
+    var knnP = Math.max(0, Math.min(1, trueClass + (srnd()-0.5)*0.9));
+    samples.push({ cls: trueClass, dt: dtP, lr: lrP, knn: knnP });
+  }
+  return samples;
+}
+
+function updateMetaHeatmap(v) {
+  var n = parseInt(v);
+  C('sample-count-val').textContent = n;
+  if(!metaData) metaData = generateMetaData(30);
+  var shown = metaData.slice(0, n);
+  drawMetaHeatmap(shown);
+}
+
+function drawMetaHeatmap(samples) {
+  var cv = C('meta-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var pad = { l:80, r:80, t:50, b:20 };
+  var n = samples.length;
+  var models = ['DT', 'LR', 'KNN'];
+  var colColors = ['#60a5fa','#3ecf8e','#fb923c'];
+  var nCols = models.length;
+  var cellW = (W - pad.l - pad.r) / nCols;
+  var cellH = Math.min(18, (H - pad.t - pad.b) / n);
+
+  // Column headers
+  models.forEach(function(m, j) {
+    ctx.fillStyle = colColors[j];
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(m, pad.l + j*cellW + cellW/2, pad.t - 8);
+  });
+  ctx.fillStyle = tc();
+  ctx.textAlign = 'center';
+  ctx.fillText('True Class', W - pad.r/2 - 10, pad.t - 8);
+  ctx.textAlign = 'start';
+
+  samples.forEach(function(s, i) {
+    var y = pad.t + i * cellH;
+
+    // Row label
+    ctx.fillStyle = tc();
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('s' + (i+1), pad.l - 5, y + cellH*0.75);
+
+    var preds = [s.dt, s.lr, s.knn];
+    preds.forEach(function(p, j) {
+      var x = pad.l + j*cellW;
+      var intensity = p;
+      var r = Math.round(240 * intensity);
+      var g = Math.round(165 * (1-intensity) + 96 * intensity);
+      var b = Math.round(96 * (1-intensity) + 165 * intensity);
+      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',0.7)';
+      ctx.fillRect(x + 2, y + 1, cellW - 4, cellH - 2);
+
+      ctx.fillStyle = isDark() ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.toFixed(2), x + cellW/2, y + cellH*0.75);
+    });
+
+    // True class
+    ctx.fillStyle = s.cls === 0 ? '#60a5fa' : '#f06060';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.cls === 0 ? 'A' : 'B', W - pad.r/2 - 10, y + cellH*0.75);
+  });
+
+  ctx.textAlign = 'start';
+}
+
+function updateMetaWeights() {
+  var cv = C('meta-weights-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var mode = C('meta-model').value;
+  // Simulated meta-learner coefficients
+  var weights = mode === 'lr'
+    ? [0.42, 0.81, 0.31]   // LR trusts Logistic Reg most
+    : [0.35, 0.68, 0.28];  // Ridge trusts Logistic Reg most too
+
+  var names = ['DT prediction', 'LR prediction', 'KNN prediction'];
+  var colors = ['#60a5fa', '#3ecf8e', '#fb923c'];
+  var maxW = Math.max.apply(null, weights);
+  var pad = { l:160, r:60, t:20, b:30 };
+  var barMaxW = W - pad.l - pad.r;
+  var barH = (H - pad.t - pad.b) / weights.length - 8;
+
+  ctx.fillStyle = tc(); ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Meta-learner coefficients (how much it trusts each base model)', W/2, 14);
+
+  weights.forEach(function(w, i) {
+    var y = pad.t + i * (barH + 8);
+    var bw = w / maxW * barMaxW;
+
+    ctx.fillStyle = colors[i]; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(names[i], pad.l - 8, y + barH/2 + 4);
+
+    ctx.fillStyle = bgIn();
+    ctx.fillRect(pad.l, y, barMaxW, barH);
+    ctx.fillStyle = colors[i];
+    ctx.globalAlpha = 0.8;
+    ctx.fillRect(pad.l, y, bw, barH);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = tc(); ctx.font = '11px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('coef = ' + w.toFixed(3), pad.l + bw + 8, y + barH/2 + 4);
+  });
+
+  ctx.textAlign = 'start';
+}
+
+/* ═════════════════════════════════════
+   SECTION 4 — HYPERPARAMETER TUNING
+═════════════════════════════════════ */
+function onHPChange() {
+  var n     = parseInt(C('hp-n').value);
+  var k     = parseInt(C('hp-k').value);
+  var div   = parseInt(C('hp-div').value);
+  var meta  = parseInt(C('hp-meta').value);
+  var divLabels = ['', 'Low', 'Medium', 'High'];
+  var metaLabels = ['', 'LR', 'Ridge', 'Tree'];
+
+  C('hp-n-val').textContent   = n;
+  C('hp-k-val').textContent   = k;
+  C('hp-div-val').textContent = divLabels[div];
+  C('hp-meta-val').textContent= metaLabels[meta];
+
+  // Simulate accuracy numbers based on settings
+  var baseAvg  = 0.72 + div * 0.02;
+  var votingAcc = baseAvg + 0.03 + div * 0.01;
+  var stackGain = 0.02 + (k/10)*0.01 + div*0.015 - (meta===3?0.01:0) + n*0.004;
+  var stackAcc  = Math.min(0.97, votingAcc + stackGain);
+  var gain = stackAcc - votingAcc;
+
+  C('hp-base-avg').textContent = (baseAvg*100).toFixed(1) + '%';
+  C('hp-voting').textContent   = (votingAcc*100).toFixed(1) + '%';
+  C('hp-stack').textContent    = (stackAcc*100).toFixed(1) + '%';
+  C('hp-gain').textContent     = (gain >= 0 ? '+' : '') + (gain*100).toFixed(1) + '%';
+  C('hp-gain').style.color     = gain >= 0 ? 'var(--green)' : 'var(--red)';
+  C('hp-base-bar').style.width  = (baseAvg*100) + '%';
+  C('hp-voting-bar').style.width= (votingAcc*100) + '%';
+  C('hp-stack-bar').style.width = (stackAcc*100) + '%';
+  C('hp-gain-bar').style.width  = (Math.abs(gain)*500) + '%';
+
+  drawHPCanvas(n, baseAvg, votingAcc, stackAcc);
+}
+
+function drawHPCanvas(nModels, baseAvg, votingAcc, stackAcc) {
+  var cv = C('hp-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var pad = { l:40, r:20, t:30, b:40 };
+  var barNames = [];
+  var barVals  = [];
+  var barColors= [];
+
+  // Base models individually
+  var baseAccs = [0.72, 0.75, 0.68, 0.78, 0.71, 0.74];
+  for(var i = 0; i < nModels; i++) {
+    barNames.push('Model ' + (i+1));
+    barVals.push(baseAccs[i]);
+    barColors.push(['#60a5fa','#3ecf8e','#fb923c','#e879f9','#f0a500','#c084fc'][i]);
+  }
+  barNames.push('Voting'); barVals.push(votingAcc); barColors.push('#2dd4bf');
+  barNames.push('Stacking'); barVals.push(stackAcc); barColors.push('#f0a500');
+
+  var n = barNames.length;
+  var barW = (W - pad.l - pad.r) / n - 8;
+  var maxV = 1.0;
+  var scaleH = H - pad.t - pad.b;
+
+  // Grid lines
+  [0.5, 0.6, 0.7, 0.8, 0.9, 1.0].forEach(function(v) {
+    var y = H - pad.b - v * scaleH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y);
+    ctx.strokeStyle = gc(); ctx.lineWidth = 0.5; ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '9px mono'; ctx.textAlign = 'right';
+    ctx.fillText((v*100).toFixed(0)+'%', pad.l-3, y+3);
+  });
+
+  barNames.forEach(function(name, i) {
+    var x = pad.l + i*(barW+8);
+    var bh = barVals[i] * scaleH;
+    var y = H - pad.b - bh;
+
+    // Highlight Voting and Stacking
+    if(i >= nModels) {
+      ctx.strokeStyle = barColors[i];
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x-2, y-2, barW+4, bh+2);
+    }
+
+    ctx.fillStyle = barColors[i];
+    ctx.globalAlpha = 0.82;
+    if(ctx.roundRect) ctx.roundRect(x, y, barW, bh, [4,4,0,0]);
+    else ctx.rect(x, y, barW, bh);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = barColors[i];
+    ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText((barVals[i]*100).toFixed(0)+'%', x+barW/2, y-5);
+    ctx.fillStyle = tc(); ctx.font = '9px sans-serif';
+    ctx.fillText(name, x+barW/2, H-pad.b+14);
+    if(i >= nModels) {
+      ctx.fillStyle = barColors[i]; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText(i === nModels ? 'avg vote' : 'meta-learn', x+barW/2, H-pad.b+26);
+    }
+  });
+  ctx.textAlign = 'start';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS = [
+{file:'stacking_intro.py', label:'Stacking basics', code:`# ── Stacking Ensemble — train a meta-learner ─────────
+# The meta-learner learns HOW to combine base model predictions.
+# Key: use cross_val_predict to avoid data leakage!
+
+from sklearn.ensemble import StackingClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+
+# Load and prepare data
+X, y = load_breast_cancer(return_X_y=True)
+X = StandardScaler().fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# Base models (should be diverse!)
+base_models = [
+    ('dt',  DecisionTreeClassifier(max_depth=4, random_state=42)),
+    ('knn', KNeighborsClassifier(n_neighbors=5)),
+    ('svm', SVC(probability=True, kernel='rbf')),
+]
+
+# Meta-learner: simple Logistic Regression
+# It learns how to combine the base model predictions
+meta_learner = LogisticRegression()
+
+# StackingClassifier handles cross-validation automatically
+stacking = StackingClassifier(
+    estimators=base_models,
+    final_estimator=meta_learner,
+    cv=5,                    # 5-fold CV for out-of-fold predictions
+    stack_method='predict_proba'  # use probabilities as meta-features
+)
+
+# Check individual models first
+print("Individual model CV accuracy:")
+for name, model in base_models:
+    score = cross_val_score(model, X_train, y_train, cv=5).mean()
+    print(f"  {name}: {score:.4f}")
+
+# Train and evaluate stacking
+stacking.fit(X_train, y_train)
+print(f"\\nStacking accuracy: {stacking.score(X_test, y_test):.4f}")
+print(f"(Stacking often beats any individual model)")
+`},
+{file:'blending_from_scratch.py', label:'Blending from scratch', code:`# ── Blending — simpler version of stacking ───────────
+# Train base models on 70%, predict 20% blend set,
+# train meta-learner on those predictions.
+# No cross-validation needed, but wastes 20% of data.
+
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+
+# Data
+X, y = load_breast_cancer(return_X_y=True)
+X = StandardScaler().fit_transform(X)
+
+# Split into 3 parts: train / blend / test
+n = len(X)
+train_end = int(n * 0.70)
+blend_end = int(n * 0.90)
+
+X_train, y_train = X[:train_end], y[:train_end]
+X_blend, y_blend = X[train_end:blend_end], y[train_end:blend_end]
+X_test,  y_test  = X[blend_end:], y[blend_end:]
+
+print(f"Train:  {len(X_train)} samples")
+print(f"Blend:  {len(X_blend)} samples  (used to train meta-learner)")
+print(f"Test:   {len(X_test)} samples")
+print()
+
+# Step 1: Train base models on train set
+base_models = [
+    DecisionTreeClassifier(max_depth=4, random_state=42),
+    KNeighborsClassifier(n_neighbors=5),
+    LogisticRegression(max_iter=1000),
+]
+for model in base_models:
+    model.fit(X_train, y_train)
+
+# Step 2: Predict blend set — these become meta-features
+# Shape: (n_blend_samples, n_base_models)
+meta_train = np.column_stack([
+    model.predict_proba(X_blend)[:, 1]  # probability of class 1
+    for model in base_models
+])
+print("Meta-features for blend set (first 5 rows):")
+print("  [DT_prob  LR_prob  KNN_prob]")
+for row in meta_train[:5]:
+    print(f"  {row}")
+
+# Step 3: Train meta-learner on blend meta-features
+meta_model = LogisticRegression()
+meta_model.fit(meta_train, y_blend)
+
+# Step 4: Make final predictions on test set
+meta_test = np.column_stack([
+    model.predict_proba(X_test)[:, 1]
+    for model in base_models
+])
+final_preds = meta_model.predict(meta_test)
+accuracy = (final_preds == y_test).mean()
+
+print(f"\\nBlending accuracy: {accuracy:.4f}")
+print(f"Meta-learner weights: {meta_model.coef_[0].round(3)}")
+print("(positive = model helps, higher = more trusted)")
+`},
+{file:'stacking_vs_voting.py', label:'Stacking vs Voting', code:`# ── Compare: Voting vs Stacking on same data ─────────
+# Shows when stacking beats voting and why.
+
+from sklearn.ensemble import VotingClassifier, StackingClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+
+X, y = load_breast_cancer(return_X_y=True)
+X = StandardScaler().fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# Same base models for all ensembles
+base_models = [
+    ('dt',  DecisionTreeClassifier(max_depth=4, random_state=42)),
+    ('knn', KNeighborsClassifier(n_neighbors=5)),
+    ('svm', SVC(probability=True)),
+    ('nb',  GaussianNB()),
+]
+
+# 1. Check individual models
+print("Individual CV scores:")
+for name, model in base_models:
+    score = cross_val_score(model, X_train, y_train, cv=5).mean()
+    print(f"  {name}: {score:.4f}")
+
+# 2. Hard voting
+hard = VotingClassifier(estimators=base_models, voting='hard')
+hard.fit(X_train, y_train)
+
+# 3. Soft voting
+soft = VotingClassifier(estimators=base_models, voting='soft')
+soft.fit(X_train, y_train)
+
+# 4. Stacking with Logistic Regression meta-learner
+stack_lr = StackingClassifier(
+    estimators=base_models,
+    final_estimator=LogisticRegression(),
+    cv=5
+)
+stack_lr.fit(X_train, y_train)
+
+# 5. Stacking with Ridge meta-learner
+from sklearn.linear_model import RidgeClassifier
+stack_ridge = StackingClassifier(
+    estimators=base_models,
+    final_estimator=RidgeClassifier(),
+    cv=5
+)
+stack_ridge.fit(X_train, y_train)
+
+print(f"\\nTest set accuracy comparison:")
+print(f"  Hard voting:      {hard.score(X_test, y_test):.4f}")
+print(f"  Soft voting:      {soft.score(X_test, y_test):.4f}")
+print(f"  Stacking (LR):    {stack_lr.score(X_test, y_test):.4f}")
+print(f"  Stacking (Ridge): {stack_ridge.score(X_test, y_test):.4f}")
+print()
+print("Key: Stacking learns WHICH models to trust in WHICH regions.")
+print("Voting just takes a fixed average — less adaptive.")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='Run';
+}
+
+window.addEventListener('load', function(){
+  drawStackCanvas(0);
+  drawCompareCanvas();
+  metaData = generateMetaData(30);
+  updateMetaHeatmap(15);
+  updateMetaWeights();
+  onHPChange();
+
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawStackCanvas(stackStep);drawCompareCanvas();updateMetaHeatmap(C('sample-count').value);
+    updateMetaWeights();onHPChange();if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

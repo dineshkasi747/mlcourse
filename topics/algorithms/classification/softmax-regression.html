@@ -1,0 +1,1078 @@
+<!-- softmax-regression.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Softmax Regression — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(167,139,250,0.09),rgba(45,212,191,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(167,139,250,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* algo steps */
+    .algo-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+    .algo-step{display:flex;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;transition:border-color .2s;}
+    .algo-step:hover{border-color:rgba(167,139,250,0.4);}
+    .algo-step-num{width:38px;height:38px;border-radius:50%;background:var(--purple-surf);border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:15px;font-weight:800;color:var(--purple);flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--purple-surf);color:var(--purple);margin-bottom:7px;letter-spacing:.04em;}
+    .algo-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:10px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid var(--purple);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+    /* prob bars */
+    .prob-bar-wrap{margin-bottom:8px;}
+    .prob-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+    .prob-bar-track{height:22px;background:var(--bg-input);border-radius:3px;overflow:hidden;}
+    .prob-bar-fill{height:100%;border-radius:3px;transition:width .4s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#000;white-space:nowrap;}
+    /* softmax table */
+    .sm-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:18px;}
+    .sm-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:9px 14px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:center;}
+    .sm-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-2);text-align:center;font-family:var(--font-mono);font-size:13px;}
+    .sm-table tr:hover td{background:var(--bg-hover);}
+    .sm-table tr:last-child td{border-bottom:none;}
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--purple);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.compare-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="softmax-regression">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Softmax Regression</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Classification</a><span class="sep">/</span>
+            <span class="current">Softmax Regression</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(167,139,250,.25);margin-bottom:14px;">Classification &middot; Multiclass</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Softmax Regression</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">The natural extension of logistic regression to K classes. Instead of one sigmoid, run K linear functions and normalise them into a probability distribution that always sums to 1.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">18 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">numpy &middot; sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: LIVE SOFTMAX CALCULATOR -->
+          <section class="section" id="softmax-calc">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">e</div>
+              Live softmax calculator &mdash; edit the logits
+            </h2>
+            <p>Type raw logit scores (z values) for each class and watch softmax convert them into probabilities that sum to exactly 1. Change temperature to see how it sharpens or flattens the distribution.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Softmax probability visualiser</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Classes:</span>
+                  <select class="ctrl-select" id="num-classes" onchange="updateNumClasses(this.value)">
+                    <option value="3">3 classes</option>
+                    <option value="4" selected>4 classes</option>
+                    <option value="5">5 classes</option>
+                    <option value="6">6 classes</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Temperature T:</span>
+                  <input type="range" min="1" max="50" value="10" class="ctrl-slider" id="temp-slider" style="width:90px;" oninput="updateTemp(this.value)"/>
+                  <span class="ctrl-value" id="temp-val" style="color:var(--purple);">1.0</span>
+                </div>
+                <button class="ctrl-btn" onclick="randomLogits()">Random logits</button>
+                <button class="ctrl-btn" onclick="equalLogits()">Equal logits</button>
+              </div>
+
+              <!-- Logit sliders -->
+              <div style="padding:20px;" id="logit-controls"></div>
+
+              <!-- Prob bars -->
+              <div style="padding:0 20px 20px;" id="prob-bars"></div>
+
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-winner" style="color:var(--purple);font-size:14px;">--</span><span class="stat-pill-lbl">Predicted class</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-max-prob">--</span><span class="stat-pill-lbl">Confidence</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-entropy">--</span><span class="stat-pill-lbl">Entropy (bits)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-sum" style="color:var(--green);">1.000</span><span class="stat-pill-lbl">Sum of probs</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Temperature T scales the logits before softmax.</strong> Low T (T&rarr;0) = one-hot (winner takes all). High T = uniform distribution (maximum uncertainty). Neural networks use temperature scaling for calibration.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: DECISION BOUNDARY -->
+          <section class="section" id="decision-boundary">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">~</div>
+              Live decision boundary &mdash; 3-class classifier
+            </h2>
+            <p><strong>Click to add points</strong> to any class. The softmax classifier trains in real time and draws the multiclass decision boundary. Watch how the boundary shifts as you add points.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Softmax decision boundary</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Add class:</span>
+                  <div style="display:flex;gap:4px;">
+                    <button class="ctrl-btn active" id="cls-btn-0" onclick="setActiveClass(0)" style="background:rgba(167,139,250,0.2);border-color:var(--purple);color:var(--purple);">Class A</button>
+                    <button class="ctrl-btn" id="cls-btn-1" onclick="setActiveClass(1)" style="">Class B</button>
+                    <button class="ctrl-btn" id="cls-btn-2" onclick="setActiveClass(2)" style="">Class C</button>
+                  </div>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">LR:</span>
+                  <input type="range" min="1" max="30" value="10" class="ctrl-slider" id="db-lr-slider" style="width:80px;" oninput="updateDBLR(this.value)"/>
+                  <span class="ctrl-value" id="db-lr-val" style="color:var(--purple);">0.10</span>
+                </div>
+                <button class="ctrl-btn active" id="db-train-btn" onclick="toggleDBTrain()">Train</button>
+                <button class="ctrl-btn" onclick="resetDB()">Reset</button>
+                <button class="ctrl-btn" onclick="addDBPreset()">Load preset</button>
+              </div>
+              <canvas id="db-canvas" width="700" height="380" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="db-epoch" style="color:var(--purple);">0</span><span class="stat-pill-lbl">Epochs</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="db-loss">--</span><span class="stat-pill-lbl">Cross-entropy loss</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="db-acc" style="color:var(--green);">--</span><span class="stat-pill-lbl">Train accuracy</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="db-n">0</span><span class="stat-pill-lbl">Points</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: SOFTMAX STEP BY STEP -->
+          <section class="section" id="step-by-step">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">4</div>
+              How softmax works &mdash; step by step
+            </h2>
+            <p>An interactive walkthrough of the forward pass for a single input sample with 3 classes.</p>
+
+            <!-- Animated computation trace -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:16px;">Forward pass trace &mdash; drag sliders to change input</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;" id="trace-inputs"></div>
+              <div id="trace-steps"></div>
+            </div>
+
+            <div class="algo-steps">
+              <div class="algo-step">
+                <div class="algo-step-num">1</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Linear scores</div>
+                  <div class="algo-step-title">Compute one raw score per class</div>
+                  <div class="algo-step-desc">For each class k, compute a linear score (logit) z_k = w_k . x + b_k. Each class has its own weight vector w_k. These raw scores can be any real number &mdash; positive or negative.</div>
+                  <div class="algo-step-formula">z_k = w_k . x + b_k     for k = 1..K
+Z = W @ x + b           # matrix form: shape (K,)</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">2</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Exponentiate</div>
+                  <div class="algo-step-title">Take e^z for each logit</div>
+                  <div class="algo-step-desc">Exponentiation makes all values positive and amplifies differences between scores. A logit 2 units higher becomes e^2 = 7.4x more probable. This is the key step that gives softmax its "winner-amplifying" property.</div>
+                  <div class="algo-step-formula">exp_z_k = exp(z_k)      for k = 1..K
+# Numerically stable version (subtract max first):
+exp_z_k = exp(z_k - max(z))</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">3</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Normalise</div>
+                  <div class="algo-step-title">Divide by the sum to get probabilities</div>
+                  <div class="algo-step-desc">Divide each exponentiated value by the total sum. This ensures all probabilities are in (0,1) and sum to exactly 1.0 &mdash; a valid probability distribution.</div>
+                  <div class="algo-step-formula">p_k = exp(z_k) / sum_j exp(z_j)
+
+softmax(z)_k = exp(z_k) / sum_j exp(z_j)
+# All p_k in (0, 1) and sum(p) = 1.0 always</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">4</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Cross-entropy loss</div>
+                  <div class="algo-step-title">Penalise low probability on the true class</div>
+                  <div class="algo-step-desc">The loss is -log(p_true). If the model assigns p=0.9 to the correct class: loss = -log(0.9) = 0.105. If it assigns p=0.1: loss = -log(0.1) = 2.30. Low confidence on the right answer is heavily penalised.</div>
+                  <div class="algo-step-formula">L = -log( p_true ) = -log( softmax(z)[y] )
+
+# For a batch of n samples:
+L = -(1/n) * sum_i log( p[i, y_i] )</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: TEMPERATURE EXPLORER -->
+          <section class="section" id="temperature">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">T</div>
+              Temperature scaling &mdash; sharpness vs uncertainty
+            </h2>
+            <p>Temperature T divides logits before softmax: p_k = exp(z_k/T) / sum. Drag the slider and see three regimes in real time.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Temperature effect on probability distribution</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Temperature:</span>
+                  <input type="range" min="1" max="100" value="10" class="ctrl-slider" id="temp2-slider" style="width:120px;" oninput="updateTempViz(this.value)"/>
+                  <span class="ctrl-value" id="temp2-val" style="color:var(--orange);">1.0</span>
+                </div>
+              </div>
+              <canvas id="temp-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="tv-max">--</span><span class="stat-pill-lbl">Max prob</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="tv-min">--</span><span class="stat-pill-lbl">Min prob</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="tv-entropy">--</span><span class="stat-pill-lbl">Entropy (bits)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="tv-regime" style="font-size:13px;">--</span><span class="stat-pill-lbl">Regime</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: VS LOGISTIC REGRESSION -->
+          <section class="section" id="vs-logistic">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">=</div>
+              Softmax vs Logistic Regression
+            </h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;" class="compare-grid">
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;">
+                <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--blue);margin-bottom:4px;">Logistic Regression</div>
+                <div style="font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--blue-surf);color:var(--blue);display:inline-block;margin-bottom:12px;">Binary only &mdash; 2 classes</div>
+                <div style="font-family:var(--font-mono);font-size:12.5px;background:var(--bg-input);padding:10px 12px;border-radius:var(--r-sm);color:var(--text-1);margin-bottom:10px;line-height:1.7;">p(y=1) = sigmoid(w.x + b)
+sigmoid(z) = 1/(1+e^-z)
+Output: single prob in (0,1)</div>
+                <div style="font-size:12.5px;color:var(--text-3);line-height:1.6;">One weight vector w. Output is P(y=1) directly. P(y=0) = 1 - P(y=1) is implied.</div>
+              </div>
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;">
+                <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--purple);margin-bottom:4px;">Softmax Regression</div>
+                <div style="font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--purple-surf);color:var(--purple);display:inline-block;margin-bottom:12px;">Multiclass &mdash; K classes</div>
+                <div style="font-family:var(--font-mono);font-size:12.5px;background:var(--bg-input);padding:10px 12px;border-radius:var(--r-sm);color:var(--text-1);margin-bottom:10px;line-height:1.7;">p(y=k) = softmax(W.x+b)[k]
+softmax(z)_k = e^z_k/sum(e^z)
+Output: K probs summing to 1</div>
+                <div style="font-size:12.5px;color:var(--text-3);line-height:1.6;">K weight vectors (one per class). Output is a full probability distribution over all K classes simultaneously.</div>
+              </div>
+            </div>
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Logistic regression is a special case of softmax with K=2.</strong> When K=2, softmax reduces to exactly sigmoid on the score difference (z_1 - z_0). In sklearn, LogisticRegression with multi_class='multinomial' is softmax regression.</p>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: NumPy from scratch, sklearn on Iris, numerical stability tricks, and neural network output layer comparison.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">softmax_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Numerical overflow: exp(1000) = inf.</strong> Never compute softmax as exp(z)/sum(exp(z)) directly on raw logits. Always subtract max(z) first: softmax(z) = softmax(z - max(z)). Mathematically identical, numerically safe.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using softmax + BCE loss (double softmax).</strong> PyTorch's CrossEntropyLoss applies log_softmax internally. If you add a softmax layer before it, you softmax twice and the gradients are wrong. Use raw logits with CrossEntropyLoss.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Treating softmax probabilities as calibrated confidence.</strong> A model outputting p=0.95 does not mean 95% accuracy. Softmax probabilities are often overconfident. Use temperature scaling or Platt scaling to calibrate.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using softmax for multi-label problems.</strong> Softmax assumes exactly one class is correct (mutually exclusive). For multi-label (a photo can be both "cat" AND "outdoor"), use sigmoid on each output independently.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Softmax converts K raw scores (logits) into a probability distribution that always sums to 1.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Formula: p_k = exp(z_k) / sum_j exp(z_j). Always subtract max(z) first for numerical stability.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Trained with cross-entropy loss: L = -log(p_true). Low confidence on the correct class is heavily penalised.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Temperature T controls sharpness: T&lt;1 sharpens (overconfident), T=1 standard, T&gt;1 flattens (uncertain).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Logistic regression is softmax with K=2. In sklearn, use multi_class='multinomial' for softmax.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use sigmoid (not softmax) for multi-label problems where multiple classes can be true simultaneously.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="logistic-regression.html"><span class="pn-dir">Previous</span><span class="pn-title">Logistic Regression</span></a>
+            <a class="pn-card next" id="next-card" href="naive-bayes.html"><span class="pn-dir">Next</span><span class="pn-title">Naive Bayes</span></a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#softmax-calc">Live calculator</a></li>
+            <li class="toc-item"><a href="#decision-boundary">Decision boundary</a></li>
+            <li class="toc-item"><a href="#step-by-step">How it works</a></li>
+            <li class="toc-item"><a href="#temperature">Temperature scaling</a></li>
+            <li class="toc-item"><a href="#vs-logistic">vs Logistic</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+var CLASS_COLORS = ['#a78bfa','#3ecf8e','#fb8c40','#4b96ff','#f06060','#2dd4bf'];
+var CLASS_NAMES  = ['Class A','Class B','Class C','Class D','Class E','Class F'];
+
+/* ═══════════════════════════════════════
+   SOFTMAX MATH
+═══════════════════════════════════════ */
+function softmax(z, T){
+  T = T||1;
+  var scaled = z.map(function(v){return v/T;});
+  var m = Math.max.apply(null, scaled);
+  var exps = scaled.map(function(v){return Math.exp(v-m);});
+  var sum = exps.reduce(function(a,b){return a+b;}, 0);
+  return exps.map(function(e){return e/sum;});
+}
+
+function entropy(probs){
+  return -probs.reduce(function(s,p){return s + (p>1e-10 ? p*Math.log2(p) : 0);}, 0);
+}
+
+function crossEntropy(probs, trueIdx){
+  return -Math.log(Math.max(probs[trueIdx], 1e-10));
+}
+
+/* ═══════════════════════════════════════
+   SECTION 1: SOFTMAX CALCULATOR
+═══════════════════════════════════════ */
+var numClasses = 4;
+var logitValues = [2.1, 0.5, -1.2, 0.8];
+var temperature = 1.0;
+
+function buildLogitControls(){
+  var div = C('logit-controls');
+  div.innerHTML = '';
+  for(var i=0;i<numClasses;i++){
+    var col = CLASS_COLORS[i];
+    var v = logitValues[i]||0;
+    div.innerHTML += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+      +'<div style="width:70px;font-family:var(--font-display);font-size:13px;font-weight:600;color:'+col+';">'+CLASS_NAMES[i]+'</div>'
+      +'<input type="range" min="-50" max="50" value="'+Math.round(v*10)+'" class="ctrl-slider" style="flex:1;" data-idx="'+i+'" oninput="onLogitSlider(this)"/>'
+      +'<input type="number" value="'+v.toFixed(1)+'" step="0.1" style="width:60px;background:var(--bg-input);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:4px 8px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);outline:none;" data-idx="'+i+'" oninput="onLogitInput(this)"/>'
+      +'<span style="font-size:11px;color:var(--text-3);width:30px;">z'+i+'</span>'
+      +'</div>';
+  }
+  updateSoftmaxViz();
+}
+
+function onLogitSlider(el){
+  var i = parseInt(el.dataset.idx);
+  logitValues[i] = parseInt(el.value)/10;
+  var inputs = C('logit-controls').querySelectorAll('input[type="number"]');
+  inputs[i].value = logitValues[i].toFixed(1);
+  updateSoftmaxViz();
+}
+
+function onLogitInput(el){
+  var i = parseInt(el.dataset.idx);
+  logitValues[i] = parseFloat(el.value)||0;
+  updateSoftmaxViz();
+}
+
+function updateTemp(v){
+  temperature = parseInt(v)/10;
+  C('temp-val').textContent = temperature.toFixed(1);
+  updateSoftmaxViz();
+}
+
+function updateNumClasses(v){
+  numClasses = parseInt(v);
+  while(logitValues.length < numClasses) logitValues.push((Math.random()*4-2).toFixed(1)*1);
+  logitValues = logitValues.slice(0,numClasses);
+  buildLogitControls();
+}
+
+function randomLogits(){
+  for(var i=0;i<numClasses;i++) logitValues[i] = (Math.random()*6-3);
+  buildLogitControls();
+}
+
+function equalLogits(){
+  for(var i=0;i<numClasses;i++) logitValues[i] = 1.0;
+  buildLogitControls();
+}
+
+function updateSoftmaxViz(){
+  var probs = softmax(logitValues.slice(0,numClasses), temperature);
+  var winner = probs.indexOf(Math.max.apply(null,probs));
+  var ent = entropy(probs);
+
+  C('sm-winner').textContent = CLASS_NAMES[winner];
+  C('sm-max-prob').textContent = (probs[winner]*100).toFixed(1)+'%';
+  C('sm-entropy').textContent = ent.toFixed(3);
+  C('sm-sum').textContent = probs.reduce(function(a,b){return a+b;},0).toFixed(4);
+
+  // Build prob bars
+  var barsDiv = C('prob-bars');
+  barsDiv.innerHTML = probs.map(function(p,i){
+    var col = CLASS_COLORS[i];
+    var pct = (p*100).toFixed(1);
+    var isWinner = i===winner;
+    return '<div class="prob-bar-wrap">'
+      +'<div class="prob-bar-label">'
+      +'<span style="font-family:var(--font-display);font-size:13px;font-weight:'+(isWinner?'700':'500')+';color:'+col+';">'+CLASS_NAMES[i]+'</span>'
+      +'<span style="font-family:var(--font-mono);font-size:13px;color:'+col+';font-weight:700;">'+pct+'%&nbsp;&nbsp;exp('+logitValues[i].toFixed(1)+')'+(isWinner?' ★':'')+'</span>'
+      +'</div>'
+      +'<div class="prob-bar-track">'
+      +'<div class="prob-bar-fill" style="width:'+pct+'%;background:'+col+(isWinner?'':' opacity:.7')+';opacity:'+(isWinner?1:0.7)+' ">'+pct+'%</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  // Also update trace if showing
+  updateTrace();
+}
+
+/* ═══════════════════════════════════════
+   SECTION 1: FORWARD PASS TRACE
+═══════════════════════════════════════ */
+var traceW = [[0.8,-0.3,0.5],[0.2,0.9,-0.4],[-0.5,0.3,0.7],[0.4,-0.6,0.2]];
+var traceB = [0.1,-0.2,0.3,-0.1];
+var traceX = [1.5, 0.8, -0.5];
+
+function buildTrace(){
+  var div = C('trace-inputs');
+  if(!div) return;
+  div.innerHTML = traceX.map(function(v,i){
+    return '<div>'
+      +'<div style="font-size:12px;color:var(--text-3);margin-bottom:5px;">x['+i+'] = <span id="tx'+i+'" style="color:var(--purple);font-weight:700;font-family:var(--font-mono);">'+v.toFixed(1)+'</span></div>'
+      +'<input type="range" min="-30" max="30" value="'+Math.round(v*10)+'" class="ctrl-slider" style="width:100%;" oninput="onTraceInput(this,'+i+')">'
+      +'</div>';
+  }).join('');
+  updateTrace();
+}
+
+function onTraceInput(el,i){
+  traceX[i] = parseInt(el.value)/10;
+  C('tx'+i).textContent = traceX[i].toFixed(1);
+  updateTrace();
+}
+
+function updateTrace(){
+  var div = C('trace-steps');
+  if(!div) return;
+  var K = 3;
+  // Compute logits z = W x + b
+  var z = [];
+  for(var k=0;k<K;k++){
+    var s=traceB[k];
+    for(var j=0;j<traceX.length;j++) s+=traceW[k][j]*traceX[j];
+    z.push(s);
+  }
+  var m = Math.max.apply(null,z);
+  var exps = z.map(function(v){return Math.exp(v-m);});
+  var sum = exps.reduce(function(a,b){return a+b;},0);
+  var probs = exps.map(function(e){return e/sum;});
+  var winner = probs.indexOf(Math.max.apply(null,probs));
+
+  var rows = [
+    {label:'Logits z', vals:z.map(function(v){return v.toFixed(3);}), color:'#a78bfa'},
+    {label:'exp(z - max)', vals:exps.map(function(v){return v.toFixed(4);}), color:'#fb8c40'},
+    {label:'sum(exp) = '+sum.toFixed(4), vals:['','',''], color:tc(), single:sum.toFixed(4)},
+    {label:'Probabilities', vals:probs.map(function(v){return (v*100).toFixed(1)+'%';}), color:'#3ecf8e'},
+    {label:'Loss -log(p_winner)', vals:['','',''], color:'#f06060', single:(-Math.log(probs[winner])).toFixed(4)}
+  ];
+
+  div.innerHTML = rows.map(function(row){
+    var cells = row.single!==undefined
+      ? '<td colspan="3" style="text-align:center;color:'+row.color+';font-weight:700;">'+row.single+'</td>'
+      : row.vals.map(function(v,i){return '<td style="color:'+(i===winner&&row.label==='Probabilities'?'#3ecf8e;font-weight:700':row.color)+';padding:8px 16px;">'+v+'</td>';}).join('');
+    return '<tr><td style="padding:8px 14px;color:var(--text-2);font-weight:600;white-space:nowrap;border-bottom:1px solid var(--border);width:180px;">'+row.label+'</td>'+cells+'</tr>';
+  }).join('');
+
+  div.innerHTML = '<table style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:13px;"><thead><tr>'
+    +'<th style="padding:8px 14px;text-align:left;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border-md);">Step</th>'
+    +'<th style="padding:8px 14px;text-align:left;font-size:11px;color:#a78bfa;border-bottom:1px solid var(--border-md);">Class A</th>'
+    +'<th style="padding:8px 14px;text-align:left;font-size:11px;color:#3ecf8e;border-bottom:1px solid var(--border-md);">Class B</th>'
+    +'<th style="padding:8px 14px;text-align:left;font-size:11px;color:#fb8c40;border-bottom:1px solid var(--border-md);">Class C</th>'
+    +'</tr></thead><tbody>'+rows.map(function(row){
+      var cells = row.single!==undefined
+        ? '<td colspan="3" style="text-align:center;color:'+row.color+';font-weight:700;padding:8px 14px;border-bottom:1px solid var(--border);">'+row.single+'</td>'
+        : row.vals.map(function(v,i){
+            var c=i===0?'#a78bfa':i===1?'#3ecf8e':'#fb8c40';
+            var bold=i===winner&&row.label==='Probabilities';
+            return '<td style="color:'+c+';font-weight:'+(bold?'700':'400')+';padding:8px 14px;border-bottom:1px solid var(--border);">'+(bold?'★ ':'')+v+'</td>';
+          }).join('');
+      return '<tr><td style="padding:8px 14px;color:var(--text-2);font-weight:600;border-bottom:1px solid var(--border);">'+row.label+'</td>'+cells+'</tr>';
+    }).join('')+'</tbody></table>';
+}
+
+/* ═══════════════════════════════════════
+   SECTION 2: DECISION BOUNDARY
+═══════════════════════════════════════ */
+var DBC = C('db-canvas'), DBX = DBC.getContext('2d');
+var dbPts = [], activeClass = 0, dbW, dbB, dbTraining=false, dbAnim=null, dbLR=0.1, dbEpoch=0;
+
+function setActiveClass(c){
+  activeClass = c;
+  [0,1,2].forEach(function(i){
+    var btn = C('cls-btn-'+i);
+    if(!btn) return;
+    btn.classList.toggle('active', i===c);
+    btn.style.background = i===c ? CLASS_COLORS[i]+'33' : '';
+    btn.style.borderColor = i===c ? CLASS_COLORS[i] : '';
+    btn.style.color = i===c ? CLASS_COLORS[i] : '';
+  });
+}
+
+function addDBPreset(){
+  resetDB();
+  var W=DBC.width, H=DBC.height;
+  var centers = [[W*0.25,H*0.3],[W*0.72,H*0.28],[W*0.5,H*0.72]];
+  centers.forEach(function(c,cls){
+    for(var i=0;i<20;i++){
+      dbPts.push({
+        x: c[0]+(Math.random()-0.5)*140,
+        y: c[1]+(Math.random()-0.5)*140,
+        c: cls
+      });
+    }
+  });
+  initWeights();
+  drawDB();
+}
+
+function initWeights(){
+  // W: 3x2, b: 3x1
+  dbW = [[0,0],[0,0],[0,0]];
+  dbB = [0,0,0];
+  dbEpoch = 0;
+  C('db-epoch').textContent=0;
+  C('db-loss').textContent='--';
+  C('db-acc').textContent='--';
+}
+
+function resetDB(){
+  dbPts=[];dbTraining=false;clearTimeout(dbAnim);
+  C('db-train-btn').textContent='Train';
+  initWeights();
+  drawDB();
+}
+
+function toggleDBTrain(){
+  dbTraining = !dbTraining;
+  C('db-train-btn').textContent = dbTraining?'Pause':'Train';
+  if(dbTraining) dbStep();
+}
+
+function updateDBLR(v){dbLR=parseInt(v)/100;C('db-lr-val').textContent=dbLR.toFixed(2);}
+
+function dbForward(x,y){
+  var logits = dbW.map(function(w,k){return w[0]*x+w[1]*y+dbB[k];});
+  return softmax(logits,1);
+}
+
+function dbStep(){
+  if(!dbPts.length||!dbTraining) return;
+  // Mini-batch gradient descent
+  for(var iter=0;iter<5;iter++){
+    var dW=[[0,0],[0,0],[0,0]], dB=[0,0,0];
+    var totalLoss=0, correct=0;
+    dbPts.forEach(function(p){
+      var probs = dbForward(p.x/DBC.width,p.y/DBC.height);
+      totalLoss += -Math.log(Math.max(probs[p.c],1e-10));
+      var pred = probs.indexOf(Math.max.apply(null,probs));
+      if(pred===p.c) correct++;
+      // Gradient: dL/dz = p - one_hot(y)
+      probs.forEach(function(pk,k){
+        var delta = pk - (k===p.c?1:0);
+        dW[k][0] += delta * (p.x/DBC.width);
+        dW[k][1] += delta * (p.y/DBC.height);
+        dB[k]    += delta;
+      });
+    });
+    var n = dbPts.length;
+    for(var k=0;k<3;k++){
+      dbW[k][0] -= dbLR*dW[k][0]/n;
+      dbW[k][1] -= dbLR*dW[k][1]/n;
+      dbB[k]    -= dbLR*dB[k]/n;
+    }
+    dbEpoch++;
+    C('db-epoch').textContent=dbEpoch;
+    C('db-loss').textContent=(totalLoss/n).toFixed(4);
+    C('db-acc').textContent=(correct/n*100).toFixed(1)+'%';
+  }
+  drawDB();
+  if(dbTraining) dbAnim=setTimeout(dbStep,60);
+}
+
+function drawDB(){
+  var W=DBC.width,H=DBC.height,res=6;
+  DBX.clearRect(0,0,W,H);
+  DBX.fillStyle=bg();DBX.fillRect(0,0,W,H);
+
+  // Decision boundary background
+  if(dbPts.length>=3){
+    for(var px=0;px<W;px+=res){
+      for(var py=0;py<H;py+=res){
+        var probs=dbForward(px/W,py/H);
+        var cls=probs.indexOf(Math.max.apply(null,probs));
+        DBX.fillStyle=CLASS_COLORS[cls]+'25';
+        DBX.fillRect(px,py,res,res);
+      }
+    }
+  }
+
+  // Grid
+  DBX.strokeStyle=gc();DBX.lineWidth=0.5;
+  for(var i=0;i<10;i++){
+    var x=i*(W/10),y=i*(H/10);
+    DBX.beginPath();DBX.moveTo(x,0);DBX.lineTo(x,H);DBX.stroke();
+    DBX.beginPath();DBX.moveTo(0,y);DBX.lineTo(W,y);DBX.stroke();
+  }
+
+  // Points
+  dbPts.forEach(function(p){
+    DBX.beginPath();DBX.arc(p.x,p.y,6,0,Math.PI*2);
+    DBX.fillStyle=CLASS_COLORS[p.c];DBX.fill();
+    DBX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';DBX.lineWidth=1.5;DBX.stroke();
+  });
+
+  // Legend
+  [0,1,2].forEach(function(i){
+    DBX.fillStyle=CLASS_COLORS[i];DBX.beginPath();DBX.arc(14,14+i*22,6,0,Math.PI*2);DBX.fill();
+    DBX.fillStyle=tc();DBX.font='12px sans-serif';DBX.textAlign='left';
+    DBX.fillText(CLASS_NAMES[i],26,18+i*22);
+  });
+
+  if(!dbPts.length){
+    DBX.fillStyle=tc();DBX.font='14px sans-serif';DBX.textAlign='center';
+    DBX.fillText('Click to add points, or click Load preset',W/2,H/2);
+  }
+
+  C('db-n').textContent=dbPts.length;
+}
+
+DBC.addEventListener('click',function(e){
+  var r=DBC.getBoundingClientRect(),sx=DBC.width/r.width,sy=DBC.height/r.height;
+  dbPts.push({x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy,c:activeClass});
+  if(dbPts.length>=3) initWeights();
+  drawDB();
+});
+
+/* ═══════════════════════════════════════
+   SECTION 4: TEMPERATURE VISUALISER
+═══════════════════════════════════════ */
+var TC2 = C('temp-canvas'), TX2 = TC2.getContext('2d');
+var tempLogits = [3.0, 1.5, 0.2, -0.8, -2.1];
+
+function updateTempViz(v){
+  var T = parseInt(v)/10;
+  C('temp2-val').textContent = T.toFixed(1);
+  var probs = softmax(tempLogits, T);
+  var maxP = Math.max.apply(null,probs);
+  var minP = Math.min.apply(null,probs);
+  var ent = entropy(probs);
+  C('tv-max').textContent = (maxP*100).toFixed(1)+'%';
+  C('tv-min').textContent = (minP*100).toFixed(1)+'%';
+  C('tv-entropy').textContent = ent.toFixed(3);
+  var regime = T<0.5?'Sharp (overconfident)':T<2?'Balanced':T<5?'Soft':T<10?'Uncertain':'Near uniform';
+  C('tv-regime').textContent = regime;
+
+  drawTempViz(probs, T);
+}
+
+function drawTempViz(probs, T){
+  var W=TC2.width,H=TC2.height,pad=40;
+  TX2.clearRect(0,0,W,H);TX2.fillStyle=bg();TX2.fillRect(0,0,W,H);
+
+  var n=probs.length,bw=(W-2*pad)/n;
+  probs.forEach(function(p,i){
+    var h=(p)*(H-2*pad)*0.9;
+    var col=CLASS_COLORS[i];
+    TX2.fillStyle=col+'cc';
+    TX2.fillRect(pad+i*bw+bw*0.1,H-pad-h,bw*0.8,h);
+    TX2.strokeStyle=col;TX2.lineWidth=1.5;
+    TX2.strokeRect(pad+i*bw+bw*0.1,H-pad-h,bw*0.8,h);
+    TX2.fillStyle=tc();TX2.font='10px sans-serif';TX2.textAlign='center';
+    TX2.fillText(CLASS_NAMES[i].split(' ')[1],pad+i*bw+bw/2,H-pad+14);
+    TX2.fillStyle=col;TX2.font='bold 10px monospace';
+    TX2.fillText((p*100).toFixed(1)+'%',pad+i*bw+bw/2,H-pad-h-6);
+  });
+
+  // T label
+  TX2.fillStyle=tc();TX2.font='11px sans-serif';TX2.textAlign='left';
+  TX2.fillText('T = '+T.toFixed(1),pad,pad-10);
+
+  // Uniform line
+  var uniformY=H-pad-(1/n)*(H-2*pad)*0.9;
+  TX2.beginPath();TX2.strokeStyle='rgba(240,165,0,0.5)';TX2.lineWidth=1.5;TX2.setLineDash([5,4]);
+  TX2.moveTo(pad,uniformY);TX2.lineTo(W-pad,uniformY);TX2.stroke();TX2.setLineDash([]);
+  TX2.fillStyle='rgba(240,165,0,0.8)';TX2.font='10px sans-serif';
+  TX2.fillText('Uniform (1/K = '+((1/n)*100).toFixed(0)+'%)',W-pad-130,uniformY-4);
+}
+
+/* ═══════════════════════════════════════
+   LIVE EDITOR
+═══════════════════════════════════════ */
+var SNIPPETS=[
+  {file:'softmax_scratch.py',label:'From scratch',code:`import numpy as np
+
+def softmax(z):
+    # Numerically stable: subtract max before exp
+    z_stable = z - np.max(z)
+    exp_z = np.exp(z_stable)
+    return exp_z / exp_z.sum()
+
+def cross_entropy(probs, y_true):
+    return -np.log(probs[y_true] + 1e-10)
+
+class SoftmaxRegression:
+    def __init__(self, n_classes, lr=0.1, epochs=500):
+        self.K = n_classes
+        self.lr = lr
+        self.epochs = epochs
+        self.W = None
+        self.b = None
+
+    def fit(self, X, y):
+        n, d = X.shape
+        self.W = np.zeros((self.K, d))
+        self.b = np.zeros(self.K)
+
+        for epoch in range(self.epochs):
+            # Forward pass
+            logits = X @ self.W.T + self.b   # (n, K)
+            probs = np.array([softmax(logits[i]) for i in range(n)])
+
+            # Loss
+            loss = -np.mean(np.log(probs[np.arange(n), y] + 1e-10))
+
+            # Gradients
+            delta = probs.copy()
+            delta[np.arange(n), y] -= 1       # (n, K)
+            dW = (delta.T @ X) / n             # (K, d)
+            db = delta.mean(axis=0)            # (K,)
+
+            self.W -= self.lr * dW
+            self.b -= self.lr * db
+
+            if epoch % 100 == 0:
+                acc = (probs.argmax(axis=1) == y).mean()
+                print(f"Epoch {epoch:4d}  loss={loss:.4f}  acc={acc:.2%}")
+
+        return self
+
+    def predict_proba(self, X):
+        logits = X @ self.W.T + self.b
+        return np.array([softmax(logits[i]) for i in range(len(X))])
+
+    def predict(self, X):
+        return self.predict_proba(X).argmax(axis=1)
+
+# Test on synthetic 3-class data
+np.random.seed(42)
+n = 150
+X = np.vstack([
+    np.random.randn(n//3, 2) + [2, 2],
+    np.random.randn(n//3, 2) + [-2, 2],
+    np.random.randn(n//3, 2) + [0, -2],
+])
+y = np.array([0]*(n//3) + [1]*(n//3) + [2]*(n//3))
+
+model = SoftmaxRegression(n_classes=3, lr=0.1, epochs=500)
+model.fit(X, y)
+print(f"Final accuracy: {(model.predict(X)==y).mean():.2%}")`},
+  {file:'softmax_sklearn.py',label:'Sklearn (Iris)',code:`from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, confusion_matrix
+import numpy as np
+
+iris = load_iris()
+X, y = iris.data, iris.target
+
+scaler = StandardScaler()
+X_s = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_s, y, test_size=0.2, random_state=42, stratify=y)
+
+# multi_class='multinomial' = softmax regression
+model = LogisticRegression(
+    multi_class='multinomial',
+    solver='lbfgs',
+    max_iter=1000,
+    C=1.0,
+    random_state=42
+)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)
+
+print("Test accuracy:", model.score(X_test, y_test))
+print()
+print(classification_report(y_test, y_pred, target_names=iris.target_names))
+print()
+print("Sample probabilities (first 5):")
+print("  setosa   versicolor  virginica")
+for i in range(5):
+    p = y_prob[i]
+    print(f"  {p[0]:.3f}    {p[1]:.3f}       {p[2]:.3f}   -> pred: {iris.target_names[y_pred[i]]}")`},
+  {file:'softmax_stability.py',label:'Numerical stability',code:`import numpy as np
+
+z = np.array([1000.0, 1001.0, 999.0])
+
+print("=== Naive softmax (OVERFLOWS) ===")
+try:
+    naive = np.exp(z) / np.exp(z).sum()
+    print("Result:", naive)
+except Exception as e:
+    print("Error:", e)
+
+exp_naive = np.exp(z)
+print("exp(z):", exp_naive)   # [inf, inf, inf]
+print("All inf:", np.all(np.isinf(exp_naive)))
+
+print()
+print("=== Stable softmax (subtract max) ===")
+z_stable = z - z.max()           # [0.0, 1.0, -1.0] -- same result!
+stable = np.exp(z_stable) / np.exp(z_stable).sum()
+print("z - max:", z_stable)
+print("exp(z - max):", np.exp(z_stable).round(4))
+print("Probabilities:", stable.round(4))
+print("Sum:", stable.sum())
+
+print()
+print("=== Temperature scaling ===")
+logits = np.array([3.0, 1.5, 0.2])
+print("Original logits:", logits)
+
+for T in [0.1, 0.5, 1.0, 2.0, 10.0]:
+    z_t = logits / T
+    z_t -= z_t.max()
+    p = np.exp(z_t) / np.exp(z_t).sum()
+    ent = -np.sum(p * np.log(p + 1e-10)) / np.log(2)
+    print(f"T={T:4.1f}  probs={p.round(3)}  entropy={ent:.3f}")`},
+  {file:'softmax_vs_sigmoid.py',label:'Softmax vs Sigmoid',code:`import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.preprocessing import label_binarize
+from sklearn.model_selection import cross_val_score
+import warnings
+warnings.filterwarnings('ignore')
+
+np.random.seed(42)
+X, y = make_classification(n_samples=500, n_features=10,
+                            n_classes=4, n_informative=6,
+                            random_state=42)
+
+print("=" * 50)
+print("Multiclass strategies comparison (4 classes)")
+print("=" * 50)
+
+strategies = {
+    "Softmax (multinomial)": LogisticRegression(
+        multi_class='multinomial', solver='lbfgs', max_iter=500),
+    "OvR (sigmoid x4)": LogisticRegression(
+        multi_class='ovr', solver='lbfgs', max_iter=500),
+    "OvR explicit": OneVsRestClassifier(
+        LogisticRegression(solver='lbfgs', max_iter=500)),
+}
+
+for name, model in strategies.items():
+    scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+    print(f"{name:<30}: {scores.mean():.4f} +/- {scores.std():.4f}")
+
+print()
+print("Use softmax when classes are mutually exclusive.")
+print("Use sigmoid OvR for multi-LABEL problems.")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){
+      out.textContent='Failed to load Pyodide.';out.className='editor-output error';
+      btn.disabled=false;btn.textContent='Run';return;
+    }
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){
+        if(cm.somethingSelected())cm.indentSelection('add');
+        else cm.replaceSelection('    ','end');
+      }}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+/* ═══ INIT ═══ */
+window.addEventListener('load',function(){
+  buildLogitControls();
+  buildTrace();
+  initWeights();
+  drawDB();
+  updateTempViz(10);
+  initEditor();
+  new MutationObserver(function(){
+    if(dbPts.length) drawDB();
+    if(cmEditor) setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simple Linear Regression — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    /* hero */
+    .hero-banner{background:linear-gradient(135deg,rgba(75,150,255,0.09),rgba(45,212,191,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-50px;right:-50px;width:220px;height:220px;background:radial-gradient(circle,rgba(75,150,255,0.1) 0%,transparent 70%);pointer-events:none;}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10.5px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* algo steps */
+    .algo-steps{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;}
+    .algo-step{display:flex;gap:18px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px 22px;transition:border-color .2s;}
+    .algo-step:hover{border-color:rgba(75,150,255,0.4);}
+    .algo-step-num{width:40px;height:40px;border-radius:50%;background:var(--blue-surf);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--blue);flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--blue-surf);color:var(--blue);margin-bottom:8px;letter-spacing:.04em;}
+    .algo-step-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:6px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.65;margin-bottom:12px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid var(--blue);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+
+    /* intuition visual boxes */
+    .intuition-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .intuition-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;}
+    .intuition-card-icon{font-size:22px;margin-bottom:8px;}
+    .intuition-card-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .intuition-card-desc{font-size:12.5px;color:var(--text-3);line-height:1.55;}
+
+    /* metric cards */
+    .metric-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;}
+    .metric-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;}
+    .metric-card-name{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:6px;}
+    .metric-card-formula{font-family:var(--font-mono);font-size:12.5px;color:var(--accent);background:var(--bg-input);padding:8px 12px;border-radius:var(--r-sm);margin-bottom:8px;overflow-x:auto;}
+    .metric-card-desc{font-size:13px;color:var(--text-3);line-height:1.55;}
+    .metric-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;margin-left:6px;vertical-align:middle;}
+
+    /* assumption cards */
+    .assumption-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
+    .assumption-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;}
+    .assumption-icon{width:32px;height:32px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .assumption-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:3px;}
+    .assumption-desc{font-size:12px;color:var(--text-3);line-height:1.5;}
+
+    /* CodeMirror */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--blue);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    /* residual toggle bar */
+    .toggle-group{display:flex;gap:4px;background:var(--bg-hover);border-radius:var(--r-md);padding:3px;}
+    .toggle-opt{padding:5px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;transition:all .15s;border:none;background:none;}
+    .toggle-opt.active{background:var(--bg-card);color:var(--text-1);box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+
+    @media(max-width:700px){
+      .intuition-grid{grid-template-columns:1fr;}
+      .metric-row{grid-template-columns:1fr;}
+      .assumption-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="simple-linear-regression">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Simple Linear Regression</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Regression</a><span class="sep">/</span>
+            <span class="current">Simple Linear Regression</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(75,150,255,.25);margin-bottom:14px;">Regression &middot; Supervised</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Simple Linear Regression</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">The foundation of all regression. Find the best-fit line through data by minimising the sum of squared residuals. One input, one output, one line.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">20 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">numpy &middot; sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: DRAG-TO-FIT PLAYGROUND -->
+          <section class="section" id="playground">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">+</div>
+              Build your intuition — drag points, watch the line update
+            </h2>
+            <p><strong>Click anywhere</strong> to add data points. The regression line, equation, and all metrics update instantly. Toggle residuals to see the errors the model is minimising.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Interactive scatter plot</span>
+                <div class="toggle-group">
+                  <button class="toggle-opt active" id="tog-none" onclick="setOverlay('none')">Clean</button>
+                  <button class="toggle-opt" id="tog-res" onclick="setOverlay('residuals')">Residuals</button>
+                  <button class="toggle-opt" id="tog-sq" onclick="setOverlay('squares')">Squared errors</button>
+                </div>
+                <button class="ctrl-btn" onclick="addPreset('positive')">+ Positive trend</button>
+                <button class="ctrl-btn" onclick="addPreset('negative')">+ Negative trend</button>
+                <button class="ctrl-btn" onclick="addPreset('noisy')">+ Noisy data</button>
+                <button class="ctrl-btn" onclick="clearPts()">Clear</button>
+              </div>
+              <canvas id="slr-canvas" width="700" height="380" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-slope" style="color:var(--blue);">--</span><span class="stat-pill-lbl">slope (w)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-intercept">--</span><span class="stat-pill-lbl">intercept (b)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-r2" style="color:var(--green);">--</span><span class="stat-pill-lbl">R&sup2; score</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-mse">--</span><span class="stat-pill-lbl">MSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-rmse">--</span><span class="stat-pill-lbl">RMSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-n">0</span><span class="stat-pill-lbl">n points</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Try this:</strong> Add a cluster of points with a clear trend, then add one outlier far from the line. Watch how the slope shifts and R&sup2; drops. This is why outliers matter so much in linear regression.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: ANIMATED OLS DERIVATION -->
+          <section class="section" id="ols-viz">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">~</div>
+              OLS animated &mdash; why these exact formulas?
+            </h2>
+            <p>Ordinary Least Squares finds w and b analytically by setting the gradient of the loss to zero. Watch the loss surface and the optimal point appear.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Loss surface &mdash; MSE as a function of slope w</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Intercept b:</span>
+                  <input type="range" min="-5" max="5" value="0" step="0.1" class="ctrl-slider" id="b-slider" style="width:100px;" oninput="updateLossCurve(this.value)"/>
+                  <span class="ctrl-value" id="b-val" style="color:var(--blue);">0.0</span>
+                </div>
+                <button class="ctrl-btn active" id="ols-anim-btn" onclick="animateOLS()">Animate OLS solve</button>
+              </div>
+              <canvas id="ols-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ols-w">--</span><span class="stat-pill-lbl">OLS slope w*</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ols-b">--</span><span class="stat-pill-lbl">OLS intercept b*</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ols-loss">--</span><span class="stat-pill-lbl">Min MSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ols-current-w">--</span><span class="stat-pill-lbl">Current w</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: INTUITION CARDS -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">?</div>
+              Intuition &mdash; what does each piece mean?
+            </h2>
+
+            <div class="intuition-grid">
+              <div class="intuition-card">
+                <div class="intuition-card-icon">&#8599;</div>
+                <div class="intuition-card-title">Slope (w)</div>
+                <div class="intuition-card-desc">For every 1-unit increase in X, y increases by w units. If w = 2.5: add 1 year of experience, salary goes up $2500. The rate of change.</div>
+              </div>
+              <div class="intuition-card">
+                <div class="intuition-card-icon">&#8226;</div>
+                <div class="intuition-card-title">Intercept (b)</div>
+                <div class="intuition-card-desc">The predicted y when X = 0. Often has no real-world meaning (age = 0 is meaningless for salary), but it anchors the line vertically.</div>
+              </div>
+              <div class="intuition-card">
+                <div class="intuition-card-icon">&#8596;</div>
+                <div class="intuition-card-title">Residuals</div>
+                <div class="intuition-card-desc">The vertical distance from each point to the line: e = y - y_hat. OLS minimises the sum of squared residuals. Positive = above line, negative = below.</div>
+              </div>
+              <div class="intuition-card">
+                <div class="intuition-card-icon">R&sup2;</div>
+                <div class="intuition-card-title">R&sup2; score</div>
+                <div class="intuition-card-desc">Fraction of variance explained by the model. R&sup2; = 1 means perfect fit. R&sup2; = 0 means the model is no better than predicting the mean. R&sup2; &lt; 0 means worse than mean.</div>
+              </div>
+              <div class="intuition-card">
+                <div class="intuition-card-icon">&#10003;</div>
+                <div class="intuition-card-title">OLS solution</div>
+                <div class="intuition-card-desc">The optimal w and b are found analytically &mdash; no iterations needed. w = cov(X,y)/var(X) and b = mean(y) - w * mean(X). This is exact, not approximate.</div>
+              </div>
+              <div class="intuition-card">
+                <div class="intuition-card-icon">&#9888;</div>
+                <div class="intuition-card-title">Assumptions</div>
+                <div class="intuition-card-desc">OLS assumes the relationship is truly linear, residuals are normally distributed, and there&rsquo;s no heteroscedasticity. Violating these makes estimates unreliable.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: DERIVATION STEPS -->
+          <section class="section" id="derivation">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">4</div>
+              OLS derivation &mdash; step by step
+            </h2>
+            <p>These four steps show exactly how the closed-form formulas for w and b are derived from the loss function.</p>
+
+            <div class="algo-steps">
+              <div class="algo-step">
+                <div class="algo-step-num">1</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">The model</div>
+                  <div class="algo-step-title">Define the prediction equation</div>
+                  <div class="algo-step-desc">A straight line with slope w and intercept b. We want to find the w and b that make predictions y_hat as close as possible to the true values y.</div>
+                  <div class="algo-step-formula">y_hat = w * x + b</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">2</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">The loss</div>
+                  <div class="algo-step-title">Mean Squared Error loss function</div>
+                  <div class="algo-step-desc">MSE squares each error so all residuals are positive and large errors are penalised more. We want to minimise this over all n training samples.</div>
+                  <div class="algo-step-formula">L(w, b) = (1/n) * sum_i (y_hat_i - y_i)^2
+           = (1/n) * sum_i (w*x_i + b - y_i)^2</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">3</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Calculus</div>
+                  <div class="algo-step-title">Set partial derivatives to zero</div>
+                  <div class="algo-step-desc">At the minimum of L, both partial derivatives must be zero. Solving these two equations simultaneously gives the exact optimal w* and b*.</div>
+                  <div class="algo-step-formula">dL/dw = (2/n) * sum_i x_i*(w*x_i + b - y_i) = 0
+dL/db = (2/n) * sum_i   (w*x_i + b - y_i) = 0</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">4</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Closed-form solution</div>
+                  <div class="algo-step-title">OLS formulas for w* and b*</div>
+                  <div class="algo-step-desc">Solving the system gives the exact optimal parameters. Note: b* depends on w*, so always compute w* first. These formulas work for any dataset in one pass &mdash; no iterations, no learning rate.</div>
+                  <div class="algo-step-formula">w* = cov(X, y) / var(X)
+   = sum_i (x_i - x_mean)(y_i - y_mean)
+     -----------------------------------
+          sum_i (x_i - x_mean)^2
+
+b* = y_mean - w* * x_mean</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: METRICS EXPLAINED -->
+          <section class="section" id="metrics">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">M</div>
+              Regression metrics &mdash; interactive
+            </h2>
+            <p>Drag the slider to simulate different prediction quality. All four metrics update live so you can feel the difference.</p>
+
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;">
+                <span style="font-size:13px;font-weight:600;color:var(--text-2);">Model quality:</span>
+                <div class="ctrl-group" style="flex:1;min-width:200px;">
+                  <span class="ctrl-label">Noise:</span>
+                  <input type="range" min="0" max="100" value="30" class="ctrl-slider" id="noise-slider" style="flex:1;" oninput="updateMetrics(this.value)"/>
+                  <span class="ctrl-value" id="noise-val" style="color:var(--blue);">30%</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;" id="metrics-grid">
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:14px;text-align:center;">
+                  <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--blue);" id="m-mae">--</div>
+                  <div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">MAE</div>
+                  <div style="height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;"><div id="m-mae-bar" style="height:100%;background:var(--blue);border-radius:2px;transition:width .4s;width:0%"></div></div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:14px;text-align:center;">
+                  <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--purple);" id="m-mse">--</div>
+                  <div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">MSE</div>
+                  <div style="height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;"><div id="m-mse-bar" style="height:100%;background:var(--purple);border-radius:2px;transition:width .4s;width:0%"></div></div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:14px;text-align:center;">
+                  <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--teal);" id="m-rmse">--</div>
+                  <div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">RMSE</div>
+                  <div style="height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;"><div id="m-rmse-bar" style="height:100%;background:var(--teal);border-radius:2px;transition:width .4s;width:0%"></div></div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:14px;text-align:center;">
+                  <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--green);" id="m-r2">--</div>
+                  <div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">R&sup2;</div>
+                  <div style="height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;"><div id="m-r2-bar" style="height:100%;background:var(--green);border-radius:2px;transition:width .4s;width:0%"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-row">
+              <div class="metric-card">
+                <div class="metric-card-name">MAE &mdash; Mean Absolute Error <span class="metric-badge" style="background:var(--blue-surf);color:var(--blue);">interpretable</span></div>
+                <div class="metric-card-formula">MAE = (1/n) * sum |y_i - y_hat_i|</div>
+                <div class="metric-card-desc">Average absolute error in the same units as y. If predicting house prices in $, MAE = $15,000 means you are on average $15K off. Easy to explain to non-technical stakeholders.</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-card-name">MSE &mdash; Mean Squared Error <span class="metric-badge" style="background:var(--purple-surf);color:var(--purple);">differentiable</span></div>
+                <div class="metric-card-formula">MSE = (1/n) * sum (y_i - y_hat_i)^2</div>
+                <div class="metric-card-desc">Squares errors, so large errors are penalised heavily. Units are squared (e.g. $^2), making it uninterpretable directly. Used as the OLS loss function because it is differentiable.</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-card-name">RMSE &mdash; Root MSE <span class="metric-badge" style="background:var(--teal-surf);color:var(--teal);">most common</span></div>
+                <div class="metric-card-formula">RMSE = sqrt(MSE)</div>
+                <div class="metric-card-desc">Square root of MSE, restoring original units. Penalises large errors more than MAE but is interpretable. The most commonly reported regression metric in research papers.</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-card-name">R&sup2; &mdash; Coefficient of Determination <span class="metric-badge" style="background:var(--green-surf);color:var(--green);">relative</span></div>
+                <div class="metric-card-formula">R2 = 1 - SS_res / SS_tot
+SS_res = sum (y - y_hat)^2
+SS_tot = sum (y - y_mean)^2</div>
+                <div class="metric-card-desc">Proportion of variance explained. 0.85 means the model explains 85% of the variance in y. Scale-free, so comparable across datasets. Can be negative if the model is worse than predicting the mean.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 6: ASSUMPTIONS -->
+          <section class="section" id="assumptions">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">!</div>
+              When does linear regression fail?
+            </h2>
+            <p>OLS has four key assumptions. Click each to see a canvas simulation of what violation looks like.</p>
+
+            <div class="assumption-grid">
+              <div class="assumption-card" id="asmp-linear" onclick="showAssumptionViz('linear')" style="cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="assumption-icon" style="background:var(--green-surf);color:var(--green);">1</div>
+                <div><div class="assumption-title">Linearity</div><div class="assumption-desc">The relationship between X and y must be linear. If it is curved, linear regression will systematically underfit. Use polynomial features or a non-linear model.</div></div>
+              </div>
+              <div class="assumption-card" id="asmp-norm" onclick="showAssumptionViz('normality')" style="cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="assumption-icon" style="background:var(--blue-surf);color:var(--blue);">2</div>
+                <div><div class="assumption-title">Normal residuals</div><div class="assumption-desc">Residuals should be normally distributed around zero. Skewed residuals mean the model is systematically wrong in some regions. Check with a Q-Q plot.</div></div>
+              </div>
+              <div class="assumption-card" id="asmp-homo" onclick="showAssumptionViz('homoscedasticity')" style="cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="assumption-icon" style="background:var(--purple-surf);color:var(--purple);">3</div>
+                <div><div class="assumption-title">Homoscedasticity</div><div class="assumption-desc">Variance of residuals must be constant across all X values (homoscedastic). If variance grows with X (heteroscedastic), confidence intervals and p-values are invalid.</div></div>
+              </div>
+              <div class="assumption-card" id="asmp-indep" onclick="showAssumptionViz('independence')" style="cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div class="assumption-icon" style="background:var(--teal-surf);color:var(--teal);">4</div>
+                <div><div class="assumption-title">Independence</div><div class="assumption-desc">Observations must be independent. Time series data often violates this (autocorrelation). Use the Durbin-Watson test to detect autocorrelated residuals.</div></div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title" id="asmp-title">Click an assumption above to see what violation looks like</span>
+              </div>
+              <canvas id="asmp-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 7: LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four tabs: from-scratch NumPy implementation, sklearn with full diagnostics, residual analysis, and a real dataset (Boston housing).</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">slr_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using R&sup2; alone to judge model quality.</strong> R&sup2; = 0.95 sounds great, but if the residuals are non-random (curved pattern), the model is still wrong. Always plot residuals vs fitted values.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Fitting without checking linearity.</strong> If the scatter plot shows a curve, linear regression will give biased predictions at both ends. Add polynomial features or use a non-linear model.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Extrapolating beyond the training range.</strong> Linear regression assumes the relationship continues linearly forever. Predicting house price for 10,000 sq ft when max training was 4,000 sq ft is unreliable.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Ignoring influential outliers.</strong> One outlier can pull the slope significantly. Always check Cook&rsquo;s distance to identify high-leverage points before trusting the model.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Confusing correlation with causation.</strong> A high R&sup2; does not mean X causes y. Ice cream sales and drowning deaths are correlated (both increase in summer) but neither causes the other.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Simple linear regression fits a line y = wx + b by minimising the sum of squared residuals (OLS).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>OLS has a closed-form solution: w* = cov(X,y)/var(X) and b* = mean(y) - w* * mean(X). No iterations needed.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always check the four OLS assumptions: linearity, normal residuals, homoscedasticity, independence.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Report RMSE (interpretable, same units as y) and R&sup2; (variance explained). Never use R&sup2; alone.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Plot residuals vs fitted values. A random horizontal band means the model is well-specified. Any pattern means the model is wrong.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>SLR is the foundation: Multiple LR, Ridge, Lasso, and Polynomial Regression all extend this same framework.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="../../../index.html"><span class="pn-dir">Home</span><span class="pn-title">ML-Learn</span></a>
+            <a class="pn-card next" id="next-card" href="multiple-linear-regression.html"><span class="pn-dir">Next</span><span class="pn-title">Multiple Linear Regression</span></a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#playground">Interactive playground</a></li>
+            <li class="toc-item"><a href="#ols-viz">OLS animated</a></li>
+            <li class="toc-item"><a href="#intuition">Intuition</a></li>
+            <li class="toc-item"><a href="#derivation">OLS derivation</a></li>
+            <li class="toc-item"><a href="#metrics">Metrics</a></li>
+            <li class="toc-item"><a href="#assumptions">Assumptions</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgInput(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* ═══════════════════════════════════════
+   SECTION 1: INTERACTIVE SCATTER PLOT
+═══════════════════════════════════════ */
+var SC=C('slr-canvas'), SX=SC.getContext('2d');
+var pts=[], currentOverlay='none';
+
+function addPreset(type){
+  var W=SC.width,H=SC.height,pad=50;
+  for(var i=0;i<25;i++){
+    var t=i/24;
+    var x=pad+t*(W-2*pad);
+    var noise=(Math.random()-0.5)*(H-2*pad)*0.25;
+    var y;
+    if(type==='positive') y=(H-pad)-(t*(H-2*pad)*0.7+noise);
+    else if(type==='negative') y=pad+(t*(H-2*pad)*0.7+noise*(1+t*2));
+    else y=(H/2)+(Math.random()-0.5)*(H-2*pad)*0.7;
+    pts.push([x,H-y+H/2>10&&H-y+H/2<H-10?y:H/2]);
+    pts[pts.length-1]=[x,Math.max(pad,Math.min(H-pad,y))];
+  }
+  drawScatter();
+}
+
+function clearPts(){pts=[];drawScatter();}
+
+function setOverlay(v){
+  currentOverlay=v;
+  ['none','residuals','squares'].forEach(function(k){
+    C('tog-'+k.split(' ')[0]).classList.toggle('active',k===v);
+  });
+  C('tog-none').classList.toggle('active',v==='none');
+  C('tog-res').classList.toggle('active',v==='residuals');
+  C('tog-sq').classList.toggle('active',v==='squares');
+  drawScatter();
+}
+
+function computeOLS(){
+  if(pts.length<2)return null;
+  var n=pts.length;
+  var W=SC.width,H=SC.height;
+  /* convert canvas coords → data coords (0-10 range) */
+  var pad=50;
+  var data=pts.map(function(p){return{x:(p[0]-pad)/(W-2*pad)*10,y:(H-pad-p[1])/(H-2*pad)*10};});
+  var xm=data.reduce(function(s,p){return s+p.x;},0)/n;
+  var ym=data.reduce(function(s,p){return s+p.y;},0)/n;
+  var num=data.reduce(function(s,p){return s+(p.x-xm)*(p.y-ym);},0);
+  var den=data.reduce(function(s,p){return s+(p.x-xm)*(p.x-xm);},0);
+  if(Math.abs(den)<1e-10)return null;
+  var w=num/den, b=ym-w*xm;
+  var mse=data.reduce(function(s,p){var e=w*p.x+b-p.y;return s+e*e;},0)/n;
+  var ss_res=data.reduce(function(s,p){var e=w*p.x+b-p.y;return s+e*e;},0);
+  var ss_tot=data.reduce(function(s,p){var e=p.y-ym;return s+e*e;},0);
+  var r2=ss_tot<1e-10?1:1-ss_res/ss_tot;
+  return{w:w,b:b,mse:mse,rmse:Math.sqrt(mse),r2:r2,xm:xm,ym:ym,data:data,pad:pad};
+}
+
+function dataToCanvas(dx,dy,ols){
+  var W=SC.width,H=SC.height,pad=ols.pad;
+  return[pad+dx/10*(W-2*pad), H-pad-dy/10*(H-2*pad)];
+}
+
+function drawScatter(){
+  var W=SC.width,H=SC.height,pad=50;
+  SX.clearRect(0,0,W,H);
+  SX.fillStyle=bg(); SX.fillRect(0,0,W,H);
+  /* grid */
+  SX.strokeStyle=gc(); SX.lineWidth=0.5;
+  for(var i=0;i<=10;i++){
+    var x=pad+i*(W-2*pad)/10,y=pad+i*(H-2*pad)/10;
+    SX.beginPath();SX.moveTo(x,pad);SX.lineTo(x,H-pad);SX.stroke();
+    SX.beginPath();SX.moveTo(pad,y);SX.lineTo(W-pad,y);SX.stroke();
+  }
+  /* axes */
+  SX.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.2)';SX.lineWidth=1;
+  SX.beginPath();SX.moveTo(pad,H-pad);SX.lineTo(W-pad,H-pad);SX.stroke();
+  SX.beginPath();SX.moveTo(pad,pad);SX.lineTo(pad,H-pad);SX.stroke();
+  SX.fillStyle=tc();SX.font='11px sans-serif';SX.textAlign='center';
+  SX.fillText('X',W/2,H-8);SX.textAlign='right';
+  SX.save();SX.translate(14,H/2);SX.rotate(-Math.PI/2);SX.fillText('y',0,0);SX.restore();
+
+  if(pts.length<1){
+    SX.fillStyle=tc();SX.font='14px sans-serif';SX.textAlign='center';
+    SX.fillText('Click to add data points',W/2,H/2);
+    updateStatsEmpty();return;
+  }
+
+  var ols=computeOLS();
+
+  /* regression line */
+  if(ols){
+    var x1=0,x2=10;
+    var p1=dataToCanvas(x1,ols.w*x1+ols.b,ols);
+    var p2=dataToCanvas(x2,ols.w*x2+ols.b,ols);
+    /* draw overlay BEFORE line */
+    if(currentOverlay==='residuals'||currentOverlay==='squares'){
+      ols.data.forEach(function(d){
+        var cx=dataToCanvas(d.x,d.y,ols);
+        var py=ols.w*d.x+ols.b;
+        var cy=dataToCanvas(d.x,py,ols);
+        if(currentOverlay==='residuals'){
+          SX.beginPath();SX.moveTo(cx[0],cx[1]);SX.lineTo(cy[0],cy[1]);
+          var isAbove=d.y>py;
+          SX.strokeStyle=isAbove?'rgba(62,207,142,0.8)':'rgba(240,96,96,0.8)';
+          SX.lineWidth=1.5;SX.stroke();
+        } else {
+          /* draw square */
+          var side=Math.abs(cx[1]-cy[1]);
+          SX.fillStyle='rgba(251,140,64,0.15)';
+          SX.strokeStyle='rgba(251,140,64,0.5)';SX.lineWidth=1;
+          SX.fillRect(cx[0]-side,Math.min(cx[1],cy[1]),side,side);
+          SX.strokeRect(cx[0]-side,Math.min(cx[1],cy[1]),side,side);
+        }
+      });
+    }
+
+    SX.beginPath();SX.moveTo(p1[0],p1[1]);SX.lineTo(p2[0],p2[1]);
+    SX.strokeStyle='#4b96ff';SX.lineWidth=2.5;SX.stroke();
+
+    /* equation label */
+    var sign=ols.b>=0?'+':'-';
+    SX.fillStyle='#4b96ff';SX.font='bold 12px monospace';SX.textAlign='left';
+    SX.fillText('y = '+ols.w.toFixed(2)+'x '+sign+' '+Math.abs(ols.b).toFixed(2),pad+6,pad+18);
+
+    /* mean lines */
+    var mx=dataToCanvas(ols.xm,0,ols)[0];
+    var my=dataToCanvas(0,ols.ym,ols)[1];
+    SX.setLineDash([4,4]);SX.lineWidth=1;
+    SX.strokeStyle='rgba(167,139,250,0.5)';
+    SX.beginPath();SX.moveTo(mx,pad);SX.lineTo(mx,H-pad);SX.stroke();
+    SX.beginPath();SX.moveTo(pad,my);SX.lineTo(W-pad,my);SX.stroke();
+    SX.setLineDash([]);
+    SX.fillStyle='rgba(167,139,250,0.7)';SX.font='10px sans-serif';SX.textAlign='left';
+    SX.fillText('x̄',mx+4,pad+12);SX.fillText('ȳ',pad+4,my-4);
+
+    updateStats(ols);
+  }
+
+  /* data points */
+  pts.forEach(function(p){
+    SX.beginPath();SX.arc(p[0],p[1],6,0,Math.PI*2);
+    SX.fillStyle='#4b96ff';SX.fill();
+    SX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';SX.lineWidth=1.5;SX.stroke();
+  });
+}
+
+function updateStats(ols){
+  C('stat-slope').textContent=ols.w.toFixed(3);
+  C('stat-intercept').textContent=ols.b.toFixed(3);
+  C('stat-r2').textContent=ols.r2.toFixed(4);
+  C('stat-mse').textContent=ols.mse.toFixed(3);
+  C('stat-rmse').textContent=ols.rmse.toFixed(3);
+  C('stat-n').textContent=pts.length;
+  C('stat-r2').style.color=ols.r2>0.8?'var(--green)':ols.r2>0.5?'var(--accent)':'var(--red)';
+}
+function updateStatsEmpty(){
+  ['stat-slope','stat-intercept','stat-r2','stat-mse','stat-rmse'].forEach(function(id){C(id).textContent='--';});
+  C('stat-n').textContent=0;
+}
+
+SC.addEventListener('click',function(e){
+  var r=SC.getBoundingClientRect(),sx=SC.width/r.width,sy=SC.height/r.height;
+  var pad=50,W=SC.width,H=SC.height;
+  var x=(e.clientX-r.left)*sx,y=(e.clientY-r.top)*sy;
+  if(x<pad||x>W-pad||y<pad||y>H-pad)return;
+  pts.push([x,y]);drawScatter();
+});
+
+
+/* ═══════════════════════════════════════
+   SECTION 2: OLS LOSS SURFACE
+═══════════════════════════════════════ */
+var OC=C('ols-canvas'), OX=OC.getContext('2d');
+var olsAnimRunning=false;
+
+/* fixed dataset for loss surface */
+var olsData=(function(){
+  var d=[];
+  for(var i=0;i<20;i++){
+    var x=i*0.5;
+    var y=1.8*x+3+(Math.random()*2-1)*1.5;
+    d.push({x:x,y:y});
+  }
+  return d;
+})();
+
+function computeTrueLoss(w,b){
+  return olsData.reduce(function(s,p){var e=w*p.x+b-p.y;return s+e*e;},0)/olsData.length;
+}
+
+function computeOLSParams(){
+  var n=olsData.length;
+  var xm=olsData.reduce(function(s,p){return s+p.x;},0)/n;
+  var ym=olsData.reduce(function(s,p){return s+p.y;},0)/n;
+  var num=olsData.reduce(function(s,p){return s+(p.x-xm)*(p.y-ym);},0);
+  var den=olsData.reduce(function(s,p){return s+(p.x-xm)*(p.x-xm);},0);
+  var w=num/den,b=ym-w*xm;
+  return{w:w,b:b,loss:computeTrueLoss(w,b)};
+}
+
+function drawLossCurve(highlightW, animW){
+  var W=OC.width,H=OC.height,pad={l:55,r:20,t:20,b:40};
+  OX.clearRect(0,0,W,H);OX.fillStyle=bg();OX.fillRect(0,0,W,H);
+
+  var params=computeOLSParams();
+  var b=parseFloat(C('b-slider').value);
+  C('b-val').textContent=b.toFixed(1);
+
+  /* compute loss curve over w range */
+  var wMin=params.w-3,wMax=params.w+3;
+  var wRange=wMax-wMin;
+  var lossVals=[];
+  var steps=200;
+  for(var i=0;i<=steps;i++){
+    var w=wMin+i/steps*wRange;
+    lossVals.push(computeTrueLoss(w,b));
+  }
+  var lMin=Math.min.apply(null,lossVals),lMax=Math.max.apply(null,lossVals);
+
+  /* grid */
+  OX.strokeStyle=gc();OX.lineWidth=0.5;
+  for(var i=0;i<=5;i++){
+    var y=pad.t+(H-pad.t-pad.b)*i/5;
+    OX.beginPath();OX.moveTo(pad.l,y);OX.lineTo(W-pad.r,y);OX.stroke();
+    var lv=lMax-(i/5)*(lMax-lMin);
+    OX.fillStyle=tc();OX.font='10px monospace';OX.textAlign='right';
+    OX.fillText(lv.toFixed(2),pad.l-4,y+3);
+  }
+  for(var i=0;i<=6;i++){
+    var x=pad.l+(W-pad.l-pad.r)*i/6;
+    OX.beginPath();OX.moveTo(x,pad.t);OX.lineTo(x,H-pad.b);OX.stroke();
+    var wv=wMin+i/6*wRange;
+    OX.fillStyle=tc();OX.font='10px monospace';OX.textAlign='center';
+    OX.fillText(wv.toFixed(1),x,H-pad.b+14);
+  }
+  OX.fillStyle=tc();OX.font='11px sans-serif';OX.textAlign='center';
+  OX.fillText('slope w',W/2,H-4);
+  OX.fillStyle=tc();OX.textAlign='right';
+  OX.save();OX.translate(14,(H)/2);OX.rotate(-Math.PI/2);OX.fillText('MSE loss',0,0);OX.restore();
+
+  /* loss curve */
+  OX.beginPath();OX.strokeStyle='#4b96ff';OX.lineWidth=2.5;
+  lossVals.forEach(function(l,i){
+    var x=pad.l+(W-pad.l-pad.r)*i/steps;
+    var y=pad.t+(H-pad.t-pad.b)*(1-(l-lMin)/(lMax-lMin));
+    i===0?OX.moveTo(x,y):OX.lineTo(x,y);
+  });
+  OX.stroke();
+
+  /* optimal w* marker */
+  var optX=pad.l+(params.w-wMin)/wRange*(W-pad.l-pad.r);
+  var optY=pad.t+(H-pad.t-pad.b)*(1-(computeTrueLoss(params.w,b)-lMin)/(lMax-lMin));
+  OX.beginPath();OX.arc(optX,optY,7,0,Math.PI*2);
+  OX.fillStyle='#f0a500';OX.fill();OX.strokeStyle='#fff';OX.lineWidth=2;OX.stroke();
+  OX.fillStyle='#f0a500';OX.font='bold 11px sans-serif';OX.textAlign='left';
+  OX.fillText('w* = '+params.w.toFixed(3),optX+10,optY+4);
+
+  /* current w marker (animating) */
+  if(animW!==undefined){
+    var aw=Math.max(wMin,Math.min(wMax,animW));
+    var ax=pad.l+(aw-wMin)/wRange*(W-pad.l-pad.r);
+    var ay=pad.t+(H-pad.t-pad.b)*(1-(computeTrueLoss(aw,b)-lMin)/(lMax-lMin));
+    OX.beginPath();OX.arc(ax,ay,6,0,Math.PI*2);
+    OX.fillStyle='#3ecf8e';OX.fill();OX.strokeStyle='#fff';OX.lineWidth=2;OX.stroke();
+    /* tangent arrow */
+    var slope2=2*(aw-params.w)*2;
+    var nx=-slope2/Math.sqrt(slope2*slope2+1)*20,ny=-1/Math.sqrt(slope2*slope2+1)*20;
+    OX.beginPath();OX.moveTo(ax,ay);OX.lineTo(ax+nx,ay+ny);
+    OX.strokeStyle='#3ecf8e';OX.lineWidth=1.5;OX.stroke();
+    C('ols-current-w').textContent=aw.toFixed(3);
+  }
+
+  C('ols-w').textContent=params.w.toFixed(3);
+  C('ols-b').textContent=params.b.toFixed(3);
+  C('ols-loss').textContent=params.loss.toFixed(4);
+}
+
+function updateLossCurve(v){drawLossCurve();}
+
+async function animateOLS(){
+  if(olsAnimRunning)return;
+  olsAnimRunning=true;
+  C('ols-anim-btn').textContent='Animating...';
+  var params=computeOLSParams();
+  /* start from far right, descend to optimum */
+  var startW=params.w+2.5;
+  for(var i=0;i<=60;i++){
+    var w=startW-(startW-params.w)*(i/60);
+    drawLossCurve(null,w);
+    await delay(30);
+  }
+  drawLossCurve(null,params.w);
+  C('ols-anim-btn').textContent='Animate OLS solve';
+  olsAnimRunning=false;
+}
+
+
+/* ═══════════════════════════════════════
+   SECTION 5: METRICS INTERACTIVE
+═══════════════════════════════════════ */
+function updateMetrics(v){
+  var noise=parseInt(v)/100;
+  C('noise-val').textContent=v+'%';
+  /* simulate metrics based on noise level */
+  var mae=(noise*8+0.5).toFixed(2);
+  var mse=((noise*8+0.5)*(noise*8+0.5)*0.8).toFixed(2);
+  var rmse=Math.sqrt(parseFloat(mse)).toFixed(2);
+  var r2=Math.max(0,1-noise*0.95).toFixed(3);
+  var maxMae=8.5,maxMse=60,maxRmse=8.5;
+  C('m-mae').textContent=mae;C('m-mae-bar').style.width=(parseFloat(mae)/maxMae*100)+'%';
+  C('m-mse').textContent=mse;C('m-mse-bar').style.width=(parseFloat(mse)/maxMse*100)+'%';
+  C('m-rmse').textContent=rmse;C('m-rmse-bar').style.width=(parseFloat(rmse)/maxRmse*100)+'%';
+  C('m-r2').textContent=r2;C('m-r2-bar').style.width=(parseFloat(r2)*100)+'%';
+  C('m-r2').style.color=parseFloat(r2)>0.8?'var(--green)':parseFloat(r2)>0.4?'var(--accent)':'var(--red)';
+}
+
+
+/* ═══════════════════════════════════════
+   SECTION 6: ASSUMPTION VISUALISER
+═══════════════════════════════════════ */
+var AC=C('asmp-canvas'),AX=AC.getContext('2d');
+
+function showAssumptionViz(type){
+  var W=AC.width,H=AC.height,pad=50;
+  AX.clearRect(0,0,W,H);AX.fillStyle=bg();AX.fillRect(0,0,W,H);
+  AX.strokeStyle=gc();AX.lineWidth=0.5;
+  for(var i=0;i<=8;i++){
+    var x=pad+i*(W-2*pad)/8,y=pad+i*(H-2*pad)/6;
+    AX.beginPath();AX.moveTo(x,pad);AX.lineTo(x,H-pad);AX.stroke();
+    if(i<=6){AX.beginPath();AX.moveTo(pad,y);AX.lineTo(W-pad,y);AX.stroke();}
+  }
+
+  if(type==='linear'){
+    C('asmp-title').textContent='Linearity violated — curved relationship, linear model underfit';
+    /* true curve */
+    AX.beginPath();AX.strokeStyle='rgba(62,207,142,0.6)';AX.lineWidth=2;AX.setLineDash([6,4]);
+    for(var i=0;i<=100;i++){var x=pad+i*(W-2*pad)/100;var y=H/2-Math.pow((i-50)/25,2)*40-20;i===0?AX.moveTo(x,y):AX.lineTo(x,y);}
+    AX.stroke();AX.setLineDash([]);
+    /* wrong linear fit */
+    AX.beginPath();AX.strokeStyle='#f06060';AX.lineWidth=2.5;
+    AX.moveTo(pad,H/2-5);AX.lineTo(W-pad,H/2-5);AX.stroke();
+    /* points on curve */
+    for(var i=0;i<20;i++){
+      var t=i/19,x=pad+t*(W-2*pad);
+      var y=H/2-Math.pow((t*100-50)/25,2)*40-20+(Math.random()-0.5)*15;
+      AX.beginPath();AX.arc(x,y,4,0,Math.PI*2);AX.fillStyle='#4b96ff';AX.fill();
+    }
+    AX.fillStyle='rgba(62,207,142,0.7)';AX.font='11px sans-serif';AX.fillText('True curve',W-pad-80,pad+20);
+    AX.fillStyle='#f06060';AX.fillText('Linear fit (wrong!)',W-pad-120,H-pad-8);
+
+  } else if(type==='normality'){
+    C('asmp-title').textContent='Non-normal residuals — skewed distribution on the right';
+    /* scatter with skewed residuals */
+    for(var i=0;i<40;i++){
+      var x=pad+Math.random()*(W-2*pad);
+      var res=Math.random()<0.7?(Math.random()-0.5)*20:Math.random()*60+20;
+      var y=H/2-res;
+      AX.beginPath();AX.arc(x,y,3.5,0,Math.PI*2);AX.fillStyle='#4b96ff';AX.fill();
+    }
+    AX.beginPath();AX.strokeStyle='#4b96ff';AX.lineWidth=2;
+    AX.moveTo(pad,H/2);AX.lineTo(W-pad,H/2);AX.stroke();
+    /* residual distribution hint */
+    AX.fillStyle='rgba(240,165,0,0.2)';AX.beginPath();
+    AX.ellipse(W/2,H/2-15,180,30,0,0,Math.PI*2);AX.fill();
+    AX.fillStyle=tc();AX.font='11px sans-serif';AX.textAlign='center';
+    AX.fillText('Most residuals cluster below zero — asymmetric!',W/2,H-pad+6);
+
+  } else if(type==='homoscedasticity'){
+    C('asmp-title').textContent='Heteroscedasticity — variance of residuals grows with X';
+    AX.beginPath();AX.strokeStyle='#4b96ff';AX.lineWidth=2;
+    AX.moveTo(pad,H*0.65);AX.lineTo(W-pad,H*0.35);AX.stroke();
+    for(var i=0;i<50;i++){
+      var t=i/49,x=pad+t*(W-2*pad);
+      var spread=(t*80+8);
+      var y=(H*0.65-t*(H*0.3))+(Math.random()-0.5)*spread;
+      AX.beginPath();AX.arc(x,y,3,0,Math.PI*2);
+      AX.fillStyle=t<0.33?'rgba(62,207,142,0.7)':t<0.66?'rgba(240,165,0,0.7)':'rgba(240,96,96,0.7)';
+      AX.fill();
+    }
+    /* fan shape overlay */
+    AX.beginPath();AX.fillStyle='rgba(240,96,96,0.07)';
+    AX.moveTo(pad,H*0.65);AX.lineTo(W-pad,H*0.35-80);AX.lineTo(W-pad,H*0.35+80);AX.closePath();AX.fill();
+    AX.fillStyle=tc();AX.font='11px sans-serif';AX.textAlign='center';
+    AX.fillText('Variance grows with X — fan shape (bad!)',W/2,H-pad+6);
+
+  } else {
+    C('asmp-title').textContent='Autocorrelation — residuals are correlated over time (time series)';
+    var prev=0;
+    for(var i=0;i<60;i++){
+      var t=i/59,x=pad+t*(W-2*pad);
+      prev=prev*0.85+(Math.random()-0.5)*10;
+      var y=H/2+prev*3;
+      AX.beginPath();AX.arc(x,y,3,0,Math.PI*2);AX.fillStyle='#4b96ff';AX.fill();
+      if(i>0){
+        AX.beginPath();AX.moveTo(pad+(i-1)/59*(W-2*pad),H/2+(prev*0.85+(Math.random()-0.5)*10)*3);
+        AX.lineTo(x,y);AX.strokeStyle='rgba(75,150,255,0.3)';AX.lineWidth=1;AX.stroke();
+      }
+    }
+    AX.beginPath();AX.strokeStyle='#f06060';AX.lineWidth=1.5;AX.setLineDash([4,4]);
+    AX.moveTo(pad,H/2);AX.lineTo(W-pad,H/2);AX.stroke();AX.setLineDash([]);
+    AX.fillStyle=tc();AX.font='11px sans-serif';AX.textAlign='center';
+    AX.fillText('Residuals follow a wave pattern — not independent!',W/2,H-pad+6);
+  }
+  AX.textAlign='start';
+}
+
+
+/* ═══════════════════════════════════════
+   LIVE CODE EDITOR (CodeMirror)
+═══════════════════════════════════════ */
+var SNIPPETS=[
+  {file:'slr_scratch.py',label:'From scratch',code:`import numpy as np
+
+# ── Generate synthetic data ──────────────────────
+np.random.seed(42)
+n = 50
+X = np.random.uniform(0, 10, n)
+y = 2.5 * X + 5 + np.random.randn(n) * 2   # true: w=2.5, b=5
+
+# ── OLS closed-form solution ─────────────────────
+x_mean = X.mean()
+y_mean = y.mean()
+
+# Numerator: Cov(X, y)  Denominator: Var(X)
+w = np.sum((X - x_mean) * (y - y_mean)) / np.sum((X - x_mean)**2)
+b = y_mean - w * x_mean
+
+print(f"OLS slope w* = {w:.4f}   (true = 2.5000)")
+print(f"OLS intercept b* = {b:.4f}   (true = 5.0000)")
+
+# ── Predictions and metrics ──────────────────────
+y_hat = w * X + b
+residuals = y - y_hat
+
+mae  = np.mean(np.abs(residuals))
+mse  = np.mean(residuals ** 2)
+rmse = np.sqrt(mse)
+
+ss_res = np.sum(residuals ** 2)
+ss_tot = np.sum((y - y_mean) ** 2)
+r2 = 1 - ss_res / ss_tot
+
+print(f"\\nMetrics on training data:")
+print(f"  MAE  = {mae:.4f}")
+print(f"  MSE  = {mse:.4f}")
+print(f"  RMSE = {rmse:.4f}")
+print(f"  R2   = {r2:.4f}")
+
+# ── Verify with normal equations ─────────────────
+# w = (X^T X)^-1 X^T y   (matrix form)
+X_aug = np.column_stack([X, np.ones(n)])
+theta = np.linalg.lstsq(X_aug, y, rcond=None)[0]
+print(f"\\nMatrix form: w={theta[0]:.4f}, b={theta[1]:.4f}")`},
+  {file:'slr_sklearn.py',label:'Sklearn',code:`from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+np.random.seed(42)
+X = np.random.uniform(0, 10, 200).reshape(-1, 1)
+y = 2.5 * X.squeeze() + 5 + np.random.randn(200) * 2
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# Fit model — sklearn uses OLS internally for LinearRegression
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+print(f"Slope (coef_)     : {model.coef_[0]:.4f}")
+print(f"Intercept         : {model.intercept_:.4f}")
+
+y_pred_train = model.predict(X_train)
+y_pred_test  = model.predict(X_test)
+
+print(f"\\nTrain set metrics:")
+print(f"  MAE  = {mean_absolute_error(y_train, y_pred_train):.4f}")
+print(f"  RMSE = {mean_squared_error(y_train, y_pred_train, squared=False):.4f}")
+print(f"  R2   = {r2_score(y_train, y_pred_train):.4f}")
+
+print(f"\\nTest set metrics:")
+print(f"  MAE  = {mean_absolute_error(y_test, y_pred_test):.4f}")
+print(f"  RMSE = {mean_squared_error(y_test, y_pred_test, squared=False):.4f}")
+print(f"  R2   = {r2_score(y_test, y_pred_test):.4f}")
+
+# Prediction
+x_new = np.array([[7.5]])
+print(f"\\nPrediction for x=7.5: {model.predict(x_new)[0]:.4f}")`},
+  {file:'slr_residuals.py',label:'Residual analysis',code:`import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+np.random.seed(0)
+n = 100
+X = np.random.uniform(0, 10, n).reshape(-1, 1)
+
+# Case 1: linear (good)
+y_linear = 2.5 * X.squeeze() + 5 + np.random.randn(n) * 1.5
+
+# Case 2: quadratic (bad for SLR)
+y_quad = 0.5 * X.squeeze()**2 + np.random.randn(n) * 3
+
+# Case 3: heteroscedastic (variance grows)
+y_hetero = 2.5 * X.squeeze() + 5 + np.random.randn(n) * X.squeeze()
+
+model = LinearRegression()
+print("=" * 50)
+print(f"{'Case':<20} {'R2':>8}  {'Residual pattern'}")
+print("=" * 50)
+
+for name, y in [("Linear (OK)", y_linear), ("Quadratic (bad)", y_quad), ("Heteroscedastic", y_hetero)]:
+    model.fit(X, y)
+    y_hat = model.predict(X)
+    residuals = y - y_hat
+    r2 = r2_score(y, y_hat)
+
+    # Check for pattern in residuals
+    first_half = residuals[:n//2]
+    second_half = residuals[n//2:]
+    pattern = "CURVED" if abs(second_half.mean() - first_half.mean()) > 1.5 else "random"
+
+    print(f"{name:<20} {r2:>8.4f}  {pattern}")
+    print(f"  {'':20} mean={residuals.mean():.3f}  std={residuals.std():.3f}")
+
+print("\\nAlways plot residuals vs fitted — R2 alone is not enough!")`},
+  {file:'slr_real_data.py',label:'Real dataset',code:`# Simulated house price dataset (similar to Ames/Boston)
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(42)
+n = 300
+
+# Simulate: house price ~ 0 + size + noise
+size = np.random.uniform(800, 4000, n)          # sq ft
+true_price = 180 * size + 50000                  # $180 per sq ft + base
+noise = np.random.randn(n) * 30000
+price = true_price + noise
+
+X = size.reshape(-1, 1)
+y = price
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+print("=== House Price ~ Size ===")
+print(f"Price per sq ft : $" + f"{model.coef_[0]:.2f}" + "   (true = $180.00)")
+print(f"Base price      : $" + f"{model.intercept_:,.0f}" + "   (true = $50,000)")
+
+y_pred = model.predict(X_test)
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+r2 = r2_score(y_test, y_pred)
+print(f"\\nTest RMSE : $" + f"{rmse:,.0f}")
+print(f"Test R2   : {r2:.4f}")
+
+# Cross-validation
+cv_r2 = cross_val_score(model, X, y, cv=5, scoring='r2')
+print(f"\\n5-fold CV R2: {cv_r2.mean():.4f} +/- {cv_r2.std():.4f}")
+
+# Predict new house
+for size_ft in [1000, 2000, 3000]:
+    pred = model.predict([[size_ft]])[0]
+    print(f"\\nPredicted price for {size_ft} sq ft: $" + f"{pred:,.0f}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){
+      out.textContent='Failed to load Pyodide.';out.className='editor-output error';
+      btn.disabled=false;btn.textContent='Run';return;
+    }
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){
+        if(cm.somethingSelected())cm.indentSelection('add');
+        else cm.replaceSelection('    ','end');
+      }}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+/* INIT */
+window.addEventListener('load',function(){
+  addPreset('positive');
+  drawLossCurve();
+  updateMetrics(30);
+  initEditor();
+  /* draw placeholder for assumption canvas */
+  AX.fillStyle=bg();AX.fillRect(0,0,AC.width,AC.height);
+  AX.fillStyle=tc();AX.font='13px sans-serif';AX.textAlign='center';
+  AX.fillText('Click an assumption card above to see what violation looks like',AC.width/2,AC.height/2);
+  new MutationObserver(function(){
+    drawScatter();drawLossCurve();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

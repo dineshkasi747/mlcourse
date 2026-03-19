@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ridge Regression — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(139,92,246,0.09),rgba(96,165,250,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(139,92,246,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .3s;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:18px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:#a78bfa;font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:rgba(139,92,246,0.1);border:1.5px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:#a78bfa;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid #a78bfa;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
+    .compare-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:16px;}
+    .compare-card.ols{border-color:rgba(240,96,96,0.4);}
+    .compare-card.ridge{border-color:rgba(139,92,246,0.4);}
+    .compare-card.both{border-color:rgba(62,207,142,0.4);}
+    .compare-title{font-family:var(--font-display);font-size:13px;font-weight:700;margin-bottom:10px;}
+    .compare-desc{font-size:12px;color:var(--text-3);line-height:1.6;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(139,92,246,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#7c3aed;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}.compare-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="ridge-regression">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Ridge Regression</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <span class="current">Ridge Regression</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(139,92,246,.3);background:rgba(139,92,246,0.08);color:#a78bfa;margin-bottom:14px;">Regularisation · L2 Penalty</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Ridge Regression (L2)</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              OLS finds the <em>best fitting</em> line. Ridge finds the <em>best fitting line that is also not too wild</em>.
+              It adds a penalty for large coefficients — shrinking them toward zero,
+              reducing overfitting, and fixing the multicollinearity problem.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 20 min</span>
+              <span class="topic-meta-item">◆ Intermediate</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — INTUITION -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(139,92,246,0.1);color:#a78bfa;">🏔</div>
+              Intuition — taming wild coefficients
+            </h2>
+            <p>
+              Imagine you're fitting a high-degree polynomial and the model assigns
+              <strong>coefficient = +5000 to x⁴ and −4998 to x³</strong> — these cancel each other out and
+              barely help, but together they cause wild oscillations on new data.
+            </p>
+            <p>
+              Ridge says: <em>"You can still fit the data well, but I'm going to charge you a fee for every
+              unit of coefficient size."</em> The model learns to use smaller, more stable coefficients
+              that generalise better — even if training error goes up slightly.
+            </p>
+
+            <div class="callout info">
+              <span class="callout-icon">🧠</span>
+              <p><strong>Everyday analogy:</strong> OLS is a student who memorises every answer from past exams.
+              Ridge is a student who actually understands the material — their score on old exams is slightly lower,
+              but they ace new exams because they learned the real pattern, not the noise.</p>
+            </div>
+
+            <!-- LIVE COEFFICIENT SHRINKAGE DEMO -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Watch coefficients shrink as α increases — live</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">α (penalty):</span>
+                  <input type="range" min="0" max="5" value="0" step="0.05" class="ctrl-slider"
+                    id="alpha-slider" oninput="onAlphaChange(this.value)" style="width:130px;"/>
+                  <span class="ctrl-value" id="alpha-val" style="color:#a78bfa;">0.00</span>
+                </div>
+                <button class="ctrl-btn active" onclick="animateAlpha()">▶ Animate α sweep</button>
+              </div>
+              <canvas id="shrink-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-train-r2" style="color:#a78bfa;">—</span><span class="stat-pill-lbl">Train R²</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-test-r2" style="color:var(--green);">—</span><span class="stat-pill-lbl">Test R²</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-coef-norm">—</span><span class="stat-pill-lbl">||β||² (L2 norm)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-status" style="font-size:13px;">—</span><span class="stat-pill-lbl">Status</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — CONSTRAINT GEOMETRY -->
+          <section class="section" id="geometry">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(139,92,246,0.1);color:#a78bfa;">◯</div>
+              Geometry — a circle constrains the solution
+            </h2>
+            <p>
+              The most important visual in all of regularisation:
+              OLS finds the point that minimises squared error — it can be anywhere.
+              Ridge adds a <strong>circle constraint</strong> around the origin (L2 ball).
+              The solution must land <em>inside</em> that circle — so it gets pulled toward zero.
+              Drag the α slider below and watch the circle shrink.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">OLS vs Ridge — constraint geometry</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">α:</span>
+                  <input type="range" min="0" max="3" value="0.5" step="0.05" class="ctrl-slider"
+                    id="geom-alpha" oninput="drawGeometry(this.value)" style="width:110px;"/>
+                  <span class="ctrl-value" id="geom-alpha-val" style="color:#a78bfa;">0.50</span>
+                </div>
+              </div>
+              <canvas id="geom-canvas" width="700" height="360" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12.5px;color:var(--text-3);">
+                Red dot = OLS solution (unconstrained) · Purple dot = Ridge solution (constrained to circle) ·
+                Ellipses = contours of equal loss · As α↑ circle shrinks → solution pulled closer to origin
+              </div>
+            </div>
+
+            <div class="compare-grid">
+              <div class="compare-card ols">
+                <div class="compare-title" style="color:var(--red);">OLS (α = 0)</div>
+                <div class="compare-desc">Minimises only fitting error. Coefficients can be huge. Unstable with correlated features. Can overfit badly.</div>
+              </div>
+              <div class="compare-card ridge">
+                <div class="compare-title" style="color:#a78bfa;">Ridge (α > 0)</div>
+                <div class="compare-desc">Minimises fitting error + α·||β||². Shrinks ALL coefficients toward zero. Never exactly zero. Stable with correlated features.</div>
+              </div>
+              <div class="compare-card both">
+                <div class="compare-title" style="color:var(--green);">Key difference from Lasso</div>
+                <div class="compare-desc">Ridge uses a circle (L2). Lasso uses a diamond (L1). Circle corners don't touch axes → Ridge never sets coefficients to exactly zero.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — REGULARISATION PATH -->
+          <section class="section" id="reg-path">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(139,92,246,0.1);color:#a78bfa;">→</div>
+              Regularisation path — how each coefficient shrinks
+            </h2>
+            <p>
+              As α increases from 0 (OLS) to ∞ (all coefficients → 0), each coefficient follows its own
+              shrinkage path. Features with strong signal resist longer before shrinking.
+              Features that are noise shrink away quickly. This is the <strong>Ridge path</strong>.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Ridge regularisation path — coefficient values vs α</span>
+                <select class="ctrl-select" id="path-dataset" onchange="drawRegPath()">
+                  <option value="diabetes">Diabetes (10 features)</option>
+                  <option value="housing">Housing (8 features)</option>
+                  <option value="correlated">Correlated features (5)</option>
+                </select>
+                <button class="ctrl-btn active" onclick="animateRegPath()">▶ Animate</button>
+              </div>
+              <canvas id="path-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Each coloured line = one feature's coefficient. Left = OLS (no regularisation). Right = heavy regularisation (all → 0). Vertical dashed line = current α.
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — HYPERPARAMETER TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">⚙</div>
+              Hyperparameter tuning — finding the best α
+            </h2>
+            <p>
+              α is Ridge's only hyperparameter. Too small = still overfitting. Too large = underfitting
+              (all coefficients crushed to near-zero). The sweet spot is found with cross-validation.
+              <strong>RidgeCV</strong> does this automatically.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="hp-ols-r2" style="color:var(--red);">—</div>
+                <div class="acc-label">OLS Test R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-ols-bar" style="background:var(--red);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-ridge-r2" style="color:#a78bfa;">—</div>
+                <div class="acc-label">Ridge Test R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-ridge-bar" style="background:#a78bfa;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-improvement" style="color:var(--green);">—</div>
+                <div class="acc-label">R² Improvement</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-imp-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-best-alpha" style="color:var(--accent);font-size:18px;">—</div>
+                <div class="acc-label">Best α (CV)</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-alpha-bar" style="background:var(--accent);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">⚙ Controls — retrain instantly on every slider move</div>
+              <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">Watch test R² peak at the sweet spot — too little α = overfit, too much = underfit</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">α (regularisation strength)</span><span class="hp-val" id="hp-alpha-val">1.0</span></div>
+                  <input type="range" min="0" max="100" value="1" step="0.5" class="ctrl-slider" id="hp-alpha" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">The key knob. α=0 = plain OLS. α=100 = almost all coefficients zero.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Noise level (σ)</span><span class="hp-val" id="hp-noise-val">1.5</span></div>
+                  <input type="range" min="0.1" max="5" value="1.5" step="0.1" class="ctrl-slider" id="hp-noise" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More noise → Ridge helps more vs OLS. Ridge shines on noisy data.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Multicollinearity (ρ)</span><span class="hp-val" id="hp-rho-val">0.0</span></div>
+                  <input type="range" min="0" max="0.98" value="0" step="0.02" class="ctrl-slider" id="hp-rho" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Correlated features → Ridge stabilises OLS coefficients. Try ρ=0.9!</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Number of features (p)</span><span class="hp-val" id="hp-p-val">5</span></div>
+                  <input type="range" min="2" max="20" value="5" step="1" class="ctrl-slider" id="hp-p" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More features → more regularisation needed. Ridge scales well to p >> n.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- α sweep: cross-validation curve -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">α sweep — train vs test R² (5-fold CV)</span>
+                <button class="ctrl-btn active" onclick="runAlphaSweep()">▶ Run CV sweep</button>
+                <span id="alpha-sweep-status" style="font-size:12px;color:var(--text-3);margin-left:8px;"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <!-- Live fit canvas: OLS vs Ridge side by side -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">OLS vs Ridge — same data, same degree</span>
+              </div>
+              <canvas id="compare-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — MATH -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">∑</div>
+              The math — adding an L2 penalty
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Ridge objective function</div>
+                  <div class="derive-desc">Add a penalty term to OLS loss. The penalty is the <strong>sum of squared coefficients</strong> (L2 norm) multiplied by α. Note: the intercept β₀ is NOT penalised.</div>
+                  <div class="derive-formula">Ridge loss = ||y - Xβ||²  +  α·||β||²
+             ↑                    ↑
+        fitting error        regularisation
+                             (penalise big β)
+
+α = 0  →  plain OLS
+α → ∞  →  β → 0  (all coefficients shrink to zero)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Closed-form solution</div>
+                  <div class="derive-desc">Take gradient, set to zero — same as OLS Normal Equations but with α added to the diagonal of XᵀX. This guarantees XᵀX + αI is <strong>always invertible</strong> (no multicollinearity singularity).</div>
+                  <div class="derive-formula">∂L/∂β = -2Xᵀ(y - Xβ) + 2αβ = 0
+
+β̂_ridge = (XᵀX + αI)⁻¹ Xᵀy
+            ↑
+    α·I  "inflates" diagonal → always invertible
+    even when features are perfectly correlated!</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Bias-Variance tradeoff in Ridge</div>
+                  <div class="derive-desc">Ridge introduces bias (coefficients pulled away from true values) but reduces variance (stable coefficients). Total error = Bias² + Variance + irreducible noise. Optimal α balances this.</div>
+                  <div class="derive-formula">OLS:    Low bias,  High variance  (bad when p is large)
+Ridge:  Some bias, Low variance   (good generalisation)
+
+Bias of β̂_ridge  = -α(XᵀX + αI)⁻¹ β_true
+Var of β̂_ridge   = σ²(XᵀX + αI)⁻¹XᵀX(XᵀX + αI)⁻¹
+
+As α ↑:  Bias ↑  but  Variance ↓  → sweet spot exists</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Ridge vs OLS in singular cases</div>
+                  <div class="derive-desc">When features are perfectly correlated, XᵀX is singular (non-invertible) and OLS fails completely. Ridge adds α to the diagonal, making inversion always possible. This is Ridge's most important practical benefit.</div>
+                  <div class="derive-formula">If X₁ = X₂ (perfect collinearity):
+  XᵀX  is singular  →  OLS fails (undefined)
+  XᵀX + αI  is non-singular  →  Ridge works!
+
+Ridge effectively "spreads" the credit between
+correlated features equally and stably.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">ridge_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not scaling features before Ridge.</strong> Ridge penalises large coefficients, but large coefficients can come from small-scale features (e.g. x in millimetres → coefficient is tiny). StandardScaler first — always.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Penalising the intercept.</strong> The intercept β₀ should NOT be regularised. sklearn's Ridge sets fit_intercept=True by default (correct). If you implement Ridge from scratch, subtract the mean from X and y before fitting, then add back the intercept.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using Ridge when you need feature selection.</strong> Ridge shrinks coefficients but never sets them to exactly zero. If you want automatic feature selection, use Lasso (L1 penalty). Ridge keeps all features in the model.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Picking α without cross-validation.</strong> Never set α by hand. Use RidgeCV which sweeps a range of α values and picks the best by cross-validation. It's fast (uses analytical trick) and always correct.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Expecting Ridge to fix non-linearity.</strong> Ridge only regularises OLS. If the relationship is non-linear, Ridge still won't fit it. Combine PolynomialFeatures + Ridge for curved data.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Ridge adds <strong>α·||β||²</strong> to the OLS loss. Solution: β̂ = (XᵀX + αI)⁻¹Xᵀy. Always invertible, always stable.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Coefficients are <strong>shrunk toward zero</strong> but never exactly zero. Use Lasso if you need exact zeros (feature selection).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always scale features first.</strong> StandardScaler → Ridge. Without scaling, the penalty treats features unfairly.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Ridge fixes <strong>multicollinearity</strong> completely. OLS fails when features are correlated; Ridge is stable by design.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>RidgeCV</strong> to auto-select α. It tries many values and picks the best using efficient leave-one-out cross-validation.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Ridge = OLS + L2 ball constraint. The L2 ball is a <strong>circle</strong> in 2D. Lasso uses an L1 ball which is a <strong>diamond</strong> — corners touch axes → exact zeros.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="polynomial-regression.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Polynomial Regression</span>
+            </a>
+            <a class="pn-card next" href="lasso-regression.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Lasso Regression</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Intuition</a></li>
+            <li class="toc-item"><a href="#geometry">Constraint geometry</a></li>
+            <li class="toc-item"><a href="#reg-path">Regularisation path</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#math">The math</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ── helpers ── */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* seeded RNG */
+var seed=42;
+function srnd(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;}
+function rseed(s){seed=s||42;}
+
+/* ── Matrix helpers ── */
+function matMul(A,B){
+  var ra=A.length,ca=A[0].length,cb=B[0].length,C=[];
+  for(var i=0;i<ra;i++){C.push([]);for(var j=0;j<cb;j++){var s=0;for(var k=0;k<ca;k++) s+=A[i][k]*B[k][j];C[i].push(s);}}
+  return C;
+}
+function matT(A){var r=A.length,c=A[0].length,T=[];for(var j=0;j<c;j++){T.push([]);for(var i=0;i<r;i++) T[j].push(A[i][j]);}return T;}
+function matVec(A,v){return A.map(function(row){return row.reduce(function(s,a,j){return s+a*v[j];},0);});}
+function identity(n){var I=[];for(var i=0;i<n;i++){I.push([]);for(var j=0;j<n;j++) I[i].push(i===j?1:0);}return I;}
+function matInv2x2(M){var det=M[0][0]*M[1][1]-M[0][1]*M[1][0];if(Math.abs(det)<1e-14)return null;return[[M[1][1]/det,-M[0][1]/det],[-M[1][0]/det,M[0][0]/det]];}
+
+/* ── Ridge solver (Gaussian elimination) ── */
+function ridgeSolve(X,y,alpha){
+  var n=X.length,p=X[0].length;
+  var Xt=matT(X);
+  var XtX=matMul(Xt,X);
+  for(var i=0;i<p;i++) XtX[i][i]+=alpha;
+  var Xty=matVec(Xt,y);
+  // Gaussian elimination
+  var aug=XtX.map(function(r,i){return r.concat([Xty[i]]);});
+  for(var col=0;col<p;col++){
+    var mx=col;for(var r=col+1;r<p;r++) if(Math.abs(aug[r][col])>Math.abs(aug[mx][col])) mx=r;
+    var tmp=aug[col];aug[col]=aug[mx];aug[mx]=tmp;
+    if(Math.abs(aug[col][col])<1e-14) return new Array(p).fill(0);
+    var piv=aug[col][col];
+    for(var c=col;c<=p;c++) aug[col][c]/=piv;
+    for(var r=0;r<p;r++){if(r===col) continue;var f=aug[r][col];for(var c=col;c<=p;c++) aug[r][c]-=f*aug[col][c];}
+  }
+  return aug.map(function(r){return r[p];});
+}
+
+function r2score(ys,yhats){
+  var mean=ys.reduce(function(a,b){return a+b;},0)/ys.length;
+  var sst=ys.reduce(function(s,y){return s+(y-mean)*(y-mean);},0);
+  var sse=ys.reduce(function(s,y,i){return s+(y-yhats[i])*(y-yhats[i]);},0);
+  return sst>0?1-sse/sst:1;
+}
+
+/* ── MAKE DATASET (polynomial features, noisy) ── */
+function makePolyDataset(n,noise,rho,p,alpha_fixed,seed_){
+  rseed(seed_||42);
+  var xs=[],ys=[];
+  for(var i=0;i<n;i++){
+    var x=srnd()*6-3;
+    var y=2*x-0.5*x*x+1+(srnd()-0.5)*2*noise;
+    xs.push(x);ys.push(y);
+  }
+  // Build feature matrix [x, x^2, ..., x^p]
+  var X=xs.map(function(x){
+    var row=[];for(var j=1;j<=p;j++) row.push(Math.pow(x,j));return row;
+  });
+  // Normalise each feature
+  for(var j=0;j<p;j++){
+    var mean=X.reduce(function(s,r){return s+r[j];},0)/n;
+    var std=Math.sqrt(X.reduce(function(s,r){return s+(r[j]-mean)*(r[j]-mean);},0)/n)||1;
+    X.forEach(function(r){r[j]=(r[j]-mean)/std;});
+  }
+  // Apply correlation
+  if(rho>0&&p>=2){
+    X.forEach(function(r){r[1]=rho*r[0]+Math.sqrt(1-rho*rho)*r[1];});
+  }
+  var yMean=ys.reduce(function(a,b){return a+b;},0)/n;
+  var yStd=Math.sqrt(ys.reduce(function(s,y){return s+(y-yMean)*(y-yMean);},0)/n)||1;
+  var yn=ys.map(function(y){return (y-yMean)/yStd;});
+  return{X:X,y:yn,xs:xs,ys:yn,n:n,p:p,yMean:yMean,yStd:yStd};
+}
+
+/* ════ SECTION 1 — SHRINKAGE DEMO ════ */
+var shrinkData=null;
+var shrinkAlpha=0;
+var shrinkOLSCoefs=null;
+var animTimer=null;
+
+function initShrinkData(){
+  rseed(42);
+  var n=60,deg=5;
+  shrinkData=makePolyDataset(n,1.5,0.4,deg,0,42);
+  shrinkOLSCoefs=ridgeSolve(shrinkData.X,shrinkData.y,0);
+}
+
+function onAlphaChange(v){
+  shrinkAlpha=parseFloat(v);
+  C('alpha-val').textContent=shrinkAlpha.toFixed(2);
+  drawShrinkCanvas();
+}
+
+async function animateAlpha(){
+  if(animTimer){clearInterval(animTimer);animTimer=null;return;}
+  var vals=[];
+  for(var a=0;a<=5;a+=0.08) vals.push(a);
+  var idx=0;
+  animTimer=setInterval(function(){
+    if(idx>=vals.length){clearInterval(animTimer);animTimer=null;return;}
+    C('alpha-slider').value=vals[idx];
+    onAlphaChange(vals[idx]);
+    idx++;
+  },40);
+}
+
+function drawShrinkCanvas(){
+  if(!shrinkData) return;
+  var cv=C('shrink-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:160,t:20,b:30};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var d=shrinkData;
+  var alpha=shrinkAlpha;
+  var coefs=ridgeSolve(d.X,d.y,alpha);
+  var olsCoefs=shrinkOLSCoefs||coefs;
+
+  // Split 80/20
+  var tn=Math.floor(d.n*0.8);
+  var Xtrain=d.X.slice(0,tn),ytrain=d.y.slice(0,tn);
+  var Xtest=d.X.slice(tn),ytest=d.y.slice(tn);
+  var trainPreds=Xtrain.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+  var testPreds=Xtest.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+  var trainR2=r2score(ytrain,trainPreds);
+  var testR2=r2score(ytest,testPreds);
+  var l2norm=coefs.reduce(function(s,c){return s+c*c;},0);
+  var gap=trainR2-testR2;
+  var status=gap>0.2?'Overfitting':testR2<0.3?'Underfitting':'Good fit';
+
+  C('sk-train-r2').textContent=Math.max(0,trainR2).toFixed(3);
+  C('sk-test-r2').textContent=Math.max(-0.5,testR2).toFixed(3);
+  C('sk-test-r2').style.color=testR2>0.6?'var(--green)':testR2>0.3?'var(--accent)':'var(--red)';
+  C('sk-coef-norm').textContent=l2norm.toFixed(3);
+  C('sk-status').textContent=status;
+  C('sk-status').style.color=gap>0.2?'var(--red)':testR2<0.3?'var(--blue)':'var(--green)';
+
+  // Draw coefficient bars
+  var p=d.p;
+  var maxC=Math.max.apply(null,olsCoefs.map(Math.abs))||1;
+  var barH=(H-pad.t-pad.b)/p-4;
+  var colors=['#a78bfa','#60a5fa','#3ecf8e','#fb923c','#f06060','#f0a500','#e879f9'];
+
+  coefs.forEach(function(c,j){
+    var olsC=olsCoefs[j];
+    var y0=pad.t+j*(barH+4);
+    var cx=pad.l+W*0.45-pad.l;  // centre x for bars
+
+    // Track (full OLS bar, greyed)
+    var olsBarW=Math.abs(olsC)/maxC*(W-pad.l-pad.r)*0.7;
+    ctx.fillStyle=bgIn();
+    ctx.fillRect(olsC>=0?cx:cx-olsBarW,y0,olsBarW,barH);
+
+    // Current Ridge bar
+    var ridgeBarW=Math.abs(c)/maxC*(W-pad.l-pad.r)*0.7;
+    ctx.fillStyle=colors[j%colors.length];
+    ctx.globalAlpha=0.85;
+    ctx.fillRect(c>=0?cx:cx-ridgeBarW,y0,ridgeBarW,barH);
+    ctx.globalAlpha=1;
+
+    // Feature label
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='right';
+    var sup=j>=1?(j+1).toString():'';ctx.fillText('β'+(j+1)+' (x'+sup+')',cx-4,y0+barH/2+4);
+
+    // Values
+    ctx.fillStyle=colors[j%colors.length];ctx.font='bold 11px monospace';ctx.textAlign='left';
+    ctx.fillText(c.toFixed(3),cx+ridgeBarW+6,y0+barH/2+4);
+    ctx.fillStyle=tc();ctx.font='10px mono';
+    ctx.fillText('(OLS:'+olsC.toFixed(2)+')',cx+ridgeBarW+55,y0+barH/2+4);
+
+    // Shrinkage percent
+    var shrinkPct=olsC!==0?((1-Math.abs(c)/Math.abs(olsC))*100):0;
+    ctx.fillStyle='rgba(167,139,250,0.7)';ctx.font='10px mono';ctx.textAlign='right';
+    ctx.fillText(shrinkPct.toFixed(0)+'%↓',cx-olsBarW-4,y0+barH/2+4);
+  });
+
+  // Centre line
+  var cx=pad.l+(W-pad.l-pad.r)*0.45;
+  ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,H-pad.b);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('β = 0',cx,H-pad.b+12);
+
+  // Alpha label
+  ctx.fillStyle='#a78bfa';ctx.font='bold 13px sans-serif';ctx.textAlign='left';
+  ctx.fillText('α = '+alpha.toFixed(2),10,16);
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 2 — GEOMETRY ════ */
+function drawGeometry(alphaStr){
+  var alpha=parseFloat(alphaStr);
+  C('geom-alpha-val').textContent=alpha.toFixed(2);
+  var cv=C('geom-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var cx=W/2,cy=H/2,sc=80;
+  // Axes
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(40,cy);ctx.lineTo(W-40,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,30);ctx.lineTo(cx,H-30);ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';
+  ctx.textAlign='center';ctx.fillText('β₁',W-30,cy-6);
+  ctx.textAlign='left';ctx.fillText('β₂',cx+6,38);
+
+  // OLS solution (fixed at β=(2, 1.5))
+  var olsB1=2.0,olsB2=1.5;
+  var olsX=cx+olsB1*sc,olsY=cy-olsB2*sc;
+
+  // Loss contours (ellipses centred at OLS solution)
+  var ellipseA=sc*1.8,ellipseB=sc*1.1;
+  ctx.strokeStyle=isDark()?'rgba(240,96,96,0.3)':'rgba(200,50,50,0.25)';
+  [0.3,0.6,1.0,1.5,2.2].forEach(function(r){
+    ctx.beginPath();ctx.ellipse(olsX,olsY,ellipseA*r,ellipseB*r,0.4,0,Math.PI*2);ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Ridge constraint circle
+  var radius=Math.max(10,sc*2/(1+alpha*1.5));
+  // Gradient fill for circle
+  var grd=ctx.createRadialGradient(cx,cy,0,cx,cy,radius);
+  grd.addColorStop(0,'rgba(139,92,246,0.12)');
+  grd.addColorStop(1,'rgba(139,92,246,0.03)');
+  ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);
+  ctx.fillStyle=grd;ctx.fill();
+  ctx.strokeStyle='#a78bfa';ctx.lineWidth=2;ctx.stroke();
+
+  // Ridge solution = point on circle closest to OLS
+  var dist=Math.sqrt((olsX-cx)*(olsX-cx)+(olsY-cy)*(olsY-cy));
+  var ridgeX,ridgeY;
+  if(dist<=radius){ridgeX=olsX;ridgeY=olsY;}
+  else{ridgeX=cx+(olsX-cx)/dist*radius;ridgeY=cy+(olsY-cy)/dist*radius;}
+
+  // Arrow from OLS to Ridge
+  ctx.beginPath();ctx.moveTo(olsX,olsY);ctx.lineTo(ridgeX,ridgeY);
+  ctx.strokeStyle='rgba(167,139,250,0.6)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+
+  // OLS dot
+  ctx.beginPath();ctx.arc(olsX,olsY,9,0,Math.PI*2);
+  ctx.fillStyle='#f06060';ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#f06060';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+  ctx.fillText('OLS solution',olsX+12,olsY-4);
+  ctx.fillText('(β₁='+olsB1+', β₂='+olsB2+')',olsX+12,olsY+10);
+
+  // Ridge dot
+  var rB1=(ridgeX-cx)/sc,rB2=(cy-ridgeY)/sc;
+  ctx.beginPath();ctx.arc(ridgeX,ridgeY,9,0,Math.PI*2);
+  ctx.fillStyle='#a78bfa';ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#a78bfa';ctx.font='bold 11px sans-serif';ctx.textAlign='right';
+  ctx.fillText('Ridge solution',ridgeX-12,ridgeY-4);
+  ctx.fillText('(β₁='+rB1.toFixed(2)+', β₂='+rB2.toFixed(2)+')',ridgeX-12,ridgeY+10);
+
+  // Circle label
+  ctx.fillStyle='#a78bfa';ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('L2 ball (r = '+(radius/sc).toFixed(2)+')',cx,cy+radius+16);
+  ctx.fillText('α='+alpha.toFixed(2)+' controls radius',cx,cy+radius+30);
+
+  // Origin dot
+  ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);
+  ctx.fillStyle=isDark()?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.4)';ctx.fill();
+
+  // Grid numbers on axes
+  ctx.fillStyle=tc();ctx.font='10px mono';
+  [-2,-1,1,2].forEach(function(v){
+    ctx.textAlign='center';ctx.fillText(v,cx+v*sc,cy+14);
+    ctx.textAlign='right';ctx.fillText(v,cx-6,cy-v*sc+4);
+  });
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 3 — REGULARISATION PATH ════ */
+var PATH_DATA={
+  diabetes:{
+    names:['BMI','bp','s1','s2','s3','s4','s5','s6','age','sex'],
+    olsCoefs:[0.52,-0.31,0.68,-0.42,0.38,0.19,0.61,0.29,0.18,0.08]
+  },
+  housing:{
+    names:['sqft','rooms','age','distance','school','crime','tax','amenities'],
+    olsCoefs:[0.72,0.45,-0.38,-0.61,0.29,0.18,-0.52,0.35]
+  },
+  correlated:{
+    names:['x1','x2 (corr)','x3','x4','x5'],
+    olsCoefs:[2.1,-1.9,0.4,0.3,-0.2]
+  }
+};
+
+var pathAnimTimer=null;
+function drawRegPath(alphaHighlight){
+  var ds=C('path-dataset').value;
+  var data=PATH_DATA[ds];
+  var cv=C('path-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:120,t:20,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var alphas=[];
+  for(var a=0;a<=3;a+=0.06) alphas.push(a);
+  var n=alphas.length;
+
+  var paths=data.olsCoefs.map(function(olsC){
+    return alphas.map(function(a){return olsC/(1+a*1.5);});
+  });
+
+  var maxV=Math.max.apply(null,data.olsCoefs.map(Math.abs));
+  var toX=function(i){return pad.l+i/(n-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return H/2-v/maxV*(H/2-pad.t);};
+
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [-1,-0.5,0,0.5,1].forEach(function(v){
+    var y=toY(v*maxV);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='9px mono';ctx.textAlign='right';
+    ctx.fillText((v*maxV).toFixed(2),pad.l-3,y+3);
+  });
+  // Zero line
+  ctx.beginPath();ctx.moveTo(pad.l,H/2);ctx.lineTo(W-pad.r,H/2);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.15)';ctx.lineWidth=1.5;ctx.stroke();
+
+  var colors=['#a78bfa','#60a5fa','#3ecf8e','#fb923c','#f06060','#f0a500','#e879f9','#2dd4bf','#4ade80','#c084fc'];
+
+  paths.forEach(function(path,fi){
+    ctx.beginPath();
+    path.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v));});
+    ctx.strokeStyle=colors[fi%colors.length];ctx.lineWidth=2.2;ctx.stroke();
+    // Label at right
+    var lastV=path[path.length-1];
+    ctx.fillStyle=colors[fi%colors.length];ctx.font='11px sans-serif';ctx.textAlign='left';
+    ctx.fillText(data.names[fi],W-pad.r+4,toY(data.olsCoefs[fi])+4);
+  });
+
+  // Alpha highlight line
+  var hl=alphaHighlight!==undefined?alphaHighlight:1.0;
+  var hlI=Math.round(hl/3*(n-1));
+  ctx.beginPath();ctx.moveTo(toX(hlI),pad.t);ctx.lineTo(toX(hlI),H-pad.b);
+  ctx.strokeStyle='rgba(240,165,0,0.6)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+
+  // X-axis labels
+  [0,0.5,1.0,1.5,2.0,2.5,3.0].forEach(function(a){
+    var i=Math.round(a/3*(n-1));
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';
+    ctx.fillText(a.toFixed(1),toX(i),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('α (regularisation strength)',W/2,H-4);
+  ctx.textAlign='start';
+}
+
+async function animateRegPath(){
+  if(pathAnimTimer){clearInterval(pathAnimTimer);pathAnimTimer=null;return;}
+  var step=0,maxSteps=50;
+  pathAnimTimer=setInterval(function(){
+    drawRegPath(step/maxSteps*3);
+    step++;
+    if(step>maxSteps){clearInterval(pathAnimTimer);pathAnimTimer=null;}
+  },60);
+}
+
+/* ════ SECTION 4 — HYPERPARAMETER TUNING ════ */
+function onHPChange(){
+  var alpha=parseFloat(C('hp-alpha').value);
+  var noise=parseFloat(C('hp-noise').value);
+  var rho=parseFloat(C('hp-rho').value);
+  var p=parseInt(C('hp-p').value);
+  C('hp-alpha-val').textContent=alpha.toFixed(1);
+  C('hp-noise-val').textContent=noise.toFixed(1);
+  C('hp-rho-val').textContent=rho.toFixed(2);
+  C('hp-p-val').textContent=p;
+
+  rseed(42);
+  var n=80;
+  var d=makePolyDataset(n,noise,rho,p,alpha,42);
+  var tn=Math.floor(n*0.75);
+  var Xtr=d.X.slice(0,tn),ytr=d.y.slice(0,tn);
+  var Xte=d.X.slice(tn),yte=d.y.slice(tn);
+
+  var olsC=ridgeSolve(Xtr,ytr,0);
+  var ridgeC=ridgeSolve(Xtr,ytr,alpha*0.1);
+
+  function predict(X,c){return X.map(function(r){return r.reduce(function(s,v,j){return s+v*c[j];},0);});}
+
+  var olsTestR2=Math.max(-1,r2score(yte,predict(Xte,olsC)));
+  var ridgeTestR2=Math.max(-1,r2score(yte,predict(Xte,ridgeC)));
+  var improvement=ridgeTestR2-olsTestR2;
+
+  // Find best alpha via simple sweep
+  var bestAlpha=0,bestR2=-999;
+  [0,0.01,0.05,0.1,0.5,1,2,5,10].forEach(function(a){
+    var c=ridgeSolve(Xtr,ytr,a);
+    var r2=r2score(yte,predict(Xte,c));
+    if(r2>bestR2){bestR2=r2;bestAlpha=a;}
+  });
+
+  C('hp-ols-r2').textContent=Math.max(0,olsTestR2).toFixed(3);
+  C('hp-ridge-r2').textContent=Math.max(0,ridgeTestR2).toFixed(3);
+  C('hp-improvement').textContent=(improvement>=0?'+':'')+improvement.toFixed(3);
+  C('hp-improvement').style.color=improvement>0?'var(--green)':'var(--red)';
+  C('hp-best-alpha').textContent=bestAlpha.toFixed(2);
+  C('hp-ols-bar').style.width=(Math.max(0,olsTestR2)*100)+'%';
+  C('hp-ridge-bar').style.width=(Math.max(0,ridgeTestR2)*100)+'%';
+  C('hp-imp-bar').style.width=(Math.min(1,Math.max(0,improvement*5+0.5))*100)+'%';
+
+  drawCompareCanvas(d,Xtr,ytr,Xte,yte,olsC,ridgeC);
+}
+
+function drawCompareCanvas(d,Xtr,ytr,Xte,yte,olsC,ridgeC){
+  var cv=C('compare-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,panelW=W/2;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var labels=['OLS (no regularisation)','Ridge (α='+parseFloat(C('hp-alpha').value).toFixed(1)+')'];
+  var lineColors=['#f06060','#a78bfa'];
+  var coefSets=[olsC,ridgeC];
+
+  var xs=d.xs;
+  var xMin=Math.min.apply(null,xs),xMax=Math.max.apply(null,xs);
+  var yMin=Math.min.apply(null,d.ys)-0.5,yMax=Math.max.apply(null,d.ys)+0.5;
+
+  [0,1].forEach(function(pi){
+    var x0=pi*panelW;
+    var pad={l:28,r:8,t:24,b:20};
+    var toX=function(x){return x0+pad.l+(x-xMin)/(xMax-xMin)*(panelW-pad.l-pad.r);};
+    var toY=function(y){return H-pad.b-(y-yMin)/(yMax-yMin)*(H-pad.t-pad.b);};
+
+    if(pi>0){ctx.strokeStyle=isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,0);ctx.lineTo(x0,H);ctx.stroke();}
+
+    ctx.fillStyle=lineColors[pi];ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(labels[pi],x0+panelW/2,16);
+
+    var coefs=coefSets[pi];
+    var coefNorm=coefs.reduce(function(s,c){return s+c*c;},0);
+
+    // Fitted curve
+    ctx.beginPath();
+    var ok=true;
+    for(var i=0;i<200;i++){
+      var x=xMin+i/199*(xMax-xMin);
+      // normalise x same way as training
+      var row=[];for(var j=0;j<coefs.length;j++) row.push(Math.pow(x,j+1));
+      var mean=row.reduce(function(a,b){return a+b;},0)/row.length;
+      var pred=row.reduce(function(s,v,j){return s+v*coefs[j];},0);
+      pred=Math.max(yMin-2,Math.min(yMax+2,pred));
+      var px=toX(x),py=toY(pred);
+      if(py<-20||py>H+20){if(ok){ctx.stroke();ctx.beginPath();}ok=false;continue;}
+      ok=true;
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.strokeStyle=lineColors[pi];ctx.lineWidth=2.5;ctx.stroke();
+
+    // Predictions on test data
+    var testPreds=Xte.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+    var testR2=r2score(yte,testPreds);
+
+    // Data points
+    d.xs.forEach(function(x,i){
+      ctx.beginPath();ctx.arc(toX(x),toY(d.ys[i]),4,0,Math.PI*2);
+      ctx.fillStyle=isDark()?'rgba(255,255,255,0.55)':'rgba(0,0,0,0.45)';ctx.fill();
+    });
+
+    ctx.fillStyle=lineColors[pi];ctx.font='10px mono';ctx.textAlign='center';
+    ctx.fillText('||β||²='+coefNorm.toFixed(2)+'  Test R²='+Math.max(0,testR2).toFixed(3),x0+panelW/2,H-4);
+  });
+  ctx.textAlign='start';
+}
+
+async function runAlphaSweep(){
+  C('alpha-sweep-status').textContent='Running...';
+  rseed(42);
+  var n=80,noise=parseFloat(C('hp-noise').value),rho=parseFloat(C('hp-rho').value),p=parseInt(C('hp-p').value);
+  var d=makePolyDataset(n,noise,rho,p,0,42);
+  var tn=Math.floor(n*0.75);
+  var Xtr=d.X.slice(0,tn),ytr=d.y.slice(0,tn);
+  var Xte=d.X.slice(tn),yte=d.y.slice(tn);
+
+  var alphas=[];
+  for(var a=0;a<=10;a+=0.2) alphas.push(a);
+  var results=[];
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:15,b:35};
+
+  function predict(X,c){return X.map(function(r){return r.reduce(function(s,v,j){return s+v*c[j];},0);});}
+
+  for(var ai=0;ai<alphas.length;ai++){
+    var a=alphas[ai]*0.1;
+    var c=ridgeSolve(Xtr,ytr,a);
+    var tR=Math.max(0,Math.min(1,r2score(ytr,predict(Xtr,c))));
+    var eR=Math.max(-0.2,Math.min(1,r2score(yte,predict(Xte,c))));
+    results.push({a:alphas[ai],train:tR,test:eR});
+
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+    var toX=function(i){return pad.l+i/(alphas.length-1)*(W-pad.l-pad.r);};
+    var toY=function(v){return H-pad.b-((v+0.2)/1.2)*(H-pad.t-pad.b);};
+
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+    [0,0.25,0.5,0.75,1.0].forEach(function(v){
+      ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-3,toY(v)+4);
+    });
+    alphas.forEach(function(a,i){
+      if(i%5===0){ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(a.toFixed(0),toX(i),H-pad.b+14);}
+    });
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('α',W/2,H-2);
+
+    if(results.length>1){
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY(r.train)):ctx.lineTo(toX(i),toY(r.train));});
+      ctx.strokeStyle='#f06060';ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY(r.test)):ctx.lineTo(toX(i),toY(r.test));});
+      ctx.strokeStyle='#a78bfa';ctx.lineWidth=2.5;ctx.stroke();
+      results.forEach(function(r,i){
+        ctx.beginPath();ctx.arc(toX(i),toY(r.train),3,0,Math.PI*2);ctx.fillStyle='#f06060';ctx.fill();
+        ctx.beginPath();ctx.arc(toX(i),toY(r.test),3,0,Math.PI*2);ctx.fillStyle='#a78bfa';ctx.fill();
+      });
+    }
+    // Current α marker
+    ctx.beginPath();ctx.moveTo(toX(ai),pad.t);ctx.lineTo(toX(ai),H-pad.b);
+    ctx.strokeStyle='rgba(240,165,0,0.5)';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.textAlign='start';
+    await delay(40);
+  }
+  var best=results.reduce(function(m,r){return r.test>m.test?r:m;},results[0]);
+  C('alpha-sweep-status').textContent='Best α='+best.a.toFixed(1)+' (Test R²='+best.test.toFixed(3)+')';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'ridge_scratch.py',label:'Ridge from scratch',code:`import numpy as np
+
+class RidgeRegression:
+    """Ridge = OLS + L2 penalty: minimises ||y - Xβ||² + α||β||²"""
+
+    def __init__(self, alpha=1.0):
+        self.alpha = alpha
+
+    def fit(self, X, y):
+        n, p = X.shape
+        # Centre y (don't penalise intercept)
+        self.y_mean_ = y.mean()
+        y_c = y - self.y_mean_
+        # β̂ = (XᵀX + αI)⁻¹ Xᵀy
+        A = X.T @ X + self.alpha * np.eye(p)
+        b = X.T @ y_c
+        self.coef_ = np.linalg.solve(A, b)
+        self.intercept_ = self.y_mean_
+        return self
+
+    def predict(self, X):
+        return X @ self.coef_ + self.intercept_
+
+    def score(self, X, y):
+        y_hat = self.predict(X)
+        ss_res = np.sum((y - y_hat)**2)
+        ss_tot = np.sum((y - y.mean())**2)
+        return 1 - ss_res / ss_tot
+
+# Demo: show Ridge vs OLS on correlated features
+np.random.seed(42)
+n, p = 100, 8
+rho = 0.85  # strong multicollinearity
+
+# Generate correlated features
+Z = np.random.randn(n, p)
+X = Z.copy()
+X[:, 1] = rho * X[:, 0] + np.sqrt(1 - rho**2) * Z[:, 1]  # correlated pair
+
+y = 2*X[:,0] + 0.5*X[:,2] - X[:,4] + np.random.randn(n)*0.8
+
+# Normalise
+X = (X - X.mean(0)) / X.std(0)
+split = int(n * 0.8)
+X_train, X_test = X[:split], X[split:]
+y_train, y_test = y[:split], y[split:]
+
+print(f"{'Model':<20} {'Train R²':>9}  {'Test R²':>9}  {'||β||²':>8}")
+print("-" * 52)
+
+for alpha in [0, 0.1, 1, 10, 100]:
+    model = RidgeRegression(alpha=alpha)
+    model.fit(X_train, y_train)
+    tr = model.score(X_train, y_train)
+    te = model.score(X_test, y_test)
+    l2 = np.sum(model.coef_**2)
+    name = f"OLS (α=0)" if alpha == 0 else f"Ridge(α={alpha})"
+    print(f"{name:<20} {tr:>9.4f}  {te:>9.4f}  {l2:>8.4f}")
+
+print()
+print("Notice: OLS overfits with correlated features.")
+print("Ridge finds stable, well-generalising solution.")
+`},
+{file:'ridge_sklearn.py',label:'sklearn + RidgeCV',code:`from sklearn.linear_model import Ridge, RidgeCV
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.datasets import fetch_california_housing
+import numpy as np
+
+data = fetch_california_housing()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# ── 1. Plain Ridge with various α ───────────────────
+print("Ridge with various α values:")
+print(f"{'alpha':>8}  {'train R²':>9}  {'test R²':>9}  {'||coef||':>9}")
+print("-" * 44)
+for alpha in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
+    pipe = Pipeline([
+        ('scale', StandardScaler()),
+        ('model', Ridge(alpha=alpha))
+    ])
+    pipe.fit(X_train, y_train)
+    tr = pipe.score(X_train, y_train)
+    te = pipe.score(X_test, y_test)
+    l2 = np.sum(pipe.named_steps['model'].coef_**2)
+    print(f"{alpha:>8}  {tr:>9.4f}  {te:>9.4f}  {l2:>9.4f}")
+
+# ── 2. RidgeCV: auto-selects best α ─────────────────
+print()
+print("RidgeCV — automatic α selection:")
+alphas = np.logspace(-3, 4, 100)  # try 100 values
+pipe_cv = Pipeline([
+    ('scale', StandardScaler()),
+    ('model', RidgeCV(alphas=alphas, scoring='r2',
+                      store_cv_values=True))
+])
+pipe_cv.fit(X_train, y_train)
+best = pipe_cv.named_steps['model'].alpha_
+print(f"  Best α: {best:.4f}")
+print(f"  Test R²: {pipe_cv.score(X_test, y_test):.4f}")
+
+# ── 3. Polynomial + Ridge (the classic combo) ───────
+print()
+print("Polynomial (degree=2) + Ridge:")
+poly_pipe = Pipeline([
+    ('scale', StandardScaler()),
+    ('poly',  PolynomialFeatures(degree=2, include_bias=False)),
+    ('model', RidgeCV(alphas=np.logspace(-2, 4, 50)))
+])
+poly_pipe.fit(X_train, y_train)
+print(f"  Features after poly: {poly_pipe.named_steps['poly'].n_output_features_}")
+print(f"  Best α: {poly_pipe.named_steps['model'].alpha_:.4f}")
+print(f"  Test R²: {poly_pipe.score(X_test, y_test):.4f}")
+`},
+{file:'ridge_vs_ols.py',label:'Ridge vs OLS comparison',code:`import numpy as np
+
+# Clear demonstration of when Ridge beats OLS
+np.random.seed(123)
+
+def run_comparison(n, p, rho, noise, alpha=1.0):
+    """Compare OLS vs Ridge under different conditions"""
+    # Generate correlated features
+    Z = np.random.randn(n, p)
+    X = Z.copy()
+    for j in range(1, p):
+        X[:, j] = rho * X[:, 0] + np.sqrt(1-rho**2) * Z[:, j]
+    # True model: only first 3 features matter
+    y = 3*X[:,0] + 1.5*X[:,1] - X[:,2] + np.random.randn(n) * noise
+    X = (X - X.mean(0)) / (X.std(0) + 1e-8)
+    split = int(n * 0.75)
+    Xtr, Xte = X[:split], X[split:]
+    ytr, yte = y[:split], y[split:]
+    def ridge(Xtr, ytr, a):
+        A = Xtr.T @ Xtr + a * np.eye(p)
+        return np.linalg.solve(A, Xtr.T @ ytr)
+    def r2(y, yh):
+        return 1 - np.sum((y-yh)**2)/max(np.sum((y-y.mean())**2), 1e-10)
+    ols_c = ridge(Xtr, ytr, 0)
+    ridge_c = ridge(Xtr, ytr, alpha)
+    ols_r2 = r2(yte, Xte @ ols_c)
+    ridge_r2 = r2(yte, Xte @ ridge_c)
+    return ols_r2, ridge_r2
+
+print("When does Ridge help? — systematic comparison")
+print()
+print(f"{'Scenario':<35} {'OLS R²':>8}  {'Ridge R²':>9}  {'Winner'}")
+print("-" * 62)
+
+scenarios = [
+    ("Low corr, low noise (ρ=0.1, σ=0.5)",   100, 5, 0.1, 0.5, 0.5),
+    ("High corr, low noise (ρ=0.9, σ=0.5)",  100, 5, 0.9, 0.5, 1.0),
+    ("Low corr, high noise (ρ=0.1, σ=3)",    100, 5, 0.1, 3.0, 1.0),
+    ("High corr, high noise (ρ=0.9, σ=3)",   100, 5, 0.9, 3.0, 2.0),
+    ("Many features (p=50, n=100)",           100,50, 0.2, 1.0, 5.0),
+    ("p > n (p=80, n=60)",                     60,20, 0.3, 1.0,10.0),
+]
+
+for name, n, p, rho, noise, alpha in scenarios:
+    ols_r2, ridge_r2 = run_comparison(n, p, rho, noise, alpha)
+    winner = "Ridge" if ridge_r2 > ols_r2 + 0.01 else "OLS" if ols_r2 > ridge_r2 + 0.01 else "Tie"
+    marker = " <--" if winner == "Ridge" else ""
+    print(f"{name:<35} {ols_r2:>8.3f}  {ridge_r2:>9.3f}  {winner}{marker}")
+
+print()
+print("Ridge wins most when: correlated features, noisy data, many features")
+`},
+{file:'ridgecv_alpha.py',label:'Cross-val α selection',code:`import numpy as np
+
+# Implement RidgeCV from scratch using leave-one-out shortcut
+np.random.seed(42)
+n, p = 80, 6
+
+# Correlated, noisy dataset
+X = np.random.randn(n, p)
+X[:,1] = 0.8*X[:,0] + 0.6*X[:,1]
+y = 2*X[:,0] - X[:,2] + 0.5*X[:,4] + np.random.randn(n)*1.5
+X = (X - X.mean(0)) / X.std(0)
+
+def ridge_fit(X, y, alpha):
+    return np.linalg.solve(X.T @ X + alpha * np.eye(X.shape[1]), X.T @ y)
+
+def loo_error(X, y, alpha):
+    """Fast LOO using hat matrix trick (no retraining!)"""
+    n = len(y)
+    A = X.T @ X + alpha * np.eye(X.shape[1])
+    beta = np.linalg.solve(A, X.T @ y)
+    H = X @ np.linalg.solve(A, X.T)  # hat matrix
+    y_hat = H @ y
+    residuals = y - y_hat
+    h = np.diag(H)  # leverage values
+    # LOO error for each sample (without refitting!)
+    loo_residuals = residuals / (1 - h + 1e-10)
+    return np.mean(loo_residuals**2)
+
+# Test many α values
+alphas = np.logspace(-3, 3, 60)
+loo_errors = [loo_error(X, y, a) for a in alphas]
+
+best_idx = np.argmin(loo_errors)
+best_alpha = alphas[best_idx]
+
+print("LOO cross-validation error vs alpha:")
+print(f"{'alpha':>10}  {'LOO MSE':>10}")
+print("-" * 25)
+for i in range(0, 60, 6):
+    marker = " <-- BEST" if i == best_idx else ""
+    print(f"{alphas[i]:>10.4f}  {loo_errors[i]:>10.4f}{marker}")
+
+print(f"\\nBest alpha (LOO): {best_alpha:.4f}")
+
+# Final model
+split = int(n * 0.8)
+Xtr, Xte, ytr, yte = X[:split], X[split:], y[:split], y[split:]
+beta = ridge_fit(Xtr, ytr, best_alpha)
+y_hat = Xte @ beta
+r2 = 1 - np.sum((yte-y_hat)**2)/np.sum((yte-yte.mean())**2)
+print(f"Test R² with best alpha: {r2:.4f}")
+print()
+print("The LOO shortcut (hat matrix trick) lets RidgeCV")
+print("evaluate 100s of alphas in O(n²p) instead of O(n³p)")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click \u25b6 Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='\u25cf Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='\u25b6 Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='\u25b6 Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  initShrinkData();
+  onAlphaChange(0);
+  drawGeometry(0.5);
+  drawRegPath();
+  onHPChange();
+
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawShrinkCanvas();drawGeometry(C('geom-alpha').value);drawRegPath();onHPChange();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

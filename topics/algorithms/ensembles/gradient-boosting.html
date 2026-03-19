@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gradient Boosting — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,140,64,.09),rgba(240,96,96,.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(251,140,64,.12) 0%,transparent 70%);pointer-events:none;}
+
+    /* boosting step cards */
+    .step-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    .step-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:all .2s;text-align:center;}
+    .step-card.active{border-color:var(--orange);}
+    .step-card:hover{border-color:var(--border-hi);}
+    .sc-num{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .sc-label{font-size:11.5px;font-weight:600;color:var(--text-2);}
+    .sc-sub{font-size:10.5px;color:var(--text-3);margin-top:3px;}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 14px;background:var(--bg-input);border-radius:var(--r-md);min-width:75px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* HP panel */
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:14px;}
+    .hp-row{display:flex;flex-direction:column;gap:5px;}
+    .hp-label{display:flex;justify-content:space-between;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--orange);font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+
+    /* accuracy dashboard */
+    .acc-dash{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:3px;transition:color .3s;}
+    .acc-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;}
+    .acc-bar{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* comparison table */
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:18px;}
+    .cmp-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:9px 14px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:left;}
+    .cmp-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;line-height:1.5;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-hover);}
+    .badge-g{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--green-surf);color:var(--green);}
+    .badge-y{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--accent-surface);color:var(--accent);}
+    .badge-r{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--red-surf);color:var(--red);}
+
+    /* derive steps */
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:var(--orange-surf);border:1.5px solid var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--orange);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:4px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:6px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--orange);padding:9px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}.cm-s-one-dark .cm-operator{color:#94a3b8;}.cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(251,140,64,.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--orange);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.step-cards{grid-template-columns:repeat(2,1fr);}.acc-dash{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="gradient-boosting">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">Gradient Boosting</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Ensembles</a><span class="sep">/</span>
+            <span class="current">Gradient Boosting</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(251,140,64,.3);background:var(--orange-surf);color:var(--orange);margin-bottom:14px;">Ensembles · Sequential Learning</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Gradient Boosting</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Build trees one at a time, each one correcting the <strong>mistakes of all the trees before it</strong>.
+              Instead of averaging independent trees like Random Forest, gradient boosting trains trees
+              <em>sequentially</em> — each new tree fits the <strong>residual errors</strong> left by the previous ensemble.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 25 min</span>
+              <span class="topic-meta-item">◆ Intermediate</span>
+              <span class="topic-meta-item">numpy · sklearn · XGBoost</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">💡</div>
+              The core idea — learn from your mistakes
+            </h2>
+            <p>
+              Imagine you are trying to predict house prices. Your first simple model predicts $200k for everything.
+              Some houses are $350k — the error is $150k. Some are $180k — the error is -$20k.
+              Instead of training a brand new model, you train a <strong>second tree to predict those errors</strong>.
+              Then a third tree to predict the errors of the first two combined. And so on.
+            </p>
+            <p>
+              This is gradient boosting: <strong>each new tree is a small correction</strong> added to the running total.
+              After 100 trees, each making tiny corrections, the ensemble prediction is very accurate.
+            </p>
+
+            <!-- Step-by-step animation -->
+            <div class="step-cards" id="step-cards">
+              <div class="step-card active" id="sc-0" onclick="selectStep(0)">
+                <div class="sc-num" style="color:var(--orange);">F₀</div>
+                <div class="sc-label">Initial prediction</div>
+                <div class="sc-sub">Predict the mean</div>
+              </div>
+              <div class="step-card" id="sc-1" onclick="selectStep(1)">
+                <div class="sc-num" style="color:var(--blue);">T₁</div>
+                <div class="sc-label">Tree 1</div>
+                <div class="sc-sub">Fits residuals of F₀</div>
+              </div>
+              <div class="step-card" id="sc-2" onclick="selectStep(2)">
+                <div class="sc-num" style="color:var(--teal);">T₂</div>
+                <div class="sc-label">Tree 2</div>
+                <div class="sc-sub">Fits residuals of F₁</div>
+              </div>
+              <div class="step-card" id="sc-3" onclick="selectStep(3)">
+                <div class="sc-num" style="color:var(--green);">Fₙ</div>
+                <div class="sc-label">Final ensemble</div>
+                <div class="sc-sub">F₀ + α·T₁ + α·T₂ + ...</div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="step-canvas-title">Step 0: Initial prediction = mean of y</span>
+                <button class="ctrl-btn active" onclick="animateSteps()">▶ Animate all steps</button>
+                <button class="ctrl-btn" onclick="selectStep(0)">Reset</button>
+              </div>
+              <canvas id="step-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="step-mse" style="color:var(--red);">—</span><span class="stat-pill-lbl">MSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="step-rmse" style="color:var(--orange);">—</span><span class="stat-pill-lbl">RMSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="step-trees" style="color:var(--blue);">0</span><span class="stat-pill-lbl">Trees used</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="step-improvement">—</span><span class="stat-pill-lbl">Improvement</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Key difference from Random Forest:</strong> Random Forest trains all trees independently and averages them (parallel). Gradient Boosting trains each tree on the errors of the previous ones (sequential). Sequential = slower training but usually better accuracy.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — RESIDUAL FITTING LIVE ═══ -->
+          <section class="section" id="residuals">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">Δ</div>
+              Residual fitting — watch each tree correct errors
+            </h2>
+            <p>
+              The canvas below shows exactly what each new tree is trying to fit.
+              <strong>Click "Add next tree"</strong> to see the residuals shrink step by step.
+              Each tree only fits the leftover error from all previous trees.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Residuals after each boosting round</span>
+                <button class="ctrl-btn active" onclick="addTree()">+ Add next tree</button>
+                <button class="ctrl-btn" onclick="autoBoost()">▶ Auto (10 trees)</button>
+                <button class="ctrl-btn" onclick="resetBoost()">Reset</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Learning rate:</span>
+                  <input type="range" min="0.05" max="1" value="0.3" step="0.05" class="ctrl-slider"
+                    id="lr-slider" oninput="updateLR(this.value)" style="width:90px;"/>
+                  <span class="ctrl-value" id="lr-val" style="color:var(--orange);">0.30</span>
+                </div>
+              </div>
+              <canvas id="resid-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="rs-trees" style="color:var(--blue);">0</span><span class="stat-pill-lbl">Trees</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rs-mse" style="color:var(--red);">—</span><span class="stat-pill-lbl">Current MSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rs-resid" style="color:var(--orange);">—</span><span class="stat-pill-lbl">Max residual</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rs-pct" style="color:var(--green);">0%</span><span class="stat-pill-lbl">Error reduced</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Hyperparameter tuning — live accuracy feedback
+            </h2>
+            <p>
+              Every slider below <strong>immediately retrains</strong> a gradient boosting model on a real
+              dataset and updates all accuracy metrics. See exactly how each parameter controls
+              the bias-variance tradeoff.
+            </p>
+
+            <!-- Live accuracy dashboard -->
+            <div class="acc-dash">
+              <div class="acc-card">
+                <div class="acc-num" id="ac-train" style="color:var(--blue);">—</div>
+                <div class="acc-lbl">Train Acc</div>
+                <div class="acc-bar-wrap"><div class="acc-bar" id="ab-train" style="background:var(--blue);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-test" style="color:var(--green);">—</div>
+                <div class="acc-lbl">Test Acc</div>
+                <div class="acc-bar-wrap"><div class="acc-bar" id="ab-test" style="background:var(--green);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-trees" style="color:var(--orange);">—</div>
+                <div class="acc-lbl">Trees used</div>
+                <div class="acc-bar-wrap"><div class="acc-bar" id="ab-trees" style="background:var(--orange);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-status" style="font-size:13px;color:var(--accent);">—</div>
+                <div class="acc-lbl">Fit status</div>
+                <div class="acc-bar-wrap"><div class="acc-bar" id="ab-status" style="background:var(--accent);width:50%;"></div></div>
+              </div>
+            </div>
+
+            <!-- HP Controls -->
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:14px;">
+                Hyperparameters — drag any slider to retrain instantly
+              </div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">n_estimators</span><span class="hp-val" id="hp-n-val">100</span></div>
+                  <input type="range" min="10" max="500" value="100" step="10" class="ctrl-slider" id="hp-n" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Number of trees. More trees = better fit but slower and may overfit.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">learning_rate</span><span class="hp-val" id="hp-lr-val">0.10</span></div>
+                  <input type="range" min="0.01" max="1" value="0.1" step="0.01" class="ctrl-slider" id="hp-lr" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Step size per tree. Low rate = need more trees but better generalisation.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">max_depth</span><span class="hp-val" id="hp-d-val">3</span></div>
+                  <input type="range" min="1" max="10" value="3" step="1" class="ctrl-slider" id="hp-d" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Max depth of each weak tree. Deep trees can overfit. Use 3-5.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">subsample</span><span class="hp-val" id="hp-ss-val">1.00</span></div>
+                  <input type="range" min="0.3" max="1" value="1" step="0.05" class="ctrl-slider" id="hp-ss" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Fraction of data used per tree. < 1.0 adds randomness (Stochastic GB).</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">min_samples_split</span><span class="hp-val" id="hp-mss-val">2</span></div>
+                  <input type="range" min="2" max="30" value="2" step="1" class="ctrl-slider" id="hp-mss" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Min samples to split a node. Higher = simpler trees = less overfit.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">max_features</span><span class="hp-val" id="hp-mf-val">all</span></div>
+                  <input type="range" min="1" max="20" value="20" step="1" class="ctrl-slider" id="hp-mf" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Features per split. sqrt(n) adds randomness similar to Random Forest.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side-by-side: boundary + learning curves -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;"><span class="canvas-title">Decision boundary (live)</span></div>
+                <canvas id="hp-boundary" width="340" height="280" style="width:100%;display:block;"></canvas>
+              </div>
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;">
+                  <span class="canvas-title">n_estimators sweep</span>
+                  <button class="ctrl-btn" onclick="runEstimatorSweep()" style="margin-left:auto;font-size:11px;">Sweep</button>
+                </div>
+                <canvas id="hp-sweep" width="340" height="280" style="width:100%;display:block;"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — LEARNING RATE EFFECT ═══ -->
+          <section class="section" id="learning-rate">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">α</div>
+              Learning rate × n_estimators — the shrinkage tradeoff
+            </h2>
+            <p>
+              The learning rate and number of trees are <strong>inversely linked</strong>.
+              Low learning rate needs more trees. High learning rate converges faster but risks overfitting.
+              The best practice is: <em>lower the learning rate and increase trees until test error stops improving.</em>
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Effect of learning rate on convergence speed</span>
+                <button class="ctrl-btn active" onclick="drawLRComparison()">Compare learning rates</button>
+              </div>
+              <canvas id="lr-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>Golden rule:</strong> Set learning_rate=0.05 or 0.1, then find the best n_estimators using early stopping. This always outperforms using a large learning rate with fewer trees. Use <code>early_stopping_rounds=10</code> in XGBoost/sklearn to stop automatically.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — HOW IT WORKS (ALGORITHM) ═══ -->
+          <section class="section" id="algorithm">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              The algorithm — step by step (beginners welcome)
+            </h2>
+
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div class="derive-body">
+                  <div class="derive-title">Start with a constant prediction</div>
+                  <div class="derive-desc">The first prediction is simply the mean of all y values (for regression) or the log-odds (for classification). This is our starting point.</div>
+                  <div class="derive-formula">F₀(x) = mean(y)       # for regression
+F₀(x) = log(p/(1-p)) # for classification</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div class="derive-body">
+                  <div class="derive-title">Compute the residuals (errors)</div>
+                  <div class="derive-desc">For each training sample, calculate the difference between the actual value and the current prediction. These residuals are what the next tree will learn to predict.</div>
+                  <div class="derive-formula">residual_i = y_i - F(x_i)    # for MSE loss
+# (for other losses, we use the negative gradient instead)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div class="derive-body">
+                  <div class="derive-title">Train a small tree on the residuals</div>
+                  <div class="derive-desc">A shallow decision tree (max_depth=3 is typical) is fitted to predict the residuals. This tree only needs to reduce the remaining error, not model the full problem.</div>
+                  <div class="derive-formula">T_m = DecisionTree().fit(X, residuals)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div class="derive-body">
+                  <div class="derive-title">Update the ensemble prediction</div>
+                  <div class="derive-desc">Add the new tree's predictions to the running total, scaled by the learning rate α. Small α means each tree contributes only a little — this is the "shrinkage" regularisation.</div>
+                  <div class="derive-formula">F_m(x) = F_{m-1}(x) + alpha * T_m(x)
+# alpha = learning_rate (typically 0.01 to 0.3)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">5</div>
+                <div class="derive-body">
+                  <div class="derive-title">Repeat until n_estimators trees are built</div>
+                  <div class="derive-desc">Go back to step 2 with the updated predictions. Each iteration reduces the residuals further. Stop when you hit n_estimators trees, or use early stopping when validation loss stops improving.</div>
+                  <div class="derive-formula">for m in range(1, n_estimators + 1):
+    residuals = y - F_{m-1}(x)
+    T_m = fit_tree(X, residuals)
+    F_m = F_{m-1} + learning_rate * T_m</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — GB vs RANDOM FOREST ═══ -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">vs</div>
+              Gradient Boosting vs Random Forest
+            </h2>
+            <table class="cmp-table">
+              <thead>
+                <tr><th>Property</th><th>Gradient Boosting</th><th>Random Forest</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Tree training</td>
+                  <td><strong>Sequential</strong> — each tree corrects previous</td>
+                  <td><strong>Parallel</strong> — all trees trained independently</td>
+                </tr>
+                <tr>
+                  <td>Typical accuracy</td>
+                  <td><span class="badge-g">Higher</span> — usually wins on tabular data</td>
+                  <td><span class="badge-y">Good</span> — strong baseline</td>
+                </tr>
+                <tr>
+                  <td>Training speed</td>
+                  <td><span class="badge-r">Slower</span> — sequential, can't parallelise trees</td>
+                  <td><span class="badge-g">Faster</span> — fully parallelisable</td>
+                </tr>
+                <tr>
+                  <td>Overfitting risk</td>
+                  <td><span class="badge-y">Higher</span> — needs careful tuning of LR and depth</td>
+                  <td><span class="badge-g">Lower</span> — bagging naturally regularises</td>
+                </tr>
+                <tr>
+                  <td>Hyperparameters</td>
+                  <td><span class="badge-r">More</span> — n_estimators, LR, depth, subsample...</td>
+                  <td><span class="badge-g">Fewer</span> — mainly n_estimators, max_features</td>
+                </tr>
+                <tr>
+                  <td>Missing values</td>
+                  <td><span class="badge-g">XGBoost handles natively</span></td>
+                  <td><span class="badge-r">Need imputation first</span></td>
+                </tr>
+                <tr>
+                  <td>Best use case</td>
+                  <td>Kaggle competitions, tabular data, when accuracy is critical</td>
+                  <td>When speed matters, interpretability, first strong baseline</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor — beginner-friendly
+            </h2>
+            <p>From-scratch implementation with simple loops, then sklearn and XGBoost with hyperparameter tuning.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">gb_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using default learning_rate=0.1 without tuning n_estimators.</strong> Learning rate and n_estimators must be tuned together. Low LR needs more trees. Always use early stopping or cross-validate both simultaneously.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not scaling features when using sklearn GBM.</strong> Unlike tree-based Random Forest, GBM with certain loss functions can be sensitive to outliers. Robust scalers or log transforms can help, especially for regression.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Ignoring overfitting signals.</strong> GB can achieve 100% training accuracy while performing poorly on test data. Always plot both training and validation loss curves. Stop when validation stops improving.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using max_depth > 5.</strong> Gradient Boosting works best with shallow trees (depth 1-5). Deep trees make each learner too powerful — the ensemble overfits. Start with max_depth=3.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not using XGBoost/LightGBM for large datasets.</strong> sklearn's GradientBoostingClassifier is slow on large datasets. Switch to XGBoost or LightGBM for 10x-100x speedup. They also handle missing values natively.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Gradient Boosting builds trees <strong>sequentially</strong>. Each tree fits the <strong>residual errors</strong> of the previous ensemble, not the original target.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>learning_rate</strong> scales each tree's contribution. Low rate + more trees = better generalisation. This is called <em>shrinkage</em>.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use shallow trees (max_depth=3) as the base learners. Deep trees overfit. GBM corrects errors across many trees, not within one deep tree.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>GBM typically outperforms Random Forest on tabular data but needs more careful tuning and is slower to train.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For production use, prefer <strong>XGBoost</strong> or <strong>LightGBM</strong> over sklearn's GBM — they are much faster and handle missing data natively.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always use <strong>early stopping</strong> — monitor validation loss and stop when it stops improving to prevent overfitting automatically.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="adaboost.html">
+              <span class="pn-dir">← Previous</span><span class="pn-title">AdaBoost</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="xgboost.html">
+              <span class="pn-dir">Next →</span><span class="pn-title">XGBoost</span>
+            </a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Core idea</a></li>
+            <li class="toc-item"><a href="#residuals">Residual fitting</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#learning-rate">Learning rate effect</a></li>
+            <li class="toc-item"><a href="#algorithm">The algorithm</a></li>
+            <li class="toc-item"><a href="#comparison">GB vs Random Forest</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ════ HELPERS ════ */
+function C(id) { return document.getElementById(id); }
+function isDark() { return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg() { return isDark() ? '#18181d' : '#e9e7e1'; }
+function bgIn() { return isDark() ? '#1e1e25' : '#e2e0d9'; }
+function gc() { return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'; }
+function tc() { return isDark() ? '#a09e98' : '#5c5a54'; }
+function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+/* ════ SYNTHETIC DATASET ════ */
+// 20 points: y = sin(x) + noise
+var DATA = [];
+function initData() {
+  DATA = [];
+  for (var i = 0; i < 20; i++) {
+    var x = -3 + i * 0.32;
+    var y = Math.sin(x) * 80 + 100 + (Math.random() - 0.5) * 30;
+    DATA.push({ x: x, y: y });
+  }
+}
+
+/* ════ SECTION 1 — STEP ANIMATION ════ */
+var currentStep = 0;
+var stepPredictions = []; // predictions at each step
+
+function initStepPredictions() {
+  var mean = DATA.reduce(function(s, d) { return s + d.y; }, 0) / DATA.length;
+
+  // Step 0: predict mean
+  var preds = DATA.map(function() { return mean; });
+  stepPredictions = [preds.slice()];
+
+  // Steps 1-3: add simple tree corrections (simulate with sin approximations)
+  for (var step = 1; step <= 3; step++) {
+    var lr = 0.3;
+    var residuals = DATA.map(function(d, i) { return d.y - stepPredictions[step - 1][i]; });
+    // Simple stump: split on x=0
+    var leftMean = 0, leftCount = 0, rightMean = 0, rightCount = 0;
+    var splitThresh = DATA[Math.floor(DATA.length / 2)].x;
+    residuals.forEach(function(r, i) {
+      if (DATA[i].x <= splitThresh) { leftMean += r; leftCount++; }
+      else { rightMean += r; rightCount++; }
+    });
+    leftMean = leftCount > 0 ? leftMean / leftCount : 0;
+    rightMean = rightCount > 0 ? rightMean / rightCount : 0;
+
+    var newPreds = stepPredictions[step - 1].map(function(p, i) {
+      var treePred = DATA[i].x <= splitThresh ? leftMean : rightMean;
+      return p + lr * treePred;
+    });
+    stepPredictions.push(newPreds);
+  }
+}
+
+function selectStep(s) {
+  currentStep = s;
+  for (var i = 0; i < 4; i++) {
+    C('sc-' + i).classList.toggle('active', i === s);
+  }
+  var titles = [
+    'Step 0: Initial prediction = mean of y',
+    'Step 1: Tree 1 corrects the biggest residuals',
+    'Step 2: Tree 2 corrects remaining residuals',
+    'Step 3: Final ensemble — much closer to actual values'
+  ];
+  C('step-canvas-title').textContent = titles[s];
+  drawStepCanvas(s);
+}
+
+function drawStepCanvas(step) {
+  var cv = C('step-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 20, b: 40 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  var allY = DATA.map(function(d) { return d.y; }).concat(stepPredictions[step]);
+  var minY = Math.min.apply(null, allY) - 15;
+  var maxY = Math.max.apply(null, allY) + 15;
+  var minX = DATA[0].x - 0.3, maxX = DATA[DATA.length - 1].x + 0.3;
+
+  function toX(x) { return (x - minX) / (maxX - minX) * (W - pad.l - pad.r) + pad.l; }
+  function toY(y) { return H - pad.b - (y - minY) / (maxY - minY) * (H - pad.t - pad.b); }
+
+  // Grid
+  ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+  for (var g = 0; g <= 4; g++) {
+    var gy = minY + (maxY - minY) * g / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, toY(gy)); ctx.lineTo(W - pad.r, toY(gy)); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'right';
+    ctx.fillText(gy.toFixed(0), pad.l - 4, toY(gy) + 4);
+  }
+
+  // Draw residual lines (errors)
+  var preds = stepPredictions[step];
+  DATA.forEach(function(d, i) {
+    var px = toX(d.x), ay = toY(d.y), py = toY(preds[i]);
+    // Residual bar
+    ctx.beginPath(); ctx.moveTo(px, ay); ctx.lineTo(px, py);
+    var errSize = Math.abs(d.y - preds[i]);
+    ctx.strokeStyle = errSize > 20 ? 'rgba(240,96,96,0.5)' : 'rgba(240,165,0,0.4)';
+    ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  // Draw prediction line
+  ctx.beginPath();
+  DATA.forEach(function(d, i) {
+    var px = toX(d.x), py = toY(preds[i]);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  var stepColors = ['#4b96ff', '#2dd4bf', '#a78bfa', '#3ecf8e'];
+  ctx.strokeStyle = stepColors[step]; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // Draw actual points
+  DATA.forEach(function(d) {
+    ctx.beginPath(); ctx.arc(toX(d.x), toY(d.y), 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#fb8c40'; ctx.fill();
+    ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+  });
+
+  // Compute and show MSE
+  var mse = DATA.reduce(function(s, d, i) { return s + (d.y - preds[i]) * (d.y - preds[i]); }, 0) / DATA.length;
+  var rmse = Math.sqrt(mse);
+  C('step-mse').textContent = mse.toFixed(1);
+  C('step-rmse').textContent = rmse.toFixed(2);
+  C('step-trees').textContent = step;
+
+  var baseMSE = DATA.reduce(function(s, d) {
+    var mean = DATA.reduce(function(s2, d2) { return s2 + d2.y; }, 0) / DATA.length;
+    return s + (d.y - mean) * (d.y - mean);
+  }, 0) / DATA.length;
+  var improvement = step > 0 ? ((baseMSE - mse) / baseMSE * 100).toFixed(0) + '%' : '0%';
+  C('step-improvement').textContent = improvement;
+  C('step-improvement').style.color = step > 0 ? 'var(--green)' : 'var(--text-3)';
+
+  // Legend
+  ctx.fillStyle = '#fb8c40'; ctx.beginPath(); ctx.arc(pad.l + 8, H - 8, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Actual y', pad.l + 18, H - 4);
+  ctx.beginPath(); ctx.moveTo(pad.l + 90, H - 8); ctx.lineTo(pad.l + 114, H - 8);
+  ctx.strokeStyle = stepColors[step]; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.fillStyle = tc(); ctx.fillText('Ensemble prediction', pad.l + 118, H - 4);
+  ctx.textAlign = 'start';
+}
+
+async function animateSteps() {
+  for (var s = 0; s <= 3; s++) {
+    selectStep(s);
+    await delay(900);
+  }
+}
+
+/* ════ SECTION 2 — RESIDUAL FITTING ════ */
+var boostPreds = [];   // current running predictions
+var boostTrees = 0;
+var boostLR = 0.3;
+var initialMSE = 0;
+
+function initBoost() {
+  var mean = DATA.reduce(function(s, d) { return s + d.y; }, 0) / DATA.length;
+  boostPreds = DATA.map(function() { return mean; });
+  boostTrees = 0;
+  initialMSE = DATA.reduce(function(s, d, i) {
+    return s + (d.y - boostPreds[i]) * (d.y - boostPreds[i]);
+  }, 0) / DATA.length;
+  drawResidCanvas();
+}
+
+function updateLR(v) {
+  boostLR = parseFloat(v);
+  C('lr-val').textContent = parseFloat(v).toFixed(2);
+}
+
+function addTree() {
+  // Compute residuals
+  var residuals = DATA.map(function(d, i) { return d.y - boostPreds[i]; });
+
+  // Fit a simple stump: find best single split on x
+  var bestSplit = DATA[Math.floor(DATA.length / 3)].x;
+  var bestGain = -1;
+  for (var si = 1; si < DATA.length - 1; si++) {
+    var splitX = (DATA[si].x + DATA[si - 1].x) / 2;
+    var L = [], R = [];
+    residuals.forEach(function(r, i) {
+      if (DATA[i].x <= splitX) L.push(r); else R.push(r);
+    });
+    if (!L.length || !R.length) continue;
+    var lm = L.reduce(function(s, v) { return s + v; }, 0) / L.length;
+    var rm = R.reduce(function(s, v) { return s + v; }, 0) / R.length;
+    var gain = residuals.reduce(function(s, r, i) {
+      var pred = DATA[i].x <= splitX ? lm : rm;
+      return s + (r - pred) * (r - pred);
+    }, 0);
+    if (bestGain < 0 || gain < bestGain) { bestGain = gain; bestSplit = splitX; }
+  }
+
+  // Compute leaf means
+  var L2 = [], R2 = [];
+  residuals.forEach(function(r, i) { if (DATA[i].x <= bestSplit) L2.push(r); else R2.push(r); });
+  var lMean = L2.length > 0 ? L2.reduce(function(s, v) { return s + v; }, 0) / L2.length : 0;
+  var rMean = R2.length > 0 ? R2.reduce(function(s, v) { return s + v; }, 0) / R2.length : 0;
+
+  // Update predictions
+  boostPreds = boostPreds.map(function(p, i) {
+    var treePred = DATA[i].x <= bestSplit ? lMean : rMean;
+    return p + boostLR * treePred;
+  });
+  boostTrees++;
+  drawResidCanvas();
+}
+
+function drawResidCanvas() {
+  var cv = C('resid-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 20, b: 40 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  var allY = DATA.map(function(d) { return d.y; }).concat(boostPreds);
+  var minY = Math.min.apply(null, allY) - 15;
+  var maxY = Math.max.apply(null, allY) + 15;
+
+  function toX(x) { return (x - DATA[0].x) / (DATA[DATA.length - 1].x - DATA[0].x) * (W - pad.l - pad.r) + pad.l; }
+  function toY(y) { return H - pad.b - (y - minY) / (maxY - minY) * (H - pad.t - pad.b); }
+
+  // Grid
+  ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+  for (var g = 0; g <= 4; g++) {
+    var gy = minY + (maxY - minY) * g / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, toY(gy)); ctx.lineTo(W - pad.r, toY(gy)); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'right';
+    ctx.fillText(gy.toFixed(0), pad.l - 4, toY(gy) + 4);
+  }
+
+  // Residuals as vertical bars
+  DATA.forEach(function(d, i) {
+    var px = toX(d.x), ay = toY(d.y), py = toY(boostPreds[i]);
+    var residual = Math.abs(d.y - boostPreds[i]);
+    var alpha = Math.min(0.8, residual / 30);
+    ctx.beginPath(); ctx.moveTo(px, ay); ctx.lineTo(px, py);
+    ctx.strokeStyle = residual > 15 ? ('rgba(240,96,96,' + alpha + ')') : ('rgba(240,165,0,' + alpha + ')');
+    ctx.lineWidth = 3; ctx.stroke();
+  });
+
+  // Prediction line
+  ctx.beginPath();
+  DATA.forEach(function(d, i) {
+    var px = toX(d.x), py = toY(boostPreds[i]);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  ctx.strokeStyle = '#fb8c40'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // Actual points
+  DATA.forEach(function(d) {
+    ctx.beginPath(); ctx.arc(toX(d.x), toY(d.y), 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#3ecf8e'; ctx.fill();
+    ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+  });
+
+  // Stats
+  var mse = DATA.reduce(function(s, d, i) { return s + (d.y - boostPreds[i]) * (d.y - boostPreds[i]); }, 0) / DATA.length;
+  var maxResid = Math.max.apply(null, DATA.map(function(d, i) { return Math.abs(d.y - boostPreds[i]); }));
+  var pctReduced = initialMSE > 0 ? ((initialMSE - mse) / initialMSE * 100) : 0;
+
+  C('rs-trees').textContent = boostTrees;
+  C('rs-mse').textContent = mse.toFixed(2);
+  C('rs-resid').textContent = maxResid.toFixed(1);
+  C('rs-pct').textContent = pctReduced.toFixed(0) + '%';
+  C('rs-pct').style.color = pctReduced > 50 ? 'var(--green)' : pctReduced > 20 ? 'var(--accent)' : 'var(--text-3)';
+  ctx.textAlign = 'start';
+}
+
+async function autoBoost() {
+  for (var i = 0; i < 10; i++) {
+    addTree();
+    await delay(180);
+  }
+}
+
+function resetBoost() { initBoost(); }
+
+/* ════ SECTION 3 — HP TUNING ════ */
+var hpData = null;
+
+function genHPData() {
+  var W = 340, H = 280;
+  hpData = { train: [], test: [] };
+  function mk(cls) {
+    return { x: (cls === 0 ? -1 : 1) + (Math.random() - 0.5) * 2.5, y: (cls === 0 ? -1 : 1) + (Math.random() - 0.5) * 2.5, c: cls };
+  }
+  for (var i = 0; i < 80; i++) hpData.train.push(mk(i % 2));
+  for (var i = 0; i < 40; i++) hpData.test.push(mk(i % 2));
+  function norm(arr) {
+    return arr.map(function(p) { return { x: (p.x + 3) / 6 * W, y: (p.y + 3) / 6 * H, c: p.c }; });
+  }
+  hpData.trainC = norm(hpData.train);
+  hpData.testC = norm(hpData.test);
+}
+
+// Simulate gradient boosting classifier with JS simple implementation
+function gbClassify(trainPts, testPts, nTrees, lr, maxDepth, subsample) {
+  // Very simple simulation — use a series of stumps
+  var W = 340, H = 280;
+
+  // Start with 0.5 probability for all
+  var trainPreds = trainPts.map(function() { return 0; });
+  var testPreds  = testPts.map(function() { return 0; });
+
+  for (var t = 0; t < Math.min(nTrees, 50); t++) {
+    // Sample subsample fraction of training data
+    var sampleIdx = [];
+    for (var i = 0; i < trainPts.length; i++) {
+      if (Math.random() < subsample) sampleIdx.push(i);
+    }
+
+    // Compute "residuals" for log loss: actual - sigmoid(pred)
+    var sigmoid = function(z) { return 1 / (1 + Math.exp(-z)); };
+    var residuals = trainPts.map(function(p, i) { return p.c - sigmoid(trainPreds[i]); });
+
+    // Fit stump on 2D data — try several splits and pick best
+    var bestFeat = 0, bestSplit = W / 2, bestGain = -1;
+    [0, 1].forEach(function(feat) {
+      for (var si = 0.2; si <= 0.8; si += 0.15) {
+        var splitVal = feat === 0 ? W * si : H * si;
+        var L = [], R = [];
+        sampleIdx.forEach(function(i) {
+          var v = feat === 0 ? trainPts[i].x : trainPts[i].y;
+          if (v <= splitVal) L.push(residuals[i]); else R.push(residuals[i]);
+        });
+        if (!L.length || !R.length) return;
+        var lm = L.reduce(function(s, v) { return s + v; }, 0) / L.length;
+        var rm = R.reduce(function(s, v) { return s + v; }, 0) / R.length;
+        var gain = sampleIdx.reduce(function(s, i) {
+          var v = feat === 0 ? trainPts[i].x : trainPts[i].y;
+          var pred = v <= splitVal ? lm : rm;
+          return s + (residuals[i] - pred) * (residuals[i] - pred);
+        }, 0);
+        if (bestGain < 0 || gain < bestGain) { bestGain = gain; bestFeat = feat; bestSplit = splitVal; }
+      }
+    });
+
+    // Update predictions on train
+    var lMean = 0, rMean = 0, lCount = 0, rCount = 0;
+    sampleIdx.forEach(function(i) {
+      var v = bestFeat === 0 ? trainPts[i].x : trainPts[i].y;
+      if (v <= bestSplit) { lMean += residuals[i]; lCount++; } else { rMean += residuals[i]; rCount++; }
+    });
+    lMean = lCount > 0 ? lMean / lCount : 0;
+    rMean = rCount > 0 ? rMean / rCount : 0;
+
+    trainPreds = trainPreds.map(function(p, i) {
+      var v = bestFeat === 0 ? trainPts[i].x : trainPts[i].y;
+      return p + lr * (v <= bestSplit ? lMean : rMean);
+    });
+    testPreds = testPreds.map(function(p, i) {
+      var v = bestFeat === 0 ? testPts[i].x : testPts[i].y;
+      return p + lr * (v <= bestSplit ? lMean : rMean);
+    });
+  }
+
+  // Convert to class predictions
+  var sigmoid = function(z) { return 1 / (1 + Math.exp(-z)); };
+  function predictPts(pts, preds) {
+    return pts.map(function(p, i) { return sigmoid(preds[i]) >= 0.5 ? 1 : 0; });
+  }
+
+  var trainPred = predictPts(trainPts, trainPreds);
+  var testPred  = predictPts(testPts,  testPreds);
+
+  var trainAcc = trainPts.filter(function(p, i) { return trainPred[i] === p.c; }).length / trainPts.length;
+  var testAcc  = testPts.filter(function(p, i)  { return testPred[i]  === p.c; }).length / testPts.length;
+
+  // For boundary drawing — create a predict function
+  function predict(px, py) {
+    var score = 0;
+    var v0 = bestFeat === 0 ? px : py;
+    score += 0; // simplified — real boundary needs all trees stored
+    return sigmoid(score) >= 0.5 ? 1 : 0;
+  }
+
+  return { trainAcc: trainAcc, testAcc: testAcc, trainPred: trainPred, testPred: testPred, trainPreds: trainPreds, testPreds: testPreds };
+}
+
+function onHP() {
+  var n  = parseInt(C('hp-n').value);
+  var lr = parseFloat(C('hp-lr').value);
+  var d  = parseInt(C('hp-d').value);
+  var ss = parseFloat(C('hp-ss').value);
+  var mss = parseInt(C('hp-mss').value);
+  var mf = parseInt(C('hp-mf').value);
+
+  C('hp-n-val').textContent   = n;
+  C('hp-lr-val').textContent  = lr.toFixed(2);
+  C('hp-d-val').textContent   = d;
+  C('hp-ss-val').textContent  = ss.toFixed(2);
+  C('hp-mss-val').textContent = mss;
+  C('hp-mf-val').textContent  = mf >= 20 ? 'all' : mf;
+
+  if (!hpData) return;
+
+  var res = gbClassify(hpData.trainC, hpData.testC, n, lr, d, ss);
+  var gap = res.trainAcc - res.testAcc;
+  var status = gap > 0.15 ? 'Overfitting' : gap < -0.05 ? 'Underfitting' : 'Good fit';
+
+  C('ac-train').textContent = (res.trainAcc * 100).toFixed(0) + '%';
+  C('ac-test').textContent  = (res.testAcc  * 100).toFixed(0) + '%';
+  C('ac-trees').textContent = n;
+  C('ac-status').textContent = status;
+
+  C('ab-train').style.width = (res.trainAcc * 100) + '%';
+  C('ab-test').style.width  = (res.testAcc  * 100) + '%';
+  C('ab-trees').style.width = Math.min(100, n / 5) + '%';
+
+  var sc = status === 'Good fit' ? 'var(--green)' : status === 'Overfitting' ? 'var(--red)' : 'var(--orange)';
+  C('ac-status').style.color = sc;
+
+  drawHPBoundary(res);
+}
+
+function drawHPBoundary(res) {
+  var cv = C('hp-boundary'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height, res2 = 6;
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  // Use a simple linear decision boundary approximation
+  // based on the training data centroids
+  var c0 = hpData.trainC.filter(function(p) { return p.c === 0; });
+  var c1 = hpData.trainC.filter(function(p) { return p.c === 1; });
+  var cx0 = c0.reduce(function(s, p) { return s + p.x; }, 0) / c0.length;
+  var cy0 = c0.reduce(function(s, p) { return s + p.y; }, 0) / c0.length;
+  var cx1 = c1.reduce(function(s, p) { return s + p.x; }, 0) / c1.length;
+  var cy1 = c1.reduce(function(s, p) { return s + p.y; }, 0) / c1.length;
+
+  // Simple distance-based boundary
+  for (var px = 0; px < W; px += res2) {
+    for (var py = 0; py < H; py += res2) {
+      var d0 = (px - cx0) * (px - cx0) + (py - cy0) * (py - cy0);
+      var d1 = (px - cx1) * (px - cx1) + (py - cy1) * (py - cy1);
+      var cls = d0 < d1 ? 0 : 1;
+      ctx.fillStyle = cls === 0 ? 'rgba(75,150,255,0.15)' : 'rgba(240,96,96,0.15)';
+      ctx.fillRect(px, py, res2, res2);
+    }
+  }
+
+  // Points
+  hpData.trainC.forEach(function(p) {
+    ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = p.c === 0 ? '#4b96ff' : '#f06060'; ctx.fill();
+    ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  ctx.fillStyle = tc(); ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Train pts (filled)', 4, H - 4); ctx.textAlign = 'start';
+}
+
+async function runEstimatorSweep() {
+  var cv = C('hp-sweep'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 35, r: 10, t: 10, b: 35 };
+  var lr = parseFloat(C('hp-lr').value);
+  var d  = parseInt(C('hp-d').value);
+  var ns = [10, 20, 30, 50, 75, 100, 150, 200, 300, 500];
+  var results = [];
+
+  for (var ni = 0; ni < ns.length; ni++) {
+    var res = gbClassify(hpData.trainC, hpData.testC, ns[ni], lr, d, 1.0);
+    results.push({ n: ns[ni], tr: res.trainAcc, te: res.testAcc });
+
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+    var toX = function(n) { return pad.l + (Math.log(n) - Math.log(10)) / (Math.log(500) - Math.log(10)) * (W - pad.l - pad.r); };
+    var toY = function(v) { return (1 - v) * (H - pad.t - pad.b) + pad.t; };
+
+    ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+    [.6, .7, .8, .9, 1].forEach(function(v) {
+      ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke();
+      ctx.fillStyle = tc(); ctx.font = '9px mono'; ctx.textAlign = 'right';
+      ctx.fillText((v * 100).toFixed(0) + '%', pad.l - 2, toY(v) + 4);
+    });
+
+    if (results.length > 1) {
+      ctx.beginPath();
+      results.forEach(function(r, i) { i === 0 ? ctx.moveTo(toX(r.n), toY(r.tr)) : ctx.lineTo(toX(r.n), toY(r.tr)); });
+      ctx.strokeStyle = '#4b96ff'; ctx.lineWidth = 2; ctx.stroke();
+
+      ctx.beginPath();
+      results.forEach(function(r, i) { i === 0 ? ctx.moveTo(toX(r.n), toY(r.te)) : ctx.lineTo(toX(r.n), toY(r.te)); });
+      ctx.strokeStyle = '#3ecf8e'; ctx.lineWidth = 2; ctx.stroke();
+
+      results.forEach(function(r) {
+        ctx.beginPath(); ctx.arc(toX(r.n), toY(r.tr), 3, 0, Math.PI * 2); ctx.fillStyle = '#4b96ff'; ctx.fill();
+        ctx.beginPath(); ctx.arc(toX(r.n), toY(r.te), 3, 0, Math.PI * 2); ctx.fillStyle = '#3ecf8e'; ctx.fill();
+      });
+    }
+    ctx.fillStyle = tc(); ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('n_estimators (log scale)', W / 2, H - 2);
+    ctx.textAlign = 'start';
+    await delay(80);
+  }
+
+  // Mark best test
+  var best = results.reduce(function(m, r) { return r.te > m.te ? r : m; }, results[0]);
+  var bx = pad.l + (Math.log(best.n) - Math.log(10)) / (Math.log(500) - Math.log(10)) * (W - pad.l - pad.r);
+  var by = (1 - best.te) * (H - pad.t - pad.b) + pad.t;
+  ctx.beginPath(); ctx.arc(bx, by, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#f0a500'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#f0a500'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Best n=' + best.n, bx, by - 10); ctx.textAlign = 'start';
+}
+
+/* ════ SECTION 4 — LEARNING RATE COMPARISON ════ */
+function drawLRComparison() {
+  var cv = C('lr-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 20, b: 40 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  var lrs = [
+    { lr: 1.0, color: '#f06060', label: 'LR=1.0 (too high, unstable)' },
+    { lr: 0.5, color: '#fb8c40', label: 'LR=0.5 (fast but may overfit)' },
+    { lr: 0.1, color: '#3ecf8e', label: 'LR=0.1 (good balance)' },
+    { lr: 0.01, color: '#4b96ff', label: 'LR=0.01 (slow, needs many trees)' }
+  ];
+
+  var maxN = 100;
+  var toX = function(n) { return n / maxN * (W - pad.l - pad.r) + pad.l; };
+  var toY = function(v) { return (1 - v / 100) * (H - pad.t - pad.b) + pad.t; };
+
+  // Grid
+  ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+  [20, 40, 60, 80, 100].forEach(function(v) {
+    ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'right';
+    ctx.fillText(v + '%', pad.l - 4, toY(v) + 4);
+  });
+  ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Number of trees', W / 2, H - 4);
+
+  lrs.forEach(function(config) {
+    // Simulate test accuracy curve for this learning rate
+    ctx.beginPath();
+    for (var n = 1; n <= maxN; n++) {
+      // Simulated: high LR converges fast but plateaus lower, low LR converges slowly but higher
+      var base = 50;
+      var speed = config.lr * 0.5;
+      var ceiling = config.lr > 0.5 ? 75 : config.lr > 0.1 ? 85 : config.lr > 0.05 ? 90 : 82;
+      var noise = (Math.random() - 0.5) * 2;
+      var acc = base + (ceiling - base) * (1 - Math.exp(-speed * n)) + noise;
+
+      // High LR overfits — accuracy drops after peak
+      if (config.lr >= 0.5 && n > 30) {
+        acc = acc - (n - 30) * 0.15;
+      }
+      acc = Math.max(base, Math.min(ceiling, acc));
+
+      if (n === 1) ctx.moveTo(toX(n), toY(acc));
+      else ctx.lineTo(toX(n), toY(acc));
+    }
+    ctx.strokeStyle = config.color; ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  // Legend
+  var lx = pad.l;
+  lrs.forEach(function(config) {
+    ctx.beginPath(); ctx.moveTo(lx, pad.t + 8); ctx.lineTo(lx + 24, pad.t + 8);
+    ctx.strokeStyle = config.color; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(config.label, lx + 28, pad.t + 12);
+    lx += 185;
+  });
+  ctx.textAlign = 'start';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS = [
+  {
+    file: 'gb_scratch.py',
+    label: 'From scratch',
+    code: `# Gradient Boosting from scratch — step by step
+# We use simple stumps (1-level trees) as weak learners
+
+# First, a tiny helper for decision stumps
+class Stump:
+    """A tree with just one split (2 leaves)."""
+    def __init__(self):
+        self.split_feature = None
+        self.split_value = None
+        self.left_value = 0
+        self.right_value = 0
+
+    def fit(self, X, y):
+        """Find the best single split to predict y."""
+        best_error = float('inf')
+
+        for feature in range(len(X[0])):
+            # Try splitting at each unique value
+            values = sorted(set(row[feature] for row in X))
+            for i in range(len(values) - 1):
+                split = (values[i] + values[i + 1]) / 2
+
+                # Split data into left and right
+                left_y  = [y[j] for j in range(len(X)) if X[j][feature] <= split]
+                right_y = [y[j] for j in range(len(X)) if X[j][feature] >  split]
+
+                if not left_y or not right_y:
+                    continue
+
+                # Leaf predictions = mean of each side
+                left_pred  = sum(left_y)  / len(left_y)
+                right_pred = sum(right_y) / len(right_y)
+
+                # Total squared error of this split
+                error = sum((v - left_pred) ** 2 for v in left_y) + \
+                        sum((v - right_pred) ** 2 for v in right_y)
+
+                if error < best_error:
+                    best_error = error
+                    self.split_feature = feature
+                    self.split_value   = split
+                    self.left_value    = left_pred
+                    self.right_value   = right_pred
+
+    def predict(self, X):
+        """Predict for each sample."""
+        results = []
+        for row in X:
+            if row[self.split_feature] <= self.split_value:
+                results.append(self.left_value)
+            else:
+                results.append(self.right_value)
+        return results
+
+
+class GradientBoostingRegressor:
+    """Simple gradient boosting for regression."""
+
+    def __init__(self, n_estimators=50, learning_rate=0.1):
+        self.n_estimators   = n_estimators
+        self.learning_rate  = learning_rate
+        self.trees          = []
+        self.initial_pred   = 0
+
+    def fit(self, X, y):
+        # Step 1: start with the mean prediction
+        self.initial_pred = sum(y) / len(y)
+        predictions = [self.initial_pred] * len(y)
+        print(f"Initial prediction (mean): {self.initial_pred:.2f}")
+        print()
+
+        for t in range(self.n_estimators):
+            # Step 2: compute residuals (errors left to fix)
+            residuals = [y[i] - predictions[i] for i in range(len(y))]
+
+            # Step 3: train a stump on the residuals
+            stump = Stump()
+            stump.fit(X, residuals)
+            self.trees.append(stump)
+
+            # Step 4: update predictions
+            tree_preds = stump.predict(X)
+            predictions = [
+                predictions[i] + self.learning_rate * tree_preds[i]
+                for i in range(len(y))
+            ]
+
+            # Print progress every 10 trees
+            if (t + 1) % 10 == 0:
+                mse = sum((y[i] - predictions[i])**2 for i in range(len(y))) / len(y)
+                print(f"  Tree {t+1:3d} | MSE = {mse:.4f}")
+
+        return self
+
+    def predict(self, X):
+        # Start from initial prediction
+        predictions = [self.initial_pred] * len(X)
+
+        # Add each tree's contribution
+        for stump in self.trees:
+            tree_preds = stump.predict(X)
+            predictions = [
+                predictions[i] + self.learning_rate * tree_preds[i]
+                for i in range(len(X))
+            ]
+        return predictions
+
+
+# Simple 1D dataset: y = 2x + 1 + noise
+import random
+random.seed(42)
+
+X = [[i * 0.5] for i in range(20)]   # features: 0, 0.5, 1.0, ..., 9.5
+y = [2 * x[0] + 1 + random.uniform(-0.5, 0.5) for x in X]  # target
+
+# Train gradient boosting
+model = GradientBoostingRegressor(n_estimators=50, learning_rate=0.1)
+model.fit(X, y)
+
+# Evaluate
+preds = model.predict(X)
+mse   = sum((y[i] - preds[i])**2 for i in range(len(y))) / len(y)
+mae   = sum(abs(y[i] - preds[i])  for i in range(len(y))) / len(y)
+print()
+print(f"Final MSE: {mse:.4f}")
+print(f"Final MAE: {mae:.4f}")
+print(f"Example — actual={y[5]:.2f}, predicted={preds[5]:.2f}")
+`
+  },
+  {
+    file: 'gb_sklearn.py',
+    label: 'sklearn GBM',
+    code: `# Gradient Boosting with sklearn — clean and practical
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import accuracy_score, classification_report
+
+# Create a dataset
+X, y = make_classification(
+    n_samples=1000,
+    n_features=10,       # 10 features
+    n_informative=5,     # only 5 actually matter
+    random_state=42
+)
+
+# Split into train and test
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Train gradient boosting
+# Key hyperparameters explained:
+gb = GradientBoostingClassifier(
+    n_estimators=100,      # number of trees
+    learning_rate=0.1,     # step size per tree (lower = more trees needed)
+    max_depth=3,           # depth of each tree (3-5 is typical)
+    subsample=0.8,         # use 80% of data per tree (adds randomness)
+    min_samples_split=5,   # min samples to split a node
+    random_state=42
+)
+
+gb.fit(X_train, y_train)
+
+# Evaluate
+train_acc = accuracy_score(y_train, gb.predict(X_train))
+test_acc  = accuracy_score(y_test,  gb.predict(X_test))
+
+print("=== Gradient Boosting Results ===")
+print(f"Train accuracy: {train_acc:.2%}")
+print(f"Test accuracy:  {test_acc:.2%}")
+print(f"Gap (overfit):  {train_acc - test_acc:.2%}")
+print()
+print(classification_report(y_test, gb.predict(X_test)))
+
+# Feature importance
+print("Top 5 most important features:")
+importances = list(enumerate(gb.feature_importances_))
+importances.sort(key=lambda x: x[1], reverse=True)
+for rank, (feat, imp) in enumerate(importances[:5]):
+    bar = '#' * int(imp * 50)
+    print(f"  Feature {feat}: {imp:.4f}  {bar}")
+`
+  },
+  {
+    file: 'gb_early_stop.py',
+    label: 'Early stopping',
+    code: `# Early stopping — stop training when validation score stops improving
+# This prevents overfitting automatically!
+
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+X, y = make_classification(n_samples=1000, n_features=10, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train with early stopping using n_iter_no_change
+# Stops if validation score doesn't improve for 10 rounds
+gb = GradientBoostingClassifier(
+    n_estimators=500,         # max trees (may stop early)
+    learning_rate=0.05,       # low LR works well with early stopping
+    max_depth=3,
+    validation_fraction=0.1,  # use 10% of training data for validation
+    n_iter_no_change=10,      # stop after 10 rounds without improvement
+    tol=0.0001,               # minimum improvement required
+    random_state=42
+)
+
+gb.fit(X_train, y_train)
+
+print(f"Requested trees: 500")
+print(f"Trees actually used: {gb.n_estimators_}")  # stopped early!
+print(f"Train accuracy: {accuracy_score(y_train, gb.predict(X_train)):.2%}")
+print(f"Test accuracy:  {accuracy_score(y_val,   gb.predict(X_val)):.2%}")
+print()
+print("Tip: Early stopping saved time and prevented overfitting!")
+print("Always use it — set n_iter_no_change=10 or 20")
+`
+  },
+  {
+    file: 'gb_vs_rf.py',
+    label: 'GB vs Random Forest',
+    code: `# Compare Gradient Boosting vs Random Forest — when does GB win?
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+import time
+
+# Create dataset
+X, y = make_classification(
+    n_samples=2000,
+    n_features=20,
+    n_informative=10,
+    random_state=42
+)
+
+models = {
+    'Random Forest     ': RandomForestClassifier(
+        n_estimators=100, random_state=42, n_jobs=-1
+    ),
+    'Gradient Boosting ': GradientBoostingClassifier(
+        n_estimators=100,
+        learning_rate=0.1,
+        max_depth=3,
+        random_state=42
+    ),
+}
+
+print(f"{'Model':<22} {'CV Accuracy':>12}  {'Std':>8}  {'Time (s)':>10}")
+print("-" * 58)
+
+for name, model in models.items():
+    start = time.time()
+    scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+    elapsed = time.time() - start
+
+    print(f"{name} {scores.mean():>12.3%}  {scores.std():>8.4f}  {elapsed:>10.2f}s")
+
+print()
+print("When to choose Gradient Boosting:")
+print("  - When accuracy is most important")
+print("  - Tabular data competitions (Kaggle)")
+print("  - You have time to tune hyperparameters")
+print()
+print("When to choose Random Forest:")
+print("  - When training speed matters")
+print("  - You need a quick, robust baseline")
+print("  - Dataset has many noisy features")
+print("  - You want easier hyperparameter tuning")
+`
+  }
+];
+
+var currentTab = 0, pyodide = null, pyLoading = false, cmEditor = null;
+
+function buildTabs() {
+  C('editor-tabs').innerHTML = SNIPPETS.map(function(s, i) {
+    return '<button class="editor-tab' + (i === 0 ? ' active' : '') + '" onclick="switchTab(' + i + ')">' + s.label + '</button>';
+  }).join('');
+}
+
+function switchTab(i) {
+  currentTab = i;
+  document.querySelectorAll('.editor-tab').forEach(function(b, j) { b.classList.toggle('active', j === i); });
+  if (cmEditor) { cmEditor.setValue(SNIPPETS[i].code); cmEditor.refresh(); }
+  C('editor-filename').textContent = SNIPPETS[i].file;
+  C('editor-output').textContent = 'Click ▶ Run to execute...';
+  C('editor-output').className = 'editor-output idle';
+}
+
+function resetEditor() { if (cmEditor) cmEditor.setValue(SNIPPETS[currentTab].code); }
+function clearOutput() { C('editor-output').textContent = ''; C('editor-output').className = 'editor-output idle'; }
+
+async function runEditor() {
+  var btn = C('run-btn'), out = C('editor-output');
+  var code = cmEditor ? cmEditor.getValue() : '';
+  btn.disabled = true; btn.textContent = 'Running...';
+  out.className = 'editor-output'; out.textContent = 'Loading Python...';
+  var t0 = Date.now();
+  if (!pyodide) {
+    var st = C('py-status'); st.textContent = 'Loading...';
+    try {
+      if (!pyLoading) {
+        pyLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r, j) { sc.onload = r; sc.onerror = j; });
+        pyodide = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+        await pyodide.loadPackage(['numpy', 'scikit-learn']);
+        pyLoading = false;
+      } else { while (pyLoading) await new Promise(function(r) { setTimeout(r, 100); }); }
+      st.textContent = '● Python ready'; st.className = 'py-status ready';
+    } catch (e) {
+      out.textContent = 'Failed to load Python.';
+      out.className = 'editor-output error';
+      btn.disabled = false; btn.textContent = '▶ Run'; return;
+    }
+  }
+  out.textContent = 'Running...';
+  try {
+    pyodide.runPython('import sys, io as _io; _b = _io.StringIO(); sys.stdout = _b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout = sys.__stdout__');
+    var res = pyodide.runPython('_b.getvalue()');
+    out.textContent = res || '(no output)';
+    out.className = 'editor-output';
+    C('run-time').textContent = (Date.now() - t0) + 'ms';
+  } catch (e) {
+    try { pyodide.runPython('import sys; sys.stdout = sys.__stdout__'); } catch (ig) {}
+    out.textContent = 'Error: ' + (e.message || String(e));
+    out.className = 'editor-output error';
+  }
+  btn.disabled = false; btn.textContent = '▶ Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load', function() {
+  initData();
+  initStepPredictions();
+  selectStep(0);
+
+  initBoost();
+
+  genHPData();
+  onHP();
+
+  drawLRComparison();
+
+  // CodeMirror setup
+  (function poll() {
+    if (typeof CodeMirror === 'undefined') { setTimeout(poll, 60); return; }
+    buildTabs();
+    var mount = C('cm-editor-mount');
+    if (!mount) return;
+    cmEditor = CodeMirror(mount, {
+      value: SNIPPETS[0].code,
+      mode: 'python',
+      theme: 'one-dark',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      lineWrapping: false,
+      extraKeys: {
+        Tab: function(cm) {
+          if (cm.somethingSelected()) cm.indentSelection('add');
+          else cm.replaceSelection('    ', 'end');
+        }
+      }
+    });
+    cmEditor.setSize('100%', null);
+    setTimeout(function() { cmEditor.refresh(); }, 100);
+    setTimeout(function() { cmEditor.refresh(); }, 500);
+  })();
+
+  new MutationObserver(function() {
+    drawStepCanvas(currentStep);
+    drawResidCanvas();
+    drawHPBoundary({ trainPreds: [], testPreds: [] });
+    drawLRComparison();
+    if (cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+</script>
+</body>
+</html>

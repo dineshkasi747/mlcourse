@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>XGBoost &mdash; ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,165,0,0.1),rgba(251,140,64,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:rgba(240,165,0,0.15);border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--accent);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .feat-bar{height:18px;border-radius:3px;transition:width .6s ease;}
+    .feat-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .feat-name{font-size:12px;color:var(--text-2);min-width:160px;text-align:right;}
+    .feat-track{flex:1;height:18px;background:var(--bg-input);border-radius:3px;overflow:hidden;}
+    .feat-pct{font-size:11px;font-family:var(--font-mono);color:var(--text-3);min-width:44px;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--accent);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    .curve-legend{display:flex;gap:20px;padding:10px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);}
+    .legend-dot{width:12px;height:3px;border-radius:2px;}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}.hp-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="xgboost">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">XGBoost</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Ensemble Methods</a><span class="sep">/</span>
+            <span class="current">XGBoost</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(240,165,0,.3);background:rgba(240,165,0,0.1);color:var(--accent);margin-bottom:14px;">Ensemble &middot; Boosting &middot; Regularised</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">XGBoost</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              <strong>eXtreme Gradient Boosting</strong> &mdash; gradient boosting done right.
+              XGBoost adds second-order optimisation, L1/L2 regularisation, column subsampling,
+              and histogram-based splits that make it <strong>10&ndash;100x faster</strong> than
+              sklearn GBM with better accuracy. The algorithm that dominated Kaggle for a decade.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#9201; 35 min</span>
+              <span class="topic-meta-item">&#9670;&#9670;&#9670; Advanced</span>
+              <span class="topic-meta-item">xgboost &middot; sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: XGB vs GBM -->
+          <section class="section" id="xgb-vs-gbm">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.15);color:var(--accent);">&#9889;</div>
+              What makes XGBoost different from vanilla GBM?
+            </h2>
+            <p>
+              Sklearn&rsquo;s <code>GradientBoostingClassifier</code> is single-threaded and uses only first-order gradients.
+              XGBoost adds four key innovations that make it dominate on tabular data:
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:18px 0 24px;">
+              <div style="background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;">1. Second-order gradients</div>
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.5;">Uses both gradient (g) and Hessian (h) at each step &mdash; like Newton&rsquo;s method vs vanilla gradient descent. Converges faster.</div>
+              </div>
+              <div style="background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:var(--r-md);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--teal);margin-bottom:6px;">2. L1 + L2 regularisation</div>
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.5;"><code>reg_lambda</code> (L2) and <code>reg_alpha</code> (L1) directly penalise leaf weights. Reduces overfitting without needing max_depth limits.</div>
+              </div>
+              <div style="background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:var(--r-md);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px;">3. Column subsampling</div>
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.5;"><code>colsample_bytree</code> randomly samples features per tree &mdash; like Random Forest on top of boosting. Reduces correlation between trees.</div>
+              </div>
+              <div style="background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--r-md);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px;">4. Histogram splits</div>
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.5;"><code>tree_method=hist</code> bins continuous values into buckets before finding splits &mdash; reduces O(n&times;d) to O(bins&times;d) per tree. 10&ndash;100x faster.</div>
+              </div>
+            </div>
+
+            <!-- Comparison canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">XGBoost vs GBM &mdash; parameter comparison and speed estimate</span>
+                <button class="ctrl-btn active" onclick="drawComparison()">&#9654; Show comparison</button>
+              </div>
+              <canvas id="compare-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 2: SECOND ORDER MATH -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.15);color:var(--accent);">&#8706;&#178;</div>
+              The key maths &mdash; why second-order is better
+            </h2>
+            <p>
+              Vanilla GBM fits a tree to the <strong>negative gradient</strong> of the loss.
+              XGBoost uses a second-order Taylor expansion so each tree finds the <strong>optimal leaf weights analytically</strong>.
+            </p>
+            <div>
+              <div class="derive-step"><div class="derive-num">1</div><div>
+                <div class="derive-title">Taylor expansion of the loss</div>
+                <div class="derive-desc">Approximate the loss after adding a new tree f(x) using its first (g) and second (h) derivatives at the current prediction.</div>
+                <div class="derive-formula">L(y, F+f) approx= L(y,F) + g*f(x) + (1/2)*h*f(x)^2
+where g = dL/dF  (gradient -- same as GBM residuals)
+      h = d2L/dF2 (Hessian -- curvature of loss)</div>
+              </div></div>
+              <div class="derive-step"><div class="derive-num">2</div><div>
+                <div class="derive-title">Optimal leaf weight (closed form)</div>
+                <div class="derive-desc">Minimise the Taylor-approximated loss over each leaf. The optimal weight is found analytically &mdash; no line search needed.</div>
+                <div class="derive-formula">w*_j = -(sum of g_i in leaf j) / (sum of h_i in leaf j + lambda)
+# lambda = reg_lambda (L2 penalty on leaf weight)
+# Larger lambda --> smaller leaf weights --> less overfitting</div>
+              </div></div>
+              <div class="derive-step"><div class="derive-num">3</div><div>
+                <div class="derive-title">Split gain score</div>
+                <div class="derive-desc">XGBoost evaluates splits using this score. Only split if gain &gt; gamma (pruning threshold).</div>
+                <div class="derive-formula">Gain = 0.5 * [GL^2/(HL+lam) + GR^2/(HR+lam) - (GL+GR)^2/(HL+HR+lam)] - gamma
+# GL, GR = sum of gradients in left / right child
+# HL, HR = sum of Hessians in left / right child
+# gamma  = reg_gamma (min gain to make a split)</div>
+              </div></div>
+            </div>
+
+            <!-- Hessian visualiser -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Hessian visualiser &mdash; how curvature shapes leaf weights</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Loss:</span>
+                  <select id="hess-loss" onchange="drawHessian()" style="background:var(--bg-card);color:var(--text-1);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;font-size:12px;">
+                    <option value="mse">MSE (regression)</option>
+                    <option value="logloss">Log-loss (classification)</option>
+                    <option value="huber">Huber (robust)</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">lambda:</span>
+                  <input type="range" min="0" max="10" value="1" step="0.5" class="ctrl-slider" id="hess-lam" oninput="C('hess-lam-val').textContent=parseFloat(this.value).toFixed(1);drawHessian();" style="width:80px;"/>
+                  <span class="ctrl-value" id="hess-lam-val" style="color:var(--accent);">1.0</span>
+                </div>
+              </div>
+              <canvas id="hessian-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="hess-g0" style="color:var(--blue);">--</span><span class="stat-pill-lbl">Gradient at 0</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hess-h0">--</span><span class="stat-pill-lbl">Hessian at 0</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hess-w" style="color:var(--teal);">--</span><span class="stat-pill-lbl">Optimal w*</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hess-gain" style="color:var(--green);">--</span><span class="stat-pill-lbl">Split gain</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: HYPERPARAMETER TUNING DASHBOARD -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">&#9881;</div>
+              Hyperparameter tuning &mdash; live accuracy feedback
+            </h2>
+            <p>
+              Every slider retrains the model instantly. Watch how <code>lambda</code> shrinks coefficients,
+              <code>gamma</code> prunes splits, and <code>colsample_bytree</code> adds Random Forest-style diversity.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card"><div class="acc-num" id="xgb-train-val" style="color:var(--blue);">--</div><div class="acc-label">Train Accuracy</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="xgb-train-bar" style="background:var(--blue);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="xgb-test-val" style="color:var(--green);">--</div><div class="acc-label">Test Accuracy</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="xgb-test-bar" style="background:var(--green);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="xgb-coef-norm" style="color:var(--teal);">--</div><div class="acc-label">||w||&sup2; (leaf norm)</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="xgb-norm-bar" style="background:var(--teal);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="xgb-status-val" style="font-size:16px;color:var(--accent);">--</div><div class="acc-label">Fit Status</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="xgb-status-bar" style="background:var(--accent);width:0%"></div></div></div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:14px;">&#9881; XGBoost Controls <span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:6px;">-- retrain on every change</span></div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">n_estimators</span><span class="hp-val" id="xgb-ne-val">60</span></div>
+                  <input type="range" min="5" max="120" value="60" step="5" class="ctrl-slider" id="xgb-ne" oninput="onXGBChange()" style="width:100%;"/>
+                  <div class="hp-desc">Number of boosting rounds. More trees = lower bias. Watch for overfitting.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">learning_rate</span><span class="hp-val" id="xgb-lr-val">0.10</span></div>
+                  <input type="range" min="0.01" max="0.5" value="0.1" step="0.01" class="ctrl-slider" id="xgb-lr" oninput="onXGBChange()" style="width:100%;"/>
+                  <div class="hp-desc">Step size per tree. Lower lr + more trees = better generalisation.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">max_depth</span><span class="hp-val" id="xgb-md-val">4</span></div>
+                  <input type="range" min="1" max="8" value="4" step="1" class="ctrl-slider" id="xgb-md" oninput="onXGBChange()" style="width:100%;"/>
+                  <div class="hp-desc">Tree depth per round. 3&ndash;6 typical. Deeper = more variance per tree.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">reg_lambda (L2)</span><span class="hp-val" id="xgb-lam-val" style="color:var(--teal);">1.0</span></div>
+                  <input type="range" min="0" max="10" value="1" step="0.5" class="ctrl-slider" id="xgb-lam" oninput="onXGBChange()" style="width:100%;"/>
+                  <div class="hp-desc">L2 penalty on leaf weights. Higher = smaller weights = more regularisation.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">reg_alpha (L1)</span><span class="hp-val" id="xgb-alp-val" style="color:var(--teal);">0.0</span></div>
+                  <input type="range" min="0" max="5" value="0" step="0.25" class="ctrl-slider" id="xgb-alp" oninput="onXGBChange()" style="width:100%;"/>
+                  <div class="hp-desc">L1 penalty. Can drive leaf weights to exactly zero.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">subsample</span><span class="hp-val" id="xgb-ss-val">1.00</span></div>
+                  <input type="range" min="0.3" max="1.0" value="1.0" step="0.05" class="ctrl-slider" id="xgb-ss" oninput="onXGBChange()" style="width:100%;"/>
+                  <div class="hp-desc">Row sampling per tree. &lt;1.0 = stochastic boosting. Reduces overfitting.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">colsample_bytree</span><span class="hp-val" id="xgb-csb-val">1.00</span></div>
+                  <input type="range" min="0.3" max="1.0" value="1.0" step="0.05" class="ctrl-slider" id="xgb-csb" oninput="onXGBChange()" style="width:100%;"/>
+                  <div class="hp-desc">Feature sampling per tree. Like Random Forest on top of boosting.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Dataset</span><span class="hp-val" id="xgb-ds-val" style="color:var(--accent);">moons</span></div>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;">
+                    <button class="ctrl-btn" id="xgb-ds-circles" onclick="setXGBDs('circles')">Circles</button>
+                    <button class="ctrl-btn active" id="xgb-ds-moons" onclick="setXGBDs('moons')">Moons</button>
+                    <button class="ctrl-btn" id="xgb-ds-blobs" onclick="setXGBDs('blobs')">Blobs</button>
+                    <button class="ctrl-btn" id="xgb-ds-xor" onclick="setXGBDs('xor')">XOR</button>
+                  </div>
+                  <div class="hp-desc">Switch dataset to test on different boundary shapes.</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;"><span class="canvas-title">Decision boundary (live)</span></div>
+                <canvas id="xgb-boundary-canvas" width="340" height="300" style="width:100%;display:block;"></canvas>
+              </div>
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;"><span class="canvas-title">Training loss curve</span></div>
+                <canvas id="xgb-loss-canvas" width="340" height="300" style="width:100%;display:block;"></canvas>
+              </div>
+            </div>
+
+            <!-- n_estimators sweep -->
+            <div class="canvas-card">
+              <div class="curve-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#4b96ff;"></div>Train accuracy</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e;"></div>Test accuracy</div>
+              </div>
+              <div class="canvas-toolbar" style="border-top:1px solid var(--border);">
+                <span class="canvas-title">n_estimators vs accuracy sweep</span>
+                <button class="ctrl-btn active" onclick="runXGBSweep()">&#9654; Run sweep</button>
+                <span id="xgb-sweep-status" style="font-size:12px;color:var(--text-3);margin-left:6px;"></span>
+              </div>
+              <canvas id="xgb-sweep-canvas" width="700" height="200" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 4: FEATURE IMPORTANCE -->
+          <section class="section" id="feature-importance">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#9733;</div>
+              Feature importance &mdash; gain, weight, cover
+            </h2>
+            <p>
+              XGBoost offers three importance types. <strong>Gain</strong> is most reliable &mdash; it measures how much
+              each feature improves the model when used in splits.
+              <strong>Weight</strong> just counts split frequency (biased for continuous features).
+              <strong>Cover</strong> averages the number of samples affected by splits on that feature.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Feature importance (simulated 6-feature dataset)</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="ctrl-btn active" id="fi-gain" onclick="showFI('gain')">Gain</button>
+                  <button class="ctrl-btn" id="fi-weight" onclick="showFI('weight')">Weight</button>
+                  <button class="ctrl-btn" id="fi-cover" onclick="showFI('cover')">Cover</button>
+                </div>
+                <button class="ctrl-btn" onclick="initFIData()">&#8634; New data</button>
+              </div>
+              <div style="padding:18px;" id="fi-bars"></div>
+              <div class="stat-row" id="fi-desc-row">
+                <div style="padding:4px 8px;font-size:13px;color:var(--text-2);">Gain: average improvement in loss from splits using this feature. Most reliable importance metric.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: EARLY STOPPING VIZ -->
+          <section class="section" id="early-stopping">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(75,150,255,0.15);color:var(--blue);">&#9647;</div>
+              Early stopping &mdash; auto-find optimal n_estimators
+            </h2>
+            <p>
+              XGBoost monitors a validation metric each round and stops when it hasn&rsquo;t improved for
+              <code>early_stopping_rounds</code> rounds. This eliminates the need to manually tune <code>n_estimators</code>.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Early stopping simulation</span>
+                <button class="ctrl-btn active" onclick="runEarlyStopping()">&#9654; Simulate</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Patience:</span>
+                  <input type="range" min="3" max="20" value="10" step="1" class="ctrl-slider" id="es-patience" style="width:80px;" oninput="C('es-patience-val').textContent=this.value"/>
+                  <span class="ctrl-value" id="es-patience-val" style="color:var(--blue);">10</span>
+                </div>
+                <span id="es-status" style="font-size:12px;color:var(--text-3);margin-left:6px;"></span>
+              </div>
+              <div class="curve-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#4b96ff;"></div>Train loss</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e;"></div>Val loss</div>
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(240,165,0,0.6);width:2px;height:12px;border-radius:1px;"></div>Best round</div>
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(240,96,96,0.5);width:2px;height:12px;border-radius:1px;"></div>Stop round</div>
+              </div>
+              <canvas id="es-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="es-best-round" style="color:var(--green);">--</span><span class="stat-pill-lbl">Best round</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="es-stop-round" style="color:var(--red);">--</span><span class="stat-pill-lbl">Stop round</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="es-saved">--</span><span class="stat-pill-lbl">Rounds saved</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE CODE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">xgb_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click &#9654; Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">&#8634; Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">&#10005; Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not using early stopping.</strong> Always set <code>n_estimators</code> high (500&ndash;1000) and use <code>early_stopping_rounds=30</code> with a validation set. Without it you&rsquo;re guessing the right number of trees.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Ignoring tree_method=hist for large data.</strong> The default exact method is O(n&times;d) per node. For &gt;10k rows always set <code>tree_method=&rsquo;hist&rsquo;</code> &mdash; same accuracy, 10&ndash;100x faster.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Tuning n_estimators manually.</strong> n_estimators is best found by early stopping, not grid search. Set it to 1000 and let XGBoost find the right number automatically using your validation set.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not scaling features.</strong> Tree-based models don&rsquo;t need scaling for splits. But XGBoost&rsquo;s regularisation (reg_lambda, reg_alpha) works better when features are on similar scales. Always StandardScale.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">colsample_bytree=1.0 always.</strong> Setting <code>colsample_bytree=0.8</code> adds Random Forest-style diversity and almost always improves test accuracy on real datasets with many correlated features.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#9733;</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>XGBoost uses <strong>second-order gradients</strong> (Hessian) to find optimal leaf weights analytically &mdash; faster convergence than vanilla GBM.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>reg_lambda + reg_alpha + gamma</strong> are three independent regularisers. Start with lambda=1, alpha=0, gamma=0 and tune from there.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always use <strong>early_stopping_rounds</strong> + a validation set. Set n_estimators=1000 and let XGBoost find the optimal round automatically.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Set <strong>tree_method=&rsquo;hist&rsquo;</strong> for any dataset &gt;10k rows. It&rsquo;s faster with the same accuracy.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>colsample_bytree=0.8 + subsample=0.8</strong> adds forest-like diversity and consistently improves generalisation on real data.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>XGBoost is the <strong>go-to for tabular competitions</strong>. If time allows, also try LightGBM (leaf-wise, faster on large data) and CatBoost (handles categoricals natively).</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="gradient-boosting.html"><span class="pn-dir">&#8592; Previous</span><span class="pn-title">Gradient Boosting</span></a>
+            <a class="pn-card next" href="../../regression/linear-regression.html"><span class="pn-dir">Next &#8594;</span><span class="pn-title">Linear Regression</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#xgb-vs-gbm">XGBoost vs GBM</a></li>
+            <li class="toc-item"><a href="#math">Second-order maths</a></li>
+            <li class="toc-item"><a href="#hyperparameters">HP tuning dashboard</a></li>
+            <li class="toc-item"><a href="#feature-importance">Feature importance</a></li>
+            <li class="toc-item"><a href="#early-stopping">Early stopping</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function sigmoid(x){return 1/(1+Math.exp(-Math.max(-500,Math.min(500,x))));}
+
+/* Minimal GBM classifier for live demos */
+function buildStump(X,y,maxD,minL,lam){
+  maxD=maxD||3;minL=minL||1;lam=lam||1;
+  function optW(idx){var G=idx.reduce(function(s,i){return s+y[i];},0);var H=idx.length;return -G/(H+lam);}
+  function build(idx,d){
+    if(!idx.length)return{leaf:true,val:0};
+    var m=optW(idx);
+    if(d>=maxD||idx.length<2)return{leaf:true,val:m};
+    var best=-Infinity,bF=-1,bT=0,bL=[],bR=[];
+    for(var f=0;f<X[0].length;f++){
+      var sorted=idx.slice().sort(function(a,b){return X[a][f]-X[b][f];});
+      for(var si=0;si<sorted.length-1;si++){
+        var t=(X[sorted[si]][f]+X[sorted[si+1]][f])/2;
+        var L=idx.filter(function(i){return X[i][f]<=t;});
+        var R=idx.filter(function(i){return X[i][f]>t;});
+        if(L.length<minL||R.length<minL)continue;
+        var Gl=L.reduce(function(s,i){return s+y[i];},0),Gr=R.reduce(function(s,i){return s+y[i];},0);
+        var Hl=L.length,Hr=R.length;
+        var gain=0.5*(Gl*Gl/(Hl+lam)+Gr*Gr/(Hr+lam)-(Gl+Gr)*(Gl+Gr)/(Hl+Hr+lam));
+        if(gain>best){best=gain;bF=f;bT=t;bL=L;bR=R;}
+      }
+    }
+    if(bF===-1)return{leaf:true,val:m};
+    return{leaf:false,feat:bF,thresh:bT,left:build(bL,d+1),right:build(bR,d+1)};
+  }
+  return build(Array.from({length:X.length},function(_,i){return i;}),0);
+}
+function predT(tree,x){if(tree.leaf)return tree.val;return x[tree.feat]<=tree.thresh?predT(tree.left,x):predT(tree.right,x);}
+
+function makeDs(name,n,r){
+  var pts=[];
+  if(name==='moons'){for(var i=0;i<n;i++){var c=i%2,a=Math.PI*r();if(c===0)pts.push({x:Math.cos(a)+(r()-0.5)*0.4,y:Math.sin(a)+(r()-0.5)*0.4,c:0});else pts.push({x:1-Math.cos(a)+(r()-0.5)*0.4,y:0.5-Math.sin(a)+(r()-0.5)*0.4,c:1});}}
+  else if(name==='blobs'){var cens=[[-.6,-.6],[.6,.6]];for(var i=0;i<n;i++){var c=i%2,cx=cens[c];pts.push({x:cx[0]+(r()-0.5)*0.8,y:cx[1]+(r()-0.5)*0.8,c:c});}}
+  else if(name==='xor'){for(var i=0;i<n;i++){var x=r()*2-1,y2=r()*2-1;pts.push({x:x+(r()-0.5)*0.2,y:y2+(r()-0.5)*0.2,c:x*y2>0?0:1});}}
+  else{for(var i=0;i<n;i++){var c=i%2,rv=c===0?0.5:1,av=r()*Math.PI*2;pts.push({x:rv*Math.cos(av)+(r()-0.5)*0.3,y:rv*Math.sin(av)+(r()-0.5)*0.3,c:c});}}
+  return pts;
+}
+
+function buildXGBClf(pts,ne,md,lr2,ss,csb,lam){
+  var X=pts.map(function(p){return[p.x,p.y];});
+  var y=pts.map(function(p){return p.c;});
+  var F=X.map(function(){return 0;});
+  var trees=[];
+  var r=rng(42);
+  for(var m=0;m<ne;m++){
+    var idx=[];
+    for(var si=0;si<pts.length;si++){if(r()<ss)idx.push(si);}
+    if(!idx.length)idx=Array.from({length:pts.length},function(_,i){return i;});
+    var res=idx.map(function(i){return y[i]-sigmoid(F[i]);});
+    var Xs=idx.map(function(i){return X[i];});
+    var tree=buildStump(Xs,res,md,1,lam);
+    trees.push({tree:tree,lr:lr2});
+    idx.forEach(function(i){F[i]+=lr2*predT(tree,X[i]);});
+  }
+  return{
+    predict:function(px,py){var f=0;trees.forEach(function(bt){f+=bt.lr*predT(bt.tree,[px,py]);});return{cls:f>0?1:0,prob:sigmoid(f)};},
+    leafWeights:function(){var ws=[];trees.forEach(function(bt){(function coll(t){if(t.leaf)ws.push(Math.abs(t.val));else{coll(t.left);coll(t.right);}})(bt.tree);});return ws;}
+  };
+}
+
+/* --- SECTION 1: COMPARISON CHART --- */
+function drawComparison(){
+  var cv=C('compare-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var rows=[
+    {label:'sklearn GBM',   speed:1,   acc:0.87, col:'#fb8c40'},
+    {label:'sklearn HistGBM',speed:15,  acc:0.88, col:'#4b96ff'},
+    {label:'XGBoost (exact)',speed:12,  acc:0.92, col:'#f0a500'},
+    {label:'XGBoost (hist)', speed:120, acc:0.92, col:'#3ecf8e'},
+  ];
+  var pad={l:160,r:30,t:30,b:30};
+  var rowH=(H-pad.t-pad.b)/rows.length-8;
+  ctx.fillStyle=tc();ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Relative speed (x sklearn GBM)',pad.l+(W-pad.l-pad.r)*0.35,H-4);
+  ctx.fillText('Test accuracy',pad.l+(W-pad.l-pad.r)*0.82,H-4);
+  rows.forEach(function(row,i){
+    var y=pad.t+i*(rowH+8);
+    ctx.fillStyle=tc();ctx.font='bold 12px sans-serif';ctx.textAlign='right';
+    ctx.fillText(row.label,pad.l-8,y+rowH/2+5);
+    var speedW=(row.speed/120)*((W-pad.l-pad.r)*0.6);
+    ctx.fillStyle=row.col+'44';ctx.fillRect(pad.l,y,speedW,rowH);
+    ctx.strokeStyle=row.col;ctx.lineWidth=2;ctx.strokeRect(pad.l,y,speedW,rowH);
+    ctx.fillStyle=row.col;ctx.font='bold 12px monospace';ctx.textAlign='left';
+    ctx.fillText(row.speed+'x',pad.l+speedW+6,y+rowH/2+5);
+    var accX=pad.l+(W-pad.l-pad.r)*0.65;var accW=(row.acc-0.8)*((W-pad.l-pad.r)*0.35)/0.15;
+    ctx.fillStyle=row.col+'55';ctx.fillRect(accX,y,accW,rowH);
+    ctx.strokeStyle=row.col;ctx.lineWidth=2;ctx.strokeRect(accX,y,accW,rowH);
+    ctx.fillStyle=row.col;ctx.textAlign='left';
+    ctx.fillText((row.acc*100).toFixed(0)+'%',accX+accW+6,y+rowH/2+5);
+  });
+  ctx.textAlign='start';
+}
+
+/* --- SECTION 2: HESSIAN VIZ --- */
+function drawHessian(){
+  var loss=C('hess-loss').value;
+  var lam=parseFloat(C('hess-lam').value);
+  var cv=C('hessian-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:60,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var yTrue=1;
+  function gF(yp){if(loss==='mse')return 2*(yp-yTrue);if(loss==='logloss')return sigmoid(yp)-yTrue;var d=yp-yTrue;return Math.abs(d)<=1?d:d>0?1:-1;}
+  function hF(yp){if(loss==='mse')return 2;if(loss==='logloss'){var p=sigmoid(yp);return p*(1-p);}var d=yp-yTrue;return Math.abs(d)<=1?1:0.01;}
+  function lossF(yp){if(loss==='mse'){var d=yp-yTrue;return d*d;}if(loss==='logloss'){var p=sigmoid(yp);return -(yTrue*Math.log(p+1e-9)+(1-yTrue)*Math.log(1-p+1e-9));}var d=yp-yTrue;return Math.abs(d)<=1?0.5*d*d:Math.abs(d)-0.5;}
+  var xMin=-4,xMax=4,yMax=6;
+  var toX=function(v){return(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r)+pad.l;};
+  var toYL=function(v){return(1-Math.min(v,yMax)/yMax)*(H-pad.t-pad.b)*0.5+pad.t;};
+  var toYG=function(v){return(1-(v+3)/6)*(H-pad.t-pad.b)*0.5+pad.t+(H-pad.t-pad.b)*0.5;};
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  for(var v=-4;v<=4;v++){ctx.beginPath();ctx.moveTo(toX(v),pad.t);ctx.lineTo(toX(v),H-pad.b);ctx.stroke();}
+  // Loss curve
+  ctx.beginPath();var first=true;
+  for(var xv=-4;xv<=4;xv+=0.06){var lv=lossF(xv);if(lv>=0&&lv<=yMax){first?ctx.moveTo(toX(xv),toYL(lv)):ctx.lineTo(toX(xv),toYL(lv));first=false;}}
+  ctx.strokeStyle='#fb8c40';ctx.lineWidth=2.5;ctx.stroke();
+  // Gradient
+  ctx.beginPath();first=true;
+  for(var xv2=-4;xv2<=4;xv2+=0.06){first?ctx.moveTo(toX(xv2),toYG(gF(xv2))):ctx.lineTo(toX(xv2),toYG(gF(xv2)));first=false;}
+  ctx.strokeStyle='#4b96ff';ctx.lineWidth=2;ctx.stroke();
+  // Hessian
+  ctx.beginPath();first=true;
+  for(var xv3=-4;xv3<=4;xv3+=0.06){first?ctx.moveTo(toX(xv3),toYG(hF(xv3))):ctx.lineTo(toX(xv3),toYG(hF(xv3)));first=false;}
+  ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2;ctx.stroke();
+  // Midline
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.l,H/2);ctx.lineTo(W-pad.r,H/2);ctx.stroke();
+  // Labels
+  ctx.fillStyle='#fb8c40';ctx.font='bold 11px sans-serif';ctx.textAlign='left';ctx.fillText('Loss',W-50,pad.t+14);
+  ctx.fillStyle='#4b96ff';ctx.fillText('Gradient g',W-80,H/2+16);
+  ctx.fillStyle='#3ecf8e';ctx.fillText('Hessian h',W-80,H/2+32);
+  // Dot at yp=0
+  var g0=gF(0),h0=hF(0),w0=-g0/(h0+lam);
+  ctx.beginPath();ctx.arc(toX(0),toYL(lossF(0)),6,0,Math.PI*2);ctx.fillStyle='#f0a500';ctx.fill();
+  ctx.beginPath();ctx.arc(toX(0),toYG(g0),5,0,Math.PI*2);ctx.fillStyle='#4b96ff';ctx.fill();
+  ctx.beginPath();ctx.arc(toX(0),toYG(h0),5,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();
+  C('hess-g0').textContent=g0.toFixed(3);C('hess-h0').textContent=h0.toFixed(3);
+  C('hess-w').textContent=w0.toFixed(3);
+  C('hess-gain').textContent=(0.5*g0*g0/(h0+lam)).toFixed(4);
+  ctx.textAlign='start';
+}
+
+/* --- SECTION 3: HP TUNING --- */
+var xgbData=null,xgbCurrentDs='moons';
+function rng2(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function genXGBData(ds){
+  var r=rng2(88);var raw=makeDs(ds,160,r);var W=340,H=300;
+  function sc(pts){return pts.map(function(p){return{x:(p.x+1.8)/3.6*W,y:(p.y+1.8)/3.6*H,c:p.c};});}
+  var r2=rng2(89);var sh=raw.slice().sort(function(){return r2()-0.5;});
+  return{train:sc(sh.slice(0,128)),test:sc(sh.slice(128))};
+}
+function setXGBDs(ds){
+  xgbCurrentDs=ds;C('xgb-ds-val').textContent=ds;
+  ['circles','moons','blobs','xor'].forEach(function(d){C('xgb-ds-'+d).classList.toggle('active',d===ds);});
+  xgbData=genXGBData(ds);onXGBChange();
+}
+function onXGBChange(){
+  var ne=parseInt(C('xgb-ne').value),lr=parseFloat(C('xgb-lr').value);
+  var md=parseInt(C('xgb-md').value),ss=parseFloat(C('xgb-ss').value);
+  var csb=parseFloat(C('xgb-csb').value),lam=parseFloat(C('xgb-lam').value);
+  var alp=parseFloat(C('xgb-alp').value);
+  C('xgb-ne-val').textContent=ne;C('xgb-lr-val').textContent=lr.toFixed(2);
+  C('xgb-md-val').textContent=md;C('xgb-ss-val').textContent=ss.toFixed(2);
+  C('xgb-csb-val').textContent=csb.toFixed(2);C('xgb-lam-val').textContent=lam.toFixed(1);C('xgb-alp-val').textContent=alp.toFixed(2);
+  if(!xgbData)return;
+  var clf=buildXGBClf(xgbData.train,Math.min(ne,80),md,lr,ss,csb,lam);
+  function acc(pts){return pts.filter(function(p){return clf.predict(p.x,p.y).cls===p.c;}).length/pts.length;}
+  var trA=acc(xgbData.train),teA=acc(xgbData.test),gap=trA-teA;
+  var status=gap>0.12?'Overfitting':gap<-0.05?'Underfitting':'Good fit';
+  var ws=clf.leafWeights();var normSq=ws.reduce(function(s,v){return s+v*v;},0)/(ws.length||1);
+  C('xgb-train-val').textContent=(trA*100).toFixed(0)+'%';C('xgb-test-val').textContent=(teA*100).toFixed(0)+'%';
+  C('xgb-coef-norm').textContent=normSq.toFixed(3);C('xgb-status-val').textContent=status;
+  C('xgb-train-bar').style.width=(trA*100)+'%';C('xgb-test-bar').style.width=(teA*100)+'%';
+  C('xgb-norm-bar').style.width=Math.min(normSq*20,100)+'%';
+  C('xgb-status-val').style.color=status==='Good fit'?'var(--green)':status==='Overfitting'?'var(--red)':'var(--orange)';
+  // Boundary
+  var cv=C('xgb-boundary-canvas'),ctx=cv.getContext('2d');var W=cv.width,H=cv.height,res=5;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  for(var px=0;px<W;px+=res){for(var py=0;py<H;py+=res){var r2=clf.predict(px,py);ctx.fillStyle=r2.cls===0?'rgba(75,150,255,'+(0.08+Math.abs(r2.prob-0.5)*0.3)+')':'rgba(240,96,96,'+(0.08+Math.abs(r2.prob-0.5)*0.3)+')';ctx.fillRect(px,py,res,res);}}
+  xgbData.train.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle=p.c===0?'#4b96ff':'#f06060';ctx.fill();ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();});
+  // Loss curve
+  var lossCurve=[];var preds2=xgbData.train.map(function(){return 0;});
+  var X2=xgbData.train.map(function(p){return[p.x,p.y];});var y2=xgbData.train.map(function(p){return p.c;});
+  for(var m=0;m<Math.min(ne,80);m++){
+    var res3=preds2.map(function(f,i){return y2[i]-sigmoid(f);});
+    var lossV=preds2.reduce(function(s,f,i){var prob=sigmoid(f);return s-(y2[i]*Math.log(prob+1e-8)+(1-y2[i])*Math.log(1-prob+1e-8));},0)/preds2.length;
+    lossCurve.push(lossV);
+    var tree2=buildStump(X2,res3,md,1,lam);preds2=preds2.map(function(f2,i){return f2+lr*predT(tree2,X2[i]);});
+  }
+  var cv2=C('xgb-loss-canvas'),ctx2=cv2.getContext('2d');var W2=cv2.width,H2=cv2.height,pad={l:45,r:10,t:10,b:35};
+  ctx2.clearRect(0,0,W2,H2);ctx2.fillStyle=bg();ctx2.fillRect(0,0,W2,H2);
+  var maxL=Math.max.apply(null,lossCurve),minL=Math.min.apply(null,lossCurve);
+  var toX2=function(m){return pad.l+m/(lossCurve.length-1||1)*(W2-pad.l-pad.r);};
+  var toY2=function(v){return(1-(v-minL)/(maxL-minL+0.01))*(H2-pad.t-pad.b)+pad.t;};
+  ctx2.beginPath();lossCurve.forEach(function(v,i){i===0?ctx2.moveTo(toX2(i),toY2(v)):ctx2.lineTo(toX2(i),toY2(v));});
+  ctx2.strokeStyle='#f0a500';ctx2.lineWidth=2.5;ctx2.stroke();
+  ctx2.fillStyle=tc();ctx2.font='11px sans-serif';ctx2.textAlign='center';ctx2.fillText('Training log-loss over rounds',W2/2,H2-4);ctx2.textAlign='start';
+}
+var xgbSweepData=null;
+async function runXGBSweep(){
+  C('xgb-sweep-status').textContent='Running...';xgbSweepData=[];
+  if(!xgbData)return;
+  var lr=parseFloat(C('xgb-lr').value),md=parseInt(C('xgb-md').value);
+  var ss=parseFloat(C('xgb-ss').value),lam=parseFloat(C('xgb-lam').value);
+  var steps=[5,10,15,20,30,40,55,70,80];
+  for(var si=0;si<steps.length;si++){
+    var ne2=steps[si];var clf=buildXGBClf(xgbData.train,ne2,md,lr,ss,1,lam);
+    function accF(pts,c){return pts.filter(function(p){return c.predict(p.x,p.y).cls===p.c;}).length/pts.length;}
+    xgbSweepData.push({ne:ne2,train:accF(xgbData.train,clf),test:accF(xgbData.test,clf)});
+    drawXGBSweep();await delay(60);
+  }
+  var best=xgbSweepData.reduce(function(m,d){return d.test>m.test?d:m;},xgbSweepData[0]);
+  C('xgb-sweep-status').textContent='Best at '+best.ne+' rounds ('+( best.test*100).toFixed(0)+'%)';
+}
+function drawXGBSweep(){
+  var cv=C('xgb-sweep-canvas'),ctx=cv.getContext('2d');var W=cv.width,H=cv.height,pad={l:45,r:20,t:10,b:35};
+  if(!xgbSweepData||!xgbSweepData.length)return;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var maxNE=80;var toX=function(ne){return pad.l+(ne/maxNE)*(W-pad.l-pad.r);};
+  var toY=function(v){return(1-v)*(H-pad.t-pad.b)+pad.t;};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function(v){ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText((v*100)+'%',pad.l-3,toY(v)+4);});
+  [0,20,40,60,80].forEach(function(ne){ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(ne,toX(ne),H-pad.b+14);});
+  ctx.beginPath();xgbSweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.ne),toY(d.train)):ctx.lineTo(toX(d.ne),toY(d.train));});ctx.strokeStyle='#4b96ff';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();xgbSweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.ne),toY(d.test)):ctx.lineTo(toX(d.ne),toY(d.test));});ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+  xgbSweepData.forEach(function(d){ctx.beginPath();ctx.arc(toX(d.ne),toY(d.train),4,0,Math.PI*2);ctx.fillStyle='#4b96ff';ctx.fill();ctx.beginPath();ctx.arc(toX(d.ne),toY(d.test),4,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();});
+  ctx.textAlign='start';
+}
+
+/* --- SECTION 4: FEATURE IMPORTANCE --- */
+var fiData=null,currentFI='gain';
+function initFIData(){
+  var r=rng(Math.floor(Math.random()*9999));
+  var names=['area','income','age','distance','rooms','visits'];
+  var gains=[0.38,0.27,0.15,0.09,0.07,0.04];var weights=[0.24,0.22,0.20,0.14,0.12,0.08];var covers=[0.32,0.25,0.17,0.11,0.09,0.06];
+  // Add small random noise
+  function jitter(arr){return arr.map(function(v){return Math.max(0.01,v+(r()-0.5)*0.03);});}
+  function norm(arr){var s=arr.reduce(function(a,b){return a+b;},0);return arr.map(function(v){return v/s;});}
+  fiData={names:names,gain:norm(jitter(gains)),weight:norm(jitter(weights)),cover:norm(jitter(covers))};
+  showFI(currentFI);
+}
+function showFI(type){
+  currentFI=type;
+  ['gain','weight','cover'].forEach(function(t){C('fi-'+t).classList.toggle('active',t===type);});
+  if(!fiData)return;
+  var vals=fiData[type],names=fiData.names,maxV=Math.max.apply(null,vals);
+  var col=type==='gain'?'var(--accent)':type==='weight'?'var(--blue)':'var(--teal)';
+  var descs={gain:'Gain: average loss improvement per split. Most reliable — not biased by feature type or cardinality.',weight:'Weight: number of times feature appears in splits. Biased towards high-cardinality continuous features. Use with caution.',cover:'Cover: average number of samples affected by splits on this feature. Shows breadth of feature influence.'};
+  C('fi-bars').innerHTML=names.map(function(n,i){
+    var pct=(vals[i]/maxV*100).toFixed(0);
+    return '<div class="feat-row"><div class="feat-name">'+n+'</div><div class="feat-track"><div class="feat-bar" style="width:'+pct+'%;background:'+col+';"></div></div><div class="feat-pct">'+(vals[i]*100).toFixed(1)+'%</div></div>';
+  }).join('');
+  C('fi-desc-row').innerHTML='<div style="padding:4px 8px;font-size:13px;color:var(--text-2);">'+descs[type]+'</div>';
+}
+
+/* --- SECTION 5: EARLY STOPPING --- */
+var esCurves=null;
+async function runEarlyStopping(){
+  C('es-status').textContent='Simulating...';esCurves=null;
+  var patience=parseInt(C('es-patience').value);
+  var r=rng(42);
+  var trainCurve=[],valCurve=[];var tLoss=0.9,vLoss=0.9;
+  for(var i=0;i<80;i++){
+    tLoss*=0.91+(r()-0.5)*0.02;
+    var overfit=i>30?Math.pow((i-30)/80,1.3)*0.15:0;
+    vLoss=tLoss*1.05+overfit+(r()-0.5)*0.015;
+    trainCurve.push(Math.max(tLoss,0.01));valCurve.push(Math.max(vLoss,0.01));
+  }
+  var bestRound=valCurve.indexOf(Math.min.apply(null,valCurve));
+  var stopRound=Math.min(bestRound+patience,79);
+  esCurves={train:trainCurve,val:valCurve,best:bestRound,stop:stopRound};
+  var drawn=0;
+  async function step(){if(drawn>stopRound){drawES();return;}drawn+=2;drawES(drawn);await delay(40);step();}
+  step();
+  C('es-best-round').textContent=bestRound+1;C('es-stop-round').textContent=stopRound+1;
+  C('es-saved').textContent=(79-stopRound);C('es-status').textContent='Best: round '+(bestRound+1)+', stopped at '+(stopRound+1);
+}
+function drawES(upTo){
+  if(!esCurves)return;var data=esCurves;upTo=upTo===undefined?data.stop:upTo;
+  var cv=C('es-canvas'),ctx=cv.getContext('2d');var W=cv.width,H=cv.height,pad={l:50,r:20,t:10,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var maxL=Math.max.apply(null,data.train.concat(data.val)),minL=Math.min.apply(null,data.val);
+  var toX=function(i){return pad.l+i/(data.train.length-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return(1-(v-minL)/(maxL-minL+0.01))*(H-pad.t-pad.b)+pad.t;};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.25,.5,.75,1].forEach(function(f){var v=minL+(maxL-minL)*f;ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='9px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(3),pad.l-3,toY(v)+4);});
+  if(data.best<=upTo){ctx.beginPath();ctx.moveTo(toX(data.best),pad.t);ctx.lineTo(toX(data.best),H-pad.b);ctx.strokeStyle='rgba(240,165,0,0.6)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
+  if(data.stop<=upTo){ctx.beginPath();ctx.moveTo(toX(data.stop),pad.t);ctx.lineTo(toX(data.stop),H-pad.b);ctx.strokeStyle='rgba(240,96,96,0.6)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
+  ctx.beginPath();data.train.slice(0,upTo+1).forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v));});ctx.strokeStyle='#4b96ff';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();data.val.slice(0,upTo+1).forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v));});ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+  if(data.best<=upTo){ctx.beginPath();ctx.arc(toX(data.best),toY(data.val[data.best]),6,0,Math.PI*2);ctx.fillStyle='#f0a500';ctx.fill();}
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Boosting round',W/2,H-2);ctx.textAlign='start';
+}
+
+/* --- LIVE EDITOR --- */
+
+var SNIPPETS=[
+{file:"xgb_basics.py",label:"XGBoost basics",code:"# XGBoost: pip install xgboost\n# Falls back to sklearn HistGBM if XGBoost is not installed\n\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y)\n\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test  = scaler.transform(X_test)\n\ntry:\n    import xgboost as xgb\n\n    model = xgb.XGBClassifier(\n        n_estimators     = 200,\n        learning_rate    = 0.1,\n        max_depth        = 4,\n        subsample        = 0.8,\n        colsample_bytree = 0.8,\n        reg_lambda       = 1.0,    # L2 penalty on leaf weights\n        reg_alpha        = 0.0,    # L1 penalty on leaf weights\n        gamma            = 0.0,    # min gain needed to split\n        tree_method      = 'hist', # histogram splits -- fast!\n        eval_metric      = 'logloss',\n        random_state     = 42,\n        verbosity        = 0,\n    )\n    print(\"Using XGBoost\")\n\nexcept ImportError:\n    from sklearn.ensemble import HistGradientBoostingClassifier\n    model = HistGradientBoostingClassifier(\n        max_iter=200, learning_rate=0.1, max_depth=4, random_state=42)\n    print(\"XGBoost not installed - using HistGBM instead\")\n\nmodel.fit(X_train, y_train)\nprint(f\"Train acc: {model.score(X_train, y_train):.4f}\")\nprint(f\"Test  acc: {model.score(X_test,  y_test ):.4f}\")\n"},
+{file:"xgb_early_stop.py",label:"Early stopping",code:"# Early stopping finds the optimal n_estimators automatically.\n# XGBoost watches a validation set and stops when loss stops improving.\n\ntry:\n    import xgboost as xgb\n    from sklearn.datasets import load_breast_cancer\n    from sklearn.model_selection import train_test_split\n    from sklearn.preprocessing import StandardScaler\n\n    data = load_breast_cancer()\n    X, y = data.data, data.target\n\n    # Three-way split: train / validation / test\n    X_tmp,  X_test,  y_tmp,  y_test  = train_test_split(\n        X, y, test_size=0.15, random_state=42)\n    X_train, X_val,  y_train, y_val  = train_test_split(\n        X_tmp, y_tmp, test_size=0.15, random_state=42)\n\n    sc = StandardScaler()\n    X_train = sc.fit_transform(X_train)\n    X_val   = sc.transform(X_val)\n    X_test  = sc.transform(X_test)\n\n    model = xgb.XGBClassifier(\n        n_estimators          = 1000,  # set high - early stopping will cut it\n        learning_rate         = 0.05,\n        max_depth             = 4,\n        early_stopping_rounds = 30,    # stop if no improvement for 30 rounds\n        eval_metric           = 'logloss',\n        tree_method           = 'hist',\n        random_state          = 42,\n        verbosity             = 0,\n    )\n\n    model.fit(\n        X_train, y_train,\n        eval_set = [(X_val, y_val)],\n        verbose  = False,\n    )\n\n    print(f\"Trees requested : 1000\")\n    print(f\"Best round      : {model.best_iteration}\")\n    print(f\"Best val logloss: {model.best_score:.5f}\")\n    print(f\"Test accuracy   : {model.score(X_test, y_test):.4f}\")\n    print(f\"Rounds saved    : {1000 - model.best_iteration}\")\n\nexcept ImportError:\n    from sklearn.ensemble import HistGradientBoostingClassifier\n    from sklearn.datasets import load_breast_cancer\n    from sklearn.model_selection import train_test_split\n    from sklearn.preprocessing import StandardScaler\n\n    data = load_breast_cancer()\n    X, y = data.data, data.target\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42)\n    sc = StandardScaler()\n    X_train = sc.fit_transform(X_train)\n    X_test  = sc.transform(X_test)\n\n    # sklearn equivalent uses early_stopping=True\n    model = HistGradientBoostingClassifier(\n        max_iter            = 1000,\n        learning_rate       = 0.05,\n        early_stopping      = True,\n        validation_fraction = 0.15,\n        n_iter_no_change    = 30,\n        random_state        = 42,\n    )\n    model.fit(X_train, y_train)\n    print(f\"Best iter : {model.n_iter_}\")\n    print(f\"Test acc  : {model.score(X_test, y_test):.4f}\")\n    print(\"Tip: install XGBoost for full early-stopping demo: pip install xgboost\")\n"},
+{file:"xgb_regularisation.py",label:"Regularisation",code:"# XGBoost has three regularisation hyperparameters:\n#\n#  reg_lambda (L2) -- shrinks leaf weights, most commonly tuned\n#  reg_alpha  (L1) -- can zero out leaf weights (sparse model)\n#  gamma          -- minimum gain needed to make a split\n#\n# All three fight overfitting in different ways.\n\ntry:\n    import xgboost as xgb\n    from sklearn.datasets import load_breast_cancer\n    from sklearn.model_selection import train_test_split\n    from sklearn.preprocessing import StandardScaler\n\n    data = load_breast_cancer()\n    X, y = data.data, data.target\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y)\n\n    sc = StandardScaler()\n    X_train = sc.fit_transform(X_train)\n    X_test  = sc.transform(X_test)\n\n    configs = [\n        # (reg_lambda, reg_alpha, gamma, label)\n        (0,  0, 0, \"No regularisation\"),\n        (1,  0, 0, \"L2 only (default)\"),\n        (5,  0, 0, \"Strong L2\"),\n        (1,  1, 0, \"L1 + L2\"),\n        (1,  0, 5, \"gamma pruning\"),\n        (5,  2, 3, \"All three combined\"),\n    ]\n\n    print(f\"{'Config':<25}  {'Train':>7}  {'Test':>7}\")\n    print(\"-\" * 44)\n\n    for lam, alpha, gam, label in configs:\n        m = xgb.XGBClassifier(\n            n_estimators=200, learning_rate=0.1, max_depth=4,\n            reg_lambda=lam, reg_alpha=alpha, gamma=gam,\n            tree_method='hist', eval_metric='logloss',\n            random_state=42, verbosity=0,\n        )\n        m.fit(X_train, y_train)\n        print(f\"{label:<25}  {m.score(X_train,y_train):>7.4f}  {m.score(X_test,y_test):>7.4f}\")\n\nexcept ImportError:\n    print(\"Install XGBoost: pip install xgboost\")\n    print(\"Showing HistGBM regularisation instead...\")\n    from sklearn.ensemble import HistGradientBoostingClassifier\n    from sklearn.datasets import load_breast_cancer\n    from sklearn.model_selection import train_test_split\n    from sklearn.preprocessing import StandardScaler\n\n    data = load_breast_cancer()\n    X, y = data.data, data.target\n    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n    sc = StandardScaler()\n    X_train = sc.fit_transform(X_train)\n    X_test  = sc.transform(X_test)\n\n    for l2 in [0, 0.1, 1, 10, 100]:\n        m = HistGradientBoostingClassifier(\n            max_iter=200, l2_regularization=l2, random_state=42)\n        m.fit(X_train, y_train)\n        print(f\"l2={l2:<6}  train={m.score(X_train,y_train):.4f}  test={m.score(X_test,y_test):.4f}\")\n"},
+{file:"xgb_vs_gbm.py",label:"XGBoost vs GBM",code:"# Compare XGBoost vs sklearn GBM vs HistGBM\n# Shows accuracy and speed differences\n\nfrom sklearn.ensemble import (GradientBoostingClassifier,\n                               HistGradientBoostingClassifier)\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\nimport time\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y)\n\nsc = StandardScaler()\nX_train = sc.fit_transform(X_train)\nX_test  = sc.transform(X_test)\n\n# Always available (sklearn)\nmodels = {\n    \"sklearn GBM\"   : GradientBoostingClassifier(\n        n_estimators=200, learning_rate=0.1, max_depth=4,\n        subsample=0.8, random_state=42),\n    \"sklearn HistGBM\": HistGradientBoostingClassifier(\n        max_iter=200, learning_rate=0.1, max_depth=4, random_state=42),\n}\n\ntry:\n    import xgboost as xgb\n    models[\"XGBoost\"] = xgb.XGBClassifier(\n        n_estimators=200, learning_rate=0.1, max_depth=4,\n        subsample=0.8, colsample_bytree=0.8,\n        tree_method='hist', eval_metric='logloss',\n        random_state=42, verbosity=0)\n    print(\"XGBoost is available!\")\nexcept ImportError:\n    print(\"XGBoost not installed (pip install xgboost)\")\n\nprint()\nprint(f\"{'Model':<20}  {'Train':>7}  {'Test':>7}  {'Time':>8}\")\nprint(\"-\" * 46)\n\nfor name, model in models.items():\n    t0 = time.time()\n    model.fit(X_train, y_train)\n    elapsed = time.time() - t0\n    tr = model.score(X_train, y_train)\n    te = model.score(X_test,  y_test)\n    print(f\"{name:<20}  {tr:>7.4f}  {te:>7.4f}  {elapsed:>7.3f}s\")\n\nprint()\nprint(\"Key XGBoost advantages over sklearn GBM:\")\nprint(\"  1. reg_lambda/alpha : L1 and L2 regularisation on leaf weights\")\nprint(\"  2. colsample_bytree : feature subsampling per tree (like RF)\")\nprint(\"  3. early_stopping   : auto-find best n_estimators using val set\")\nprint(\"  4. tree_method=hist : histogram splits, 10-100x faster on large data\")\nprint(\"  5. missing values   : handles NaN natively, no imputation needed\")\n"}
+];
+
+var currentTab=0, pyodide=null, pyLoading=false, cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML = SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab' + (i===0?' active':'') + '" onclick="switchTab(' + i + ')">' + s.label + '</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab = i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){ cmEditor.setValue(SNIPPETS[i].code); cmEditor.refresh(); }
+  C('editor-filename').textContent = SNIPPETS[i].file;
+  C('editor-output').textContent = 'Click Run to execute...';
+  C('editor-output').className = 'editor-output idle';
+}
+function resetEditor(){ if(cmEditor) cmEditor.setValue(SNIPPETS[currentTab].code); }
+function clearOutput(){ C('editor-output').textContent=''; C('editor-output').className='editor-output idle'; }
+
+async function runEditor(){
+  var btn=C('run-btn'), out=C('editor-output');
+  var code = cmEditor ? cmEditor.getValue() : '';
+  btn.disabled=true; btn.textContent='Running...';
+  out.className='editor-output'; out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status'); st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r; sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else { while(pyLoading) await new Promise(function(r){setTimeout(r,100);}); }
+      st.textContent='Python ready'; st.className='py-status ready';
+    } catch(e){
+      out.textContent='Failed to load Python.'; out.className='editor-output error';
+      btn.disabled=false; btn.textContent='Run'; return;
+    }
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)'; out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e)); out.className='editor-output error';
+  }
+  btn.disabled=false; btn.textContent='Run';
+}
+
+/* --- INIT --- */
+window.addEventListener('load', function(){
+  drawComparison();
+  drawHessian();
+  initFIData();
+  xgbData = genXGBData('moons');
+  onXGBChange();
+  runEarlyStopping();
+
+  (function trySetup(){
+    if(typeof CodeMirror === 'undefined'){ setTimeout(trySetup, 60); return; }
+    buildTabs();
+    var mount = C('cm-editor-mount');
+    if(!mount) return;
+    cmEditor = CodeMirror(mount, {
+      value: SNIPPETS[0].code,
+      mode: 'python',
+      theme: 'one-dark',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      lineWrapping: false,
+      extraKeys: { Tab: function(cm){ if(cm.somethingSelected()) cm.indentSelection('add'); else cm.replaceSelection('    ','end'); } }
+    });
+    cmEditor.setSize('100%', null);
+    setTimeout(function(){ cmEditor.refresh(); }, 100);
+    setTimeout(function(){ cmEditor.refresh(); }, 500);
+  })();
+
+  new MutationObserver(function(){
+    drawComparison(); drawHessian();
+    if(xgbData) onXGBChange();
+    if(fiData) showFI(currentFI);
+    if(cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+});
+
+</script>
+</body>
+</html>

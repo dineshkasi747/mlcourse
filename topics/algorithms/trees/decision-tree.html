@@ -1,0 +1,1885 @@
+<!-- decision-tree.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Decision Tree — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(45,212,191,0.09),rgba(62,207,142,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(45,212,191,0.12) 0%,transparent 70%);pointer-events:none;}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* ── HYPERPARAMETER TUNING PANEL ── */
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .hp-subtitle{font-size:12.5px;color:var(--text-3);margin-bottom:18px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:18px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--teal);font-weight:700;min-width:50px;text-align:right;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+
+    /* ── ACCURACY DASHBOARD ── */
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-card.highlight{border-color:var(--teal);background:var(--teal-surf);}
+    .acc-num{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .3s;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* tree node SVG styles */
+    .tree-node-internal{fill:var(--bg-card);stroke:var(--teal);stroke-width:2;}
+    .tree-node-leaf-a{fill:rgba(75,150,255,0.2);stroke:#4b96ff;stroke-width:2;}
+    .tree-node-leaf-b{fill:rgba(240,96,96,0.2);stroke:#f06060;stroke-width:2;}
+    .tree-node-leaf-c{fill:rgba(62,207,142,0.2);stroke:#3ecf8e;stroke-width:2;}
+    .tree-edge{stroke:var(--border-hi);stroke-width:1.5;fill:none;}
+
+    /* feature importance bar */
+    .fi-bar-wrap{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+    .fi-row{display:flex;align-items:center;gap:10px;}
+    .fi-name{font-size:12.5px;color:var(--text-2);min-width:120px;text-align:right;}
+    .fi-track{flex:1;height:18px;background:var(--bg-input);border-radius:3px;overflow:hidden;position:relative;}
+    .fi-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+    .fi-pct{font-size:11px;font-family:var(--font-mono);color:var(--text-3);min-width:40px;}
+
+    /* overfitting curve */
+    .curve-legend{display:flex;gap:20px;padding:10px 18px;border-bottom:1px solid var(--border);}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);}
+    .legend-dot{width:12px;height:3px;border-radius:2px;}
+
+    /* derive steps */
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:var(--teal-surf);border:1.5px solid var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--teal);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--teal);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* split criterion cards */
+    .criterion-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+    .criterion-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:all .18s;}
+    .criterion-card.active{border-color:var(--teal);}
+    .criterion-card:hover{border-color:var(--border-hi);}
+    .crit-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .crit-formula{font-family:var(--font-mono);font-size:11px;color:var(--text-3);background:var(--bg-input);padding:4px 8px;border-radius:var(--r-xs);margin:6px 0;}
+    .crit-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(45,212,191,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--teal);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    @media(max-width:700px){
+      .acc-dashboard{grid-template-columns:repeat(2,1fr);}
+      .criterion-cards{grid-template-columns:1fr;}
+      .hp-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="decision-tree">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Decision Tree</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Decision Trees</a><span class="sep">/</span>
+            <span class="current">Decision Tree</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(45,212,191,.25);background:var(--teal-surf);color:var(--teal);margin-bottom:14px;">Trees · Interpretable</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Decision Tree</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              A model that learns a sequence of <strong>if-then rules</strong> from data.
+              At each node it asks one question about one feature, splitting data into purer
+              subsets until reaching a decision. Fully interpretable — you can read every rule.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 22 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">🌿</div>
+              How a decision tree thinks
+            </h2>
+            <p>
+              A decision tree asks <strong>one yes/no question at a time</strong>, following the answer
+              to the next question until it reaches a final prediction. It's the same logic you use when
+              diagnosing a problem — "Is the screen on? → Is there WiFi? → Is the battery full?"
+            </p>
+            <p>
+              The algorithm's job is to figure out <strong>which question to ask first</strong>, which
+              question to ask second, and so on — choosing the split at each step that makes the
+              resulting groups as <em>pure</em> (one-class) as possible. That purity is measured by
+              <strong>Gini impurity</strong> or <strong>entropy</strong>.
+            </p>
+
+            <!-- Interactive minimal tree -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Interactive decision tree — click nodes to explore</span>
+                <button class="ctrl-btn" onclick="resetTreeHighlight()">Reset highlight</button>
+              </div>
+              <svg id="intro-tree-svg" width="700" height="320" style="width:100%;display:block;"></svg>
+              <div style="padding:10px 18px;font-size:12.5px;color:var(--text-3);">
+                Click any node to highlight the path from root → leaf and see the decision rule
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Key insight:</strong> Trees make no assumptions about feature distributions (unlike Naive Bayes or Logistic Regression). They work on any mixture of numeric and categorical features, require no scaling, and produce rules you can read and explain to a non-technical audience.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — LIVE TREE BUILDER ═══ -->
+          <section class="section" id="tree-builder">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">✎</div>
+              Live tree builder — click to place points
+            </h2>
+            <p>
+              <strong>Left-click</strong> to place Class A points, <strong>right-click</strong> for Class B.
+              The decision tree recomputes and redraws after each point.
+              Watch how the rectangular regions partition the space.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Decision tree boundary</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Max depth:</span>
+                  <input type="range" min="1" max="6" value="3" step="1" class="ctrl-slider" id="builder-depth" oninput="updateBuilderDepth(this.value)" style="width:90px;"/>
+                  <span class="ctrl-value" id="builder-depth-val" style="color:var(--teal);">3</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Min samples:</span>
+                  <input type="range" min="1" max="10" value="2" step="1" class="ctrl-slider" id="builder-min" oninput="updateBuilderMin(this.value)" style="width:80px;"/>
+                  <span class="ctrl-value" id="builder-min-val">2</span>
+                </div>
+                <button class="ctrl-btn" onclick="addSamplePoints()">+ Sample data</button>
+                <button class="ctrl-btn" onclick="resetBuilder()">Reset</button>
+              </div>
+              <canvas id="builder-canvas" width="700" height="400" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="b-accuracy">—</span><span class="stat-pill-lbl">Accuracy</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="b-nodes">—</span><span class="stat-pill-lbl">Nodes</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="b-leaves">—</span><span class="stat-pill-lbl">Leaves</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="b-depth">—</span><span class="stat-pill-lbl">Actual depth</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — SPLIT CRITERIA ═══ -->
+          <section class="section" id="split-criteria">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">÷</div>
+              Gini vs Entropy — split criteria visualised
+            </h2>
+            <p>
+              At each node, the tree evaluates every possible split on every feature and picks the one
+              that maximises <strong>Information Gain</strong> — the reduction in impurity after the split.
+            </p>
+
+            <div class="criterion-cards">
+              <div class="criterion-card active" id="cc-gini" onclick="selectCriterion('gini')">
+                <div class="crit-name">Gini Impurity</div>
+                <div class="crit-formula">Gini = 1 - Σ pᵢ²</div>
+                <div class="crit-desc">Measures probability of misclassifying a randomly chosen element. Faster to compute. Default in sklearn.</div>
+              </div>
+              <div class="criterion-card" id="cc-entropy" onclick="selectCriterion('entropy')">
+                <div class="crit-name">Entropy (Info Gain)</div>
+                <div class="crit-formula">H = -Σ pᵢ log₂(pᵢ)</div>
+                <div class="crit-desc">Measures information content. Slightly more expensive but considers log scale — can prefer more balanced splits.</div>
+              </div>
+              <div class="criterion-card" id="cc-mse" onclick="selectCriterion('mse')">
+                <div class="crit-name">MSE (Regression)</div>
+                <div class="crit-formula">MSE = (1/n)Σ(yᵢ-ȳ)²</div>
+                <div class="crit-desc">For regression trees. Splits minimise variance of target values in each child node.</div>
+              </div>
+            </div>
+
+            <!-- Impurity curve canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Impurity vs class proportion — interactive</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">P(class A):</span>
+                  <input type="range" min="0.01" max="0.99" value="0.5" step="0.01" class="ctrl-slider" id="p-slider" oninput="updateImpurity(this.value)" style="width:110px;"/>
+                  <span class="ctrl-value" id="p-val" style="color:var(--teal);">0.50</span>
+                </div>
+              </div>
+              <canvas id="impurity-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="gini-val" style="color:var(--teal);">0.500</span><span class="stat-pill-lbl">Gini</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="entropy-val" style="color:var(--orange);">1.000</span><span class="stat-pill-lbl">Entropy</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="purity-class">Mixed</span><span class="stat-pill-lbl">Purity status</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ig-val">—</span><span class="stat-pill-lbl">Info gain</span></div>
+              </div>
+            </div>
+
+            <!-- Information Gain split demo -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Information gain — drag split threshold</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Split at x =</span>
+                  <input type="range" min="1" max="9" value="5" step="0.5" class="ctrl-slider" id="split-slider" oninput="updateSplit(this.value)" style="width:110px;"/>
+                  <span class="ctrl-value" id="split-val" style="color:var(--teal);">5.0</span>
+                </div>
+                <select class="ctrl-select" id="ig-criterion" onchange="updateSplit(document.getElementById('split-slider').value)">
+                  <option value="gini">Gini</option>
+                  <option value="entropy">Entropy</option>
+                </select>
+              </div>
+              <canvas id="ig-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ig-parent">—</span><span class="stat-pill-lbl">Parent impurity</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ig-left">—</span><span class="stat-pill-lbl">Left child</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ig-right">—</span><span class="stat-pill-lbl">Right child</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ig-gain" style="color:var(--teal);">—</span><span class="stat-pill-lbl">Info gain</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — HYPERPARAMETER TUNING LIVE ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Hyperparameter tuning — live accuracy feedback
+            </h2>
+            <p>
+              Every slider below <strong>immediately retrains the tree</strong> on a real dataset and
+              updates all accuracy metrics. Watch how each parameter affects train accuracy,
+              test accuracy, and the bias-variance tradeoff in real time.
+            </p>
+
+            <!-- ACCURACY DASHBOARD -->
+            <div class="acc-dashboard" id="acc-dashboard">
+              <div class="acc-card" id="ac-train">
+                <div class="acc-num" id="ac-train-val" style="color:var(--blue);">—</div>
+                <div class="acc-label">Train Accuracy</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-train-bar" style="background:var(--blue);width:0%;"></div></div>
+              </div>
+              <div class="acc-card" id="ac-test">
+                <div class="acc-num" id="ac-test-val" style="color:var(--green);">—</div>
+                <div class="acc-label">Test Accuracy</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-test-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+              <div class="acc-card" id="ac-depth">
+                <div class="acc-num" id="ac-depth-val" style="color:var(--teal);">—</div>
+                <div class="acc-label">Tree Depth</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-depth-bar" style="background:var(--teal);width:0%;"></div></div>
+              </div>
+              <div class="acc-card" id="ac-status">
+                <div class="acc-num" id="ac-status-val" style="font-size:16px;color:var(--accent);">—</div>
+                <div class="acc-label">Fit Status</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-status-bar" style="background:var(--accent);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <!-- HYPERPARAMETER CONTROLS -->
+            <div class="hp-panel">
+              <div class="hp-title">
+                <span style="font-size:16px;">⚙</span>
+                Hyperparameter Controls
+                <span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:4px;">— every change retrains the model instantly</span>
+              </div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">max_depth</span>
+                    <span class="hp-val" id="hp-depth-val">3</span>
+                  </div>
+                  <input type="range" min="1" max="15" value="3" step="1" class="ctrl-slider" id="hp-depth" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Max levels the tree can grow. Small = underfit. Large = overfit.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">min_samples_split</span>
+                    <span class="hp-val" id="hp-mss-val">2</span>
+                  </div>
+                  <input type="range" min="2" max="50" value="2" step="1" class="ctrl-slider" id="hp-mss" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Min samples needed to split a node. Higher = simpler tree.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">min_samples_leaf</span>
+                    <span class="hp-val" id="hp-msl-val">1</span>
+                  </div>
+                  <input type="range" min="1" max="30" value="1" step="1" class="ctrl-slider" id="hp-msl" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Min samples required at each leaf. Controls over-fitting at leaves.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">max_features</span>
+                    <span class="hp-val" id="hp-mf-val">all</span>
+                  </div>
+                  <input type="range" min="1" max="20" value="20" step="1" class="ctrl-slider" id="hp-mf" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Features considered per split. sqrt(n) adds randomness (Random Forest idea).</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">criterion</span>
+                    <span class="hp-val" id="hp-crit-val" style="color:var(--teal);">gini</span>
+                  </div>
+                  <div style="display:flex;gap:6px;margin-top:2px;">
+                    <button class="ctrl-btn active" id="crit-gini" onclick="setCriterion('gini')">Gini</button>
+                    <button class="ctrl-btn" id="crit-entropy" onclick="setCriterion('entropy')">Entropy</button>
+                    <button class="ctrl-btn" id="crit-log" onclick="setCriterion('log_loss')">Log loss</button>
+                  </div>
+                  <div class="hp-desc">Split quality measure. Gini is faster; entropy considers log scale.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">ccp_alpha (pruning)</span>
+                    <span class="hp-val" id="hp-ccp-val">0.000</span>
+                  </div>
+                  <input type="range" min="0" max="0.05" value="0" step="0.001" class="ctrl-slider" id="hp-ccp" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Cost-complexity pruning. Higher = more pruning = simpler tree.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live boundary + tree structure side by side -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;">
+                  <span class="canvas-title">Decision boundary (live)</span>
+                </div>
+                <canvas id="hp-boundary-canvas" width="340" height="300" style="width:100%;display:block;"></canvas>
+              </div>
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;">
+                  <span class="canvas-title">Tree structure (live)</span>
+                </div>
+                <svg id="hp-tree-svg" width="340" height="300" style="width:100%;display:block;"></svg>
+              </div>
+            </div>
+
+            <!-- Overfitting curve -->
+            <div class="canvas-card">
+              <div class="curve-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#4b96ff;"></div>Train accuracy</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e;"></div>Test accuracy</div>
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(240,165,0,0.5);width:2px;height:12px;border-radius:1px;"></div>Current depth</div>
+              </div>
+              <div class="canvas-toolbar" style="border-top:1px solid var(--border);">
+                <span class="canvas-title">Train vs test accuracy — sweep max_depth 1→15</span>
+                <button class="ctrl-btn active" onclick="runDepthSweep()">▶ Run sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="sweep-status"></span>
+              </div>
+              <canvas id="overfit-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — FEATURE IMPORTANCE ═══ -->
+          <section class="section" id="feature-importance">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">★</div>
+              Feature importance — what the tree learned
+            </h2>
+            <p>
+              After training, each feature gets an importance score: the <strong>total reduction in
+              impurity</strong> it caused across all splits, weighted by the number of samples at each split.
+              Features used near the root matter more because they affect more samples.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Feature importances — click to sort</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="fi-dataset" onchange="updateFeatureImportance()">
+                    <option value="iris">Iris (4 features)</option>
+                    <option value="wine">Wine (13 features)</option>
+                    <option value="breast">Breast Cancer (10 features)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="padding:16px 18px;" id="fi-bars"></div>
+              <canvas id="fi-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="callout success">
+              <span class="callout-icon">✓</span>
+              <p><strong>Interpretability advantage:</strong> You can directly read which features the tree splits on and in what order. Feature importance from trees is one of the most popular feature selection methods — it requires no scaling, handles nonlinear effects, and captures feature interactions.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — MATH DERIVATION ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              The CART algorithm — step by step
+            </h2>
+            <p>sklearn uses CART (Classification and Regression Trees). Here's exactly what it does at each node:</p>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div class="derive-body">
+                  <div class="derive-title">Try every feature × every threshold</div>
+                  <div class="derive-desc">For each feature j and each unique value t in that feature, consider splitting: left = {x: xⱼ ≤ t}, right = {x: xⱼ > t}. This is O(n·d) per node.</div>
+                  <div class="derive-formula">Candidates: (j, t) for j ∈ features, t ∈ unique_values(Xⱼ)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div class="derive-body">
+                  <div class="derive-title">Compute impurity before and after each split</div>
+                  <div class="derive-desc">Parent impurity minus weighted average child impurity = Information Gain. We want to maximise this.</div>
+                  <div class="derive-formula">IG(j,t) = Impurity(parent) - [nL/n · Impurity(left) + nR/n · Impurity(right)]</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div class="derive-body">
+                  <div class="derive-title">Choose the best split</div>
+                  <div class="derive-desc">The split (j*, t*) with maximum information gain is applied. The node stores: feature index j*, threshold t*, and class counts for prediction.</div>
+                  <div class="derive-formula">(j*, t*) = argmax_{j,t} IG(j, t)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div class="derive-body">
+                  <div class="derive-title">Recurse on children</div>
+                  <div class="derive-desc">Apply the same algorithm to each child node. Stop when: max_depth reached, fewer than min_samples_split samples, or node is already pure (impurity = 0).</div>
+                  <div class="derive-formula">Stopping conditions:
+  depth >= max_depth  OR
+  n < min_samples_split  OR
+  Impurity = 0  OR
+  all features have same value</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">5</div>
+                <div class="derive-body">
+                  <div class="derive-title">Predict: traverse from root to leaf</div>
+                  <div class="derive-desc">Follow the tree: at each internal node, go left if xⱼ ≤ t, right otherwise. At the leaf, return majority class (classification) or mean y (regression).</div>
+                  <div class="derive-formula">predict(x):
+  node = root
+  while node is not leaf:
+    if x[node.feature] <= node.threshold:
+      node = node.left
+    else: node = node.right
+  return node.majority_class</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 7 — PRUNING ═══ -->
+          <section class="section" id="pruning">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">✂</div>
+              Pruning — fighting overfitting
+            </h2>
+            <p>
+              An unpruned tree will memorise training data — it can achieve 100% train accuracy
+              by creating a separate leaf for each training sample. Pruning removes branches that
+              don't improve generalisation.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Pruning effect — ccp_alpha sweep</span>
+                <button class="ctrl-btn active" onclick="runPruningSweep()">▶ Run pruning sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="prune-status"></span>
+              </div>
+              <canvas id="prune-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Higher ccp_alpha → more pruning → fewer nodes → lower train accuracy but often higher test accuracy
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four complete programs — CART from scratch, sklearn with hyperparameter tuning, pruning analysis, and a full pipeline with feature importances. All editable and runnable.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">dt_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Leaving max_depth=None.</strong> An unlimited tree will perfectly fit training data (100% train accuracy) but catastrophically overfit. Always set max_depth or use ccp_alpha pruning. Check train vs test gap.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Trusting feature importances blindly.</strong> Importance scores are biased toward high-cardinality features (features with many unique values get more split opportunities). Use permutation importance or SHAP for unbiased estimates.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using a single tree in production.</strong> A single tree has high variance — small data changes can completely restructure it. Use Random Forest or Gradient Boosting instead, which average many trees.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not checking for class imbalance.</strong> Impurity metrics assume balanced classes. With 95% class A, a pure class-A leaf looks great even though it's useless. Set class_weight='balanced' or use balanced sampling.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Axis-aligned splits miss diagonal boundaries.</strong> Decision trees can only split parallel to feature axes. A diagonal boundary requires exponentially many splits. For diagonal or circular patterns, use kernel SVM or ensemble methods.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>A decision tree greedily finds the <strong>best split</strong> at each node using Gini impurity or entropy, recursing until stopping conditions are met.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>max_depth</strong> is the most important hyperparameter. Small = underfit, large = overfit. Tune it with cross-validation and plot the train/test gap.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>No feature scaling needed. Decision trees are invariant to monotonic transformations of features.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Fully interpretable</strong> — you can export and read every rule. Use <code>export_text()</code> or <code>plot_tree()</code> to visualise.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Single trees have high variance. For production, use <strong>Random Forest</strong> (bagging) or <strong>XGBoost</strong> (boosting) — both build on decision trees.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>ccp_alpha pruning</strong> is the cleanest regularisation method. Sweep alpha values and pick where validation accuracy peaks.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="gini-impurity.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Gini Impurity</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="regression-tree.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Regression Tree</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">How it thinks</a></li>
+            <li class="toc-item"><a href="#tree-builder">Live builder</a></li>
+            <li class="toc-item"><a href="#split-criteria">Gini vs Entropy</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#feature-importance">Feature importance</a></li>
+            <li class="toc-item"><a href="#math">CART algorithm</a></li>
+            <li class="toc-item"><a href="#pruning">Pruning</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function gini(p){return p<=0||p>=1?0:1-p*p-(1-p)*(1-p);}
+function entropy(p){
+  if(p<=0||p>=1)return 0;
+  return -(p*Math.log2(p)+(1-p)*Math.log2(1-p));
+}
+
+/* ════════════════════════════════════════════
+   SECTION 1 — INTRO TREE SVG
+════════════════════════════════════════════ */
+function drawIntroTree(){
+  var svg=C('intro-tree-svg');
+  var W=700,H=320;
+  var isDk=isDark();
+  var edgeCol=isDk?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.15)';
+  var textCol=isDk?'#a09e98':'#5c5a54';
+
+  var nodes=[
+    {id:0,x:350,y:40,w:160,h:44,type:'internal',text:'Petal length ≤ 2.45',sub:'root • Gini=0.667',cls:null,parent:-1},
+    {id:1,x:170,y:130,w:130,h:44,type:'leaf',text:'Iris Setosa',sub:'100% pure • 50 pts',cls:0,parent:0,dir:'≤'},
+    {id:2,x:530,y:130,w:160,h:44,type:'internal',text:'Petal width ≤ 1.75',sub:'Gini=0.500',cls:null,parent:0,dir:'>'},
+    {id:3,x:390,y:220,w:150,h:44,type:'leaf',text:'Iris Versicolor',sub:'91% • 54 pts',cls:1,parent:2,dir:'≤'},
+    {id:4,x:560,y:220,w:150,h:44,type:'leaf',text:'Iris Virginica',sub:'98% • 46 pts',cls:2,parent:2,dir:'>'},
+  ];
+
+  var edges=[
+    {from:0,to:1,label:'≤ 2.45'},
+    {from:0,to:2,label:'> 2.45'},
+    {from:2,to:3,label:'≤ 1.75'},
+    {from:2,to:4,label:'> 1.75'},
+  ];
+
+  var nodeMap={};
+  nodes.forEach(function(n){nodeMap[n.id]=n;});
+
+  var clsCols=['#4b96ff','#3ecf8e','#fb8c40'];
+  var highlighted=new Set();
+
+  function render(){
+    svg.innerHTML='';
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+
+    // Edges
+    edges.forEach(function(e){
+      var from=nodeMap[e.from],to=nodeMap[e.to];
+      var line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',from.x);line.setAttribute('y1',from.y+from.h/2);
+      line.setAttribute('x2',to.x);line.setAttribute('y2',to.y-to.h/2);
+      var isHi=highlighted.has(e.from)&&highlighted.has(e.to);
+      line.setAttribute('stroke',isHi?'#2dd4bf':edgeCol);
+      line.setAttribute('stroke-width',isHi?'2.5':'1.5');
+      svg.appendChild(line);
+      // edge label
+      var txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',(from.x+to.x)/2+8);
+      txt.setAttribute('y',(from.y+to.y)/2+4);
+      txt.setAttribute('font-size','10');
+      txt.setAttribute('fill',textCol);
+      txt.setAttribute('text-anchor','middle');
+      txt.textContent=e.label;
+      svg.appendChild(txt);
+    });
+
+    // Nodes
+    nodes.forEach(function(n){
+      var isHi=highlighted.has(n.id);
+      var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('cursor','pointer');
+      g.addEventListener('click',function(){toggleHighlight(n.id,nodes,edges,nodeMap);});
+
+      var rx=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rx.setAttribute('x',n.x-n.w/2);rx.setAttribute('y',n.y-n.h/2);
+      rx.setAttribute('width',n.w);rx.setAttribute('height',n.h);
+      rx.setAttribute('rx','8');
+
+      var fillCol, strokeCol;
+      if(n.type==='internal'){
+        fillCol=isHi?(isDk?'#1a2a2a':'#d0f0ec'):bg();
+        strokeCol=isHi?'#2dd4bf':(isDk?'rgba(45,212,191,0.4)':'rgba(45,212,191,0.5)');
+      } else {
+        var c=clsCols[n.cls||0];
+        fillCol=isHi?c+'30':c+'15';
+        strokeCol=isHi?c:c+'60';
+      }
+      rx.setAttribute('fill',fillCol);
+      rx.setAttribute('stroke',strokeCol);
+      rx.setAttribute('stroke-width',isHi?'2':'1.5');
+      g.appendChild(rx);
+
+      var txt1=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt1.setAttribute('x',n.x);txt1.setAttribute('y',n.y-2);
+      txt1.setAttribute('font-size','12');txt1.setAttribute('font-weight','600');
+      txt1.setAttribute('fill',isDk?'#f2f0ec':'#1a1916');
+      txt1.setAttribute('text-anchor','middle');
+      txt1.textContent=n.text;
+      g.appendChild(txt1);
+
+      var txt2=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt2.setAttribute('x',n.x);txt2.setAttribute('y',n.y+13);
+      txt2.setAttribute('font-size','10');
+      txt2.setAttribute('fill',textCol);
+      txt2.setAttribute('text-anchor','middle');
+      txt2.textContent=n.sub;
+      g.appendChild(txt2);
+
+      svg.appendChild(g);
+    });
+  }
+
+  function toggleHighlight(id,nodes,edges,nodeMap){
+    if(highlighted.has(id)){highlighted.clear();}
+    else{
+      highlighted.clear();
+      // highlight path from root to this node
+      var cur=id;
+      while(cur!==-1){
+        highlighted.add(cur);
+        cur=nodeMap[cur].parent;
+      }
+    }
+    render();
+  }
+
+  window.resetTreeHighlight=function(){highlighted.clear();render();};
+  render();
+}
+
+/* ════════════════════════════════════════════
+   SECTION 2 — TREE BUILDER (canvas)
+════════════════════════════════════════════ */
+var BC2=C('builder-canvas'),BX2=BC2.getContext('2d');
+var bPts=[],bMaxDepth=3,bMinSamples=2;
+var COLS2=['#4b96ff','#f06060'];
+
+// Minimal CART implementation in JS
+function buildTree(pts,depth,maxDepth,minSamples){
+  if(!pts.length) return{leaf:true,cls:0,n:0};
+  var counts=[0,0];
+  pts.forEach(function(p){counts[p.c]++;});
+  var majority=counts[0]>=counts[1]?0:1;
+  var parentGini=gini(counts[0]/pts.length);
+
+  if(depth>=maxDepth||pts.length<minSamples||parentGini<0.001){
+    return{leaf:true,cls:majority,n:pts.length,counts:counts};
+  }
+
+  var bestGain=-1,bestFeat=-1,bestThresh=0,bestL=[],bestR=[];
+  [0,1].forEach(function(feat){
+    var vals=pts.map(function(p){return feat===0?p.x:p.y;}).sort(function(a,b){return a-b;});
+    var unique=[...new Set(vals)];
+    for(var i=0;i<unique.length-1;i++){
+      var t=(unique[i]+unique[i+1])/2;
+      var L=pts.filter(function(p){return (feat===0?p.x:p.y)<=t;});
+      var R=pts.filter(function(p){return (feat===0?p.x:p.y)>t;});
+      if(!L.length||!R.length) continue;
+      var lc=[0,0],rc=[0,0];
+      L.forEach(function(p){lc[p.c]++;});
+      R.forEach(function(p){rc[p.c]++;});
+      var lG=gini(lc[0]/L.length), rG=gini(rc[0]/R.length);
+      var gain=parentGini-(L.length/pts.length*lG+R.length/pts.length*rG);
+      if(gain>bestGain){bestGain=gain;bestFeat=feat;bestThresh=t;bestL=L;bestR=R;}
+    }
+  });
+
+  if(bestFeat===-1) return{leaf:true,cls:majority,n:pts.length,counts:counts};
+
+  return{
+    leaf:false,feat:bestFeat,thresh:bestThresh,
+    left:buildTree(bestL,depth+1,maxDepth,minSamples),
+    right:buildTree(bestR,depth+1,maxDepth,minSamples),
+    n:pts.length,counts:counts
+  };
+}
+
+function predictTree(tree,x,y){
+  if(tree.leaf) return tree.cls;
+  var val=tree.feat===0?x:y;
+  return val<=tree.thresh?predictTree(tree.left,x,y):predictTree(tree.right,x,y);
+}
+
+function countNodes(tree){
+  if(tree.leaf) return{nodes:1,leaves:1,depth:0};
+  var l=countNodes(tree.left),r=countNodes(tree.right);
+  return{nodes:1+l.nodes+r.nodes,leaves:l.leaves+r.leaves,depth:1+Math.max(l.depth,r.depth)};
+}
+
+function drawBuilder(){
+  var W=BC2.width,H=BC2.height,res=5;
+  BX2.clearRect(0,0,W,H);BX2.fillStyle=bg();BX2.fillRect(0,0,W,H);
+  if(bPts.length<4){
+    BX2.fillStyle=tc();BX2.font='14px sans-serif';BX2.textAlign='center';
+    BX2.fillText('Left-click = Class A   Right-click = Class B',W/2,H/2-10);
+    BX2.fillText('Add at least 4 points to see the boundary',W/2,H/2+12);
+    bPts.forEach(function(p){
+      BX2.beginPath();BX2.arc(p.x,p.y,7,0,Math.PI*2);
+      BX2.fillStyle=COLS2[p.c];BX2.fill();
+      BX2.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';BX2.lineWidth=1.5;BX2.stroke();
+    });
+    BX2.textAlign='start';return;
+  }
+
+  var tree=buildTree(bPts,0,bMaxDepth,bMinSamples);
+
+  // Background regions
+  for(var px=0;px<W;px+=res){
+    for(var py=0;py<H;py+=res){
+      var cls=predictTree(tree,px,py);
+      BX2.fillStyle=cls===0?'rgba(75,150,255,0.12)':'rgba(240,96,96,0.12)';
+      BX2.fillRect(px,py,res,res);
+    }
+  }
+
+  // Draw split lines
+  drawSplitLines(tree,0,0,W,H);
+
+  // Points
+  bPts.forEach(function(p){
+    var pred=predictTree(tree,p.x,p.y);
+    BX2.beginPath();BX2.arc(p.x,p.y,7,0,Math.PI*2);
+    BX2.fillStyle=COLS2[p.c];BX2.fill();
+    BX2.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';BX2.lineWidth=1.5;BX2.stroke();
+    if(pred!==p.c){
+      BX2.beginPath();BX2.arc(p.x,p.y,11,0,Math.PI*2);
+      BX2.strokeStyle='#f0a500';BX2.lineWidth=2;BX2.setLineDash([2,2]);BX2.stroke();BX2.setLineDash([]);
+    }
+  });
+
+  // Stats
+  var stats=countNodes(tree);
+  var acc=bPts.filter(function(p){return predictTree(tree,p.x,p.y)===p.c;}).length/bPts.length;
+  C('b-accuracy').textContent=(acc*100).toFixed(0)+'%';
+  C('b-nodes').textContent=stats.nodes;
+  C('b-leaves').textContent=stats.leaves;
+  C('b-depth').textContent=stats.depth;
+  BX2.textAlign='start';
+}
+
+function drawSplitLines(tree,x0,y0,x1,y1){
+  if(tree.leaf||!tree.feat===undefined) return;
+  BX2.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';
+  BX2.lineWidth=1;
+  if(tree.feat===0){
+    var sx=tree.thresh;
+    BX2.beginPath();BX2.moveTo(sx,y0);BX2.lineTo(sx,y1);BX2.stroke();
+    drawSplitLines(tree.left,x0,y0,sx,y1);
+    drawSplitLines(tree.right,sx,y0,x1,y1);
+  } else {
+    var sy=tree.thresh;
+    BX2.beginPath();BX2.moveTo(x0,sy);BX2.lineTo(x1,sy);BX2.stroke();
+    drawSplitLines(tree.left,x0,y0,x1,sy);
+    drawSplitLines(tree.right,x0,sy,x1,y1);
+  }
+}
+
+BC2.addEventListener('click',function(e){
+  var r=BC2.getBoundingClientRect(),sx=BC2.width/r.width,sy=BC2.height/r.height;
+  bPts.push({x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy,c:0});
+  drawBuilder();
+});
+BC2.addEventListener('contextmenu',function(e){
+  e.preventDefault();
+  var r=BC2.getBoundingClientRect(),sx=BC2.width/r.width,sy=BC2.height/r.height;
+  bPts.push({x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy,c:1});
+  drawBuilder();
+});
+
+function updateBuilderDepth(v){bMaxDepth=parseInt(v);C('builder-depth-val').textContent=v;drawBuilder();}
+function updateBuilderMin(v){bMinSamples=parseInt(v);C('builder-min-val').textContent=v;drawBuilder();}
+function addSamplePoints(){
+  var W=BC2.width,H=BC2.height;
+  for(var i=0;i<20;i++){
+    bPts.push({x:100+(Math.random()-0.5)*200,y:H/2+(Math.random()-0.5)*280,c:0});
+    bPts.push({x:W-100+(Math.random()-0.5)*200,y:H/2+(Math.random()-0.5)*280,c:1});
+  }
+  drawBuilder();
+}
+function resetBuilder(){bPts=[];drawBuilder();}
+
+/* ════════════════════════════════════════════
+   SECTION 3 — SPLIT CRITERIA
+════════════════════════════════════════════ */
+var currentCriterion='gini';
+var pVal=0.5;
+
+function selectCriterion(c){
+  currentCriterion=c;
+  ['gini','entropy','mse'].forEach(function(k){
+    C('cc-'+k).classList.toggle('active',k===c);
+  });
+  updateImpurity(pVal);
+}
+
+function updateImpurity(p){
+  pVal=parseFloat(p);
+  C('p-val').textContent=parseFloat(p).toFixed(2);
+  var g=gini(pVal),e=entropy(pVal);
+  C('gini-val').textContent=g.toFixed(3);
+  C('entropy-val').textContent=e.toFixed(3);
+  var purity=pVal<0.1||pVal>0.9?'Pure!':pVal<0.2||pVal>0.8?'Fairly pure':pVal<0.4||pVal>0.6?'Moderate':'Mixed';
+  C('purity-class').textContent=purity;
+  C('ig-val').textContent=(1-g).toFixed(3);
+  drawImpurityCanvas();
+}
+
+function drawImpurityCanvas(){
+  var cv=C('impurity-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var toX=function(p){return p*(W-pad.l-pad.r)+pad.l;};
+  var toY_g=function(v){return (1-v/0.5)*(H-pad.t-pad.b)+pad.t;};
+  var toY_e=function(v){return (1-v/1)*(H-pad.t-pad.b)+pad.t;};
+
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.2,.4,.6,.8,1].forEach(function(x){
+    ctx.beginPath();ctx.moveTo(toX(x),pad.t);ctx.lineTo(toX(x),H-pad.b);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText(x.toFixed(1),toX(x),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('P(Class A)',W/2,H-4);
+
+  var steps=[];
+  for(var p=0;p<=1;p+=0.01) steps.push(p);
+
+  // Gini curve
+  ctx.beginPath();
+  steps.forEach(function(p,i){
+    var x=toX(p),y=toY_g(gini(p));
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='#2dd4bf';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Entropy curve (scaled to 0.5 max for comparison)
+  ctx.beginPath();
+  steps.forEach(function(p,i){
+    var x=toX(p),y=toY_g(entropy(p)/2);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='#fb8c40';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+
+  // Current p marker
+  var curX=toX(pVal);
+  ctx.beginPath();ctx.moveTo(curX,pad.t);ctx.lineTo(curX,H-pad.b);
+  ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.arc(curX,toY_g(gini(pVal)),6,0,Math.PI*2);
+  ctx.fillStyle='#2dd4bf';ctx.fill();
+  ctx.beginPath();ctx.arc(curX,toY_g(entropy(pVal)/2),6,0,Math.PI*2);
+  ctx.fillStyle='#fb8c40';ctx.fill();
+
+  // Legend
+  ctx.strokeStyle='#2dd4bf';ctx.lineWidth=2.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t+8);ctx.lineTo(pad.l+28,pad.t+8);ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Gini',pad.l+32,pad.t+12);
+  ctx.strokeStyle='#fb8c40';ctx.lineWidth=2;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(pad.l+80,pad.t+8);ctx.lineTo(pad.l+108,pad.t+8);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=tc();ctx.fillText('Entropy/2',pad.l+112,pad.t+12);
+  ctx.textAlign='start';
+}
+
+// Information gain split demo
+var splitVal=5;
+var igPts=[];
+function initIGPts(){
+  igPts=[];
+  // 20 class A points mostly on left, 20 class B on right
+  for(var i=0;i<8;i++) igPts.push({x:1+Math.random()*3,c:0});
+  for(var i=0;i<2;i++) igPts.push({x:4+Math.random()*2,c:0});
+  for(var i=0;i<3;i++) igPts.push({x:4+Math.random()*2,c:1});
+  for(var i=0;i<7;i++) igPts.push({x:7+Math.random()*2,c:1});
+}
+
+function updateSplit(v){
+  splitVal=parseFloat(v);
+  C('split-val').textContent=splitVal.toFixed(1);
+  drawIGCanvas();
+}
+
+function drawIGCanvas(){
+  var cv=C('ig-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:40,r:20,t:20,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var xMin=0,xMax=10;
+  var toX=function(v){return (v-xMin)/(xMax-xMin)*(W-pad.l-pad.r)+pad.l;};
+  var ptY=H-pad.b-30,barTop=pad.t,barH=60;
+
+  // x axis
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.l,ptY);ctx.lineTo(W-pad.r,ptY);ctx.stroke();
+  for(var x=0;x<=10;x++){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';
+    ctx.fillText(x,toX(x),ptY+14);
+  }
+
+  // Split line
+  var sx=toX(splitVal);
+  ctx.beginPath();ctx.moveTo(sx,pad.t);ctx.lineTo(sx,H-pad.b);
+  ctx.strokeStyle='#2dd4bf';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#2dd4bf';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('split='+splitVal.toFixed(1),sx,pad.t+12);
+
+  // Regions
+  ctx.fillStyle='rgba(75,150,255,0.08)';ctx.fillRect(pad.l,pad.t,sx-pad.l,H-pad.t-pad.b);
+  ctx.fillStyle='rgba(240,96,96,0.08)';ctx.fillRect(sx,pad.t,W-pad.r-sx,H-pad.t-pad.b);
+
+  // Points
+  igPts.forEach(function(p){
+    var px=toX(p.x);
+    ctx.beginPath();ctx.arc(px,ptY,8,0,Math.PI*2);
+    ctx.fillStyle=p.c===0?'#4b96ff':'#f06060';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  // Compute IG
+  var crit=C('ig-criterion').value;
+  var impFn=crit==='gini'?gini:entropy;
+  var all=igPts,L=igPts.filter(function(p){return p.x<=splitVal;}),R=igPts.filter(function(p){return p.x>splitVal;});
+  function classImp(pts){
+    if(!pts.length)return 0;
+    var c=pts.filter(function(p){return p.c===0;}).length;
+    return impFn(c/pts.length);
+  }
+  var parentImp=classImp(all);
+  var childImp=L.length/all.length*classImp(L)+R.length/all.length*classImp(R);
+  var ig=parentImp-childImp;
+
+  C('ig-parent').textContent=parentImp.toFixed(3);
+  C('ig-left').textContent=classImp(L).toFixed(3);
+  C('ig-right').textContent=classImp(R).toFixed(3);
+  C('ig-gain').textContent=ig.toFixed(3);
+  C('ig-gain').style.color=ig>0.1?'#2dd4bf':'var(--text-3)';
+
+  // Labels
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Left: '+L.length+' pts (imp='+classImp(L).toFixed(2)+')',sx/2+pad.l/2,H-pad.b+8);
+  ctx.fillText('Right: '+R.length+' pts (imp='+classImp(R).toFixed(2)+')',(sx+W-pad.r)/2,H-pad.b+8);
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════════════════════════
+   SECTION 4 — HYPERPARAMETER TUNING
+   Uses a synthetic 2-class dataset and simple
+   decision tree trained purely in JS
+════════════════════════════════════════════ */
+var hpData=null;
+var hpCriterion='gini';
+
+function generateHPData(){
+  // 200 points, 2 classes, 2 features
+  hpData={train:[],test:[]};
+  function genPt(cls){
+    var cx=cls===0?-1:1,cy=cls===0?-1:1;
+    return{x:cx+(Math.random()-0.5)*2.5,y:cy+(Math.random()-0.5)*2.5,c:cls};
+  }
+  for(var i=0;i<80;i++){hpData.train.push(genPt(i%2));}
+  for(var i=0;i<40;i++){hpData.test.push(genPt(i%2));}
+  // normalize to canvas coords
+  function normalize(pts,W,H){
+    return pts.map(function(p){
+      return{x:(p.x+3)/6*W,y:(p.y+3)/6*H,c:p.c};
+    });
+  }
+  var W=340,H=300;
+  hpData.trainCanvas=normalize(hpData.train,W,H);
+  hpData.testCanvas=normalize(hpData.test,W,H);
+}
+
+function getHPParams(){
+  return{
+    maxDepth:parseInt(C('hp-depth').value),
+    minSamplesSplit:parseInt(C('hp-mss').value),
+    minSamplesLeaf:parseInt(C('hp-msl').value),
+    maxFeatures:parseInt(C('hp-mf').value),
+    criterion:hpCriterion,
+    ccpAlpha:parseFloat(C('hp-ccp').value)
+  };
+}
+
+function setCriterion(c){
+  hpCriterion=c;
+  C('hp-crit-val').textContent=c;
+  ['gini','entropy','log'].forEach(function(k){
+    C('crit-'+k).classList.toggle('active',k===c||c===k+'_loss');
+  });
+  onHPChange();
+}
+
+function onHPChange(){
+  var p=getHPParams();
+  C('hp-depth-val').textContent=p.maxDepth;
+  C('hp-mss-val').textContent=p.minSamplesSplit;
+  C('hp-msl-val').textContent=p.minSamplesLeaf;
+  C('hp-mf-val').textContent=p.maxFeatures>=20?'all':p.maxFeatures;
+  C('hp-ccp-val').textContent=p.ccpAlpha.toFixed(3);
+  retrainAndDraw(p);
+}
+
+function retrainAndDraw(p){
+  if(!hpData) return;
+  var W=340,H=300;
+  var trainPts=hpData.trainCanvas;
+  var testPts=hpData.testCanvas;
+
+  // Apply ccpAlpha as a min gain threshold
+  var minGain=p.ccpAlpha;
+
+  // Build tree on train data
+  function buildHPTree(pts,depth){
+    if(!pts.length) return{leaf:true,cls:0,n:0};
+    var counts=[0,0];
+    pts.forEach(function(pt){counts[pt.c]++;});
+    var majority=counts[0]>=counts[1]?0:1;
+    var n=pts.length;
+    var purity=counts[majority]/n;
+    var parentGini=1-Math.pow(counts[0]/n,2)-Math.pow(counts[1]/n,2);
+
+    if(depth>=p.maxDepth||n<p.minSamplesSplit||parentGini<0.001){
+      return{leaf:true,cls:majority,n:n,counts:counts};
+    }
+
+    var bestGain=-1,bestFeat=-1,bestT=0,bestL=[],bestR=[];
+    var feats=[0,1];
+    // maxFeatures: randomly select subset
+    if(p.maxFeatures<20){feats=Math.random()<0.5?[0]:[1];}
+
+    feats.forEach(function(feat){
+      var vals=pts.map(function(pt){return feat===0?pt.x:pt.y;});
+      var sorted=[...new Set(vals)].sort(function(a,b){return a-b;});
+      for(var i=0;i<sorted.length-1;i++){
+        var t=(sorted[i]+sorted[i+1])/2;
+        var L=pts.filter(function(pt){return (feat===0?pt.x:pt.y)<=t;});
+        var R=pts.filter(function(pt){return (feat===0?pt.x:pt.y)>t;});
+        if(L.length<p.minSamplesLeaf||R.length<p.minSamplesLeaf) continue;
+        var lc=[0,0],rc=[0,0];
+        L.forEach(function(pt){lc[pt.c]++;});
+        R.forEach(function(pt){rc[pt.c]++;});
+        var lG=1-Math.pow(lc[0]/L.length,2)-Math.pow(lc[1]/L.length,2);
+        var rG=1-Math.pow(rc[0]/R.length,2)-Math.pow(rc[1]/R.length,2);
+        var gain=parentGini-(L.length/n*lG+R.length/n*rG);
+        if(gain>bestGain&&gain>minGain){bestGain=gain;bestFeat=feat;bestT=t;bestL=L;bestR=R;}
+      }
+    });
+
+    if(bestFeat===-1) return{leaf:true,cls:majority,n:n,counts:counts};
+    return{leaf:false,feat:bestFeat,thresh:bestT,
+      left:buildHPTree(bestL,depth+1),
+      right:buildHPTree(bestR,depth+1),
+      n:n,counts:counts};
+  }
+
+  var tree=buildHPTree(trainPts,0);
+  var stats=countNodes(tree);
+
+  // Compute accuracies
+  function acc(pts){
+    return pts.filter(function(pt){return predictTree(tree,pt.x,pt.y)===pt.c;}).length/pts.length;
+  }
+  var trainAcc=acc(trainPts), testAcc=acc(testPts);
+  var gap=trainAcc-testAcc;
+  var status=gap>0.15?'Overfitting':gap<-0.05?'Underfitting':'Good fit';
+
+  // Update dashboard
+  C('ac-train-val').textContent=(trainAcc*100).toFixed(0)+'%';
+  C('ac-test-val').textContent=(testAcc*100).toFixed(0)+'%';
+  C('ac-depth-val').textContent=stats.depth+'/'+p.maxDepth;
+  C('ac-status-val').textContent=status;
+  C('ac-train-bar').style.width=(trainAcc*100)+'%';
+  C('ac-test-bar').style.width=(testAcc*100)+'%';
+  C('ac-depth-bar').style.width=(stats.depth/p.maxDepth*100)+'%';
+
+  var statusColor=status==='Good fit'?'var(--green)':status==='Overfitting'?'var(--red)':'var(--orange)';
+  C('ac-status-val').style.color=statusColor;
+
+  // Draw boundary
+  var cv=C('hp-boundary-canvas'),ctx=cv.getContext('2d');
+  var res=5;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  for(var px=0;px<W;px+=res){
+    for(var py=0;py<H;py+=res){
+      var cls=predictTree(tree,px,py);
+      ctx.fillStyle=cls===0?'rgba(75,150,255,0.15)':'rgba(240,96,96,0.15)';
+      ctx.fillRect(px,py,res,res);
+    }
+  }
+  trainPts.forEach(function(pt){
+    ctx.beginPath();ctx.arc(pt.x,pt.y,5,0,Math.PI*2);
+    ctx.fillStyle=pt.c===0?'#4b96ff':'#f06060';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.stroke();
+  });
+  testPts.forEach(function(pt){
+    ctx.beginPath();ctx.arc(pt.x,pt.y,5,0,Math.PI*2);
+    ctx.strokeStyle=pt.c===0?'#4b96ff':'#f06060';ctx.lineWidth=2;ctx.stroke();
+  });
+  // Labels
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('Filled=train  Ring=test',4,H-4);
+
+  // Draw mini tree SVG
+  drawMiniTree(tree,stats.depth);
+  ctx.textAlign='start';
+}
+
+function drawMiniTree(tree,maxD){
+  var svg=C('hp-tree-svg');
+  var W=340,H=300;
+  svg.innerHTML='';
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  var isDk=isDark();
+
+  function positionNodes(node,x,y,w,depth){
+    if(!node) return;
+    node._x=x;node._y=y;
+    if(!node.leaf){
+      var lx=x-w/2,rx=x+w/2;
+      positionNodes(node.left,lx,y+40,w/2,depth+1);
+      positionNodes(node.right,rx,y+40,w/2,depth+1);
+    }
+  }
+  positionNodes(tree,W/2,24,W/2.5,0);
+
+  function renderNode(node){
+    if(!node) return;
+    if(node._x===undefined) return;
+    // edge to children
+    if(!node.leaf){
+      [node.left,node.right].forEach(function(child){
+        if(child&&child._x!==undefined){
+          var line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1',node._x);line.setAttribute('y1',node._y+10);
+          line.setAttribute('x2',child._x);line.setAttribute('y2',child._y-10);
+          line.setAttribute('stroke',isDk?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.15)');
+          line.setAttribute('stroke-width','1');
+          svg.appendChild(line);
+          renderNode(child);
+        }
+      });
+    }
+    var r=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    r.setAttribute('cx',node._x);r.setAttribute('cy',node._y);r.setAttribute('r','9');
+    var fillCol,strokeCol;
+    if(node.leaf){
+      var cls=node.cls||0;
+      fillCol=cls===0?'rgba(75,150,255,0.3)':'rgba(240,96,96,0.3)';
+      strokeCol=cls===0?'#4b96ff':'#f06060';
+    } else {
+      fillCol=isDk?'#1e2a2a':'#d0f0ec';
+      strokeCol='#2dd4bf';
+    }
+    r.setAttribute('fill',fillCol);r.setAttribute('stroke',strokeCol);r.setAttribute('stroke-width','1.5');
+    svg.appendChild(r);
+  }
+  renderNode(tree);
+
+  // Legend
+  var txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+  txt.setAttribute('x',4);txt.setAttribute('y',H-4);
+  txt.setAttribute('font-size','10');
+  txt.setAttribute('fill',isDk?'#5c5a56':'#9e9b93');
+  txt.textContent='Teal=internal  Blue/Red=leaf class';
+  svg.appendChild(txt);
+}
+
+// Overfitting curve
+var sweepData=null;
+async function runDepthSweep(){
+  C('sweep-status').textContent='Running...';
+  sweepData=[];
+  for(var d=1;d<=15;d++){
+    var tree=buildTree(hpData.trainCanvas,0,d,2);
+    function acc2(pts,tr){return pts.filter(function(pt){return predictTree(tr,pt.x,pt.y)===pt.c;}).length/pts.length;}
+    sweepData.push({depth:d,train:acc2(hpData.trainCanvas,tree),test:acc2(hpData.testCanvas,tree)});
+    drawOverfitCurve();
+    await delay(60);
+  }
+  C('sweep-status').textContent='Done! Overfit starts at depth '+sweepData.reduce(function(best,d){return d.test>best.test?d:best;},sweepData[0]).depth;
+}
+
+function drawOverfitCurve(){
+  var cv=C('overfit-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:10,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!sweepData||!sweepData.length) return;
+
+  var toX=function(d){return pad.l+(d-1)/14*(W-pad.l-pad.r);};
+  var toY=function(v){return (1-v)*(H-pad.t-pad.b)+pad.t;};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function(v){
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+  });
+  for(var d=1;d<=15;d++){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(d,toX(d),H-pad.b+14);
+  }
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('max_depth',W/2,H-2);
+
+  // Current depth marker
+  var curD=parseInt(C('hp-depth').value);
+  ctx.beginPath();ctx.moveTo(toX(curD),pad.t);ctx.lineTo(toX(curD),H-pad.b);
+  ctx.strokeStyle='rgba(240,165,0,0.4)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+
+  // Train line
+  ctx.beginPath();
+  sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.depth),toY(d.train)):ctx.lineTo(toX(d.depth),toY(d.train));});
+  ctx.strokeStyle='#4b96ff';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Test line
+  ctx.beginPath();
+  sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.depth),toY(d.test)):ctx.lineTo(toX(d.depth),toY(d.test));});
+  ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Dots
+  sweepData.forEach(function(d){
+    ctx.beginPath();ctx.arc(toX(d.depth),toY(d.train),4,0,Math.PI*2);ctx.fillStyle='#4b96ff';ctx.fill();
+    ctx.beginPath();ctx.arc(toX(d.depth),toY(d.test),4,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();
+  });
+  // Best test
+  var best=sweepData.reduce(function(m,d){return d.test>m.test?d:m;},sweepData[0]);
+  ctx.beginPath();ctx.arc(toX(best.depth),toY(best.test),7,0,Math.PI*2);
+  ctx.fillStyle='#f0a500';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#f0a500';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Best depth='+best.depth,toX(best.depth),toY(best.test)-12);
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════════════════════════
+   SECTION 5 — FEATURE IMPORTANCE
+════════════════════════════════════════════ */
+// Pre-computed feature importances for demo datasets
+var FI_DATA={
+  iris:{
+    features:['petal length','petal width','sepal length','sepal width'],
+    importances:[0.56,0.31,0.08,0.05]
+  },
+  wine:{
+    features:['flavanoids','color intensity','proline','alcohol','od280','total phenols','hue','ash','malic acid','magnesium'],
+    importances:[0.22,0.18,0.15,0.12,0.09,0.07,0.06,0.04,0.04,0.03]
+  },
+  breast:{
+    features:['worst radius','worst perimeter','mean concave pts','worst concave pts','mean perimeter','mean radius','mean area','worst area','mean concavity','worst concavity'],
+    importances:[0.28,0.22,0.15,0.11,0.08,0.06,0.04,0.03,0.02,0.01]
+  }
+};
+
+function updateFeatureImportance(){
+  var ds=C('fi-dataset').value;
+  var data=FI_DATA[ds];
+  drawFeatureImportances(data.features,data.importances);
+}
+
+function drawFeatureImportances(features,importances){
+  var cv=C('fi-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:160,r:80,t:20,b:20};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var n=features.length;
+  var rowH=(H-pad.t-pad.b)/n;
+  var maxImp=Math.max.apply(null,importances);
+
+  features.forEach(function(feat,i){
+    var imp=importances[i];
+    var y=pad.t+i*rowH;
+    var barW=(imp/maxImp)*(W-pad.l-pad.r);
+    var hue=220+i*25; // blue to teal gradient
+
+    // Feature label
+    ctx.fillStyle=tc();ctx.font='12px sans-serif';ctx.textAlign='right';
+    ctx.fillText(feat,pad.l-8,y+rowH/2+4);
+
+    // Bar track
+    ctx.fillStyle=bgIn();
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(pad.l,y+4,W-pad.l-pad.r,rowH-8,3);else ctx.rect(pad.l,y+4,W-pad.l-pad.r,rowH-8);
+    ctx.fill();
+
+    // Bar fill
+    var alpha=0.6+imp*0.4;
+    ctx.fillStyle='rgba(45,212,191,'+alpha+')';
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(pad.l,y+4,barW,rowH-8,3);else ctx.rect(pad.l,y+4,barW,rowH-8);
+    ctx.fill();
+
+    // Percentage label
+    ctx.fillStyle=tc();ctx.font='bold 11px monospace';ctx.textAlign='left';
+    ctx.fillText((imp*100).toFixed(0)+'%',pad.l+barW+6,y+rowH/2+4);
+
+    // Rank number
+    ctx.fillStyle='#2dd4bf';ctx.font='bold 11px sans-serif';ctx.textAlign='right';
+    ctx.fillText('#'+(i+1),pad.l-45,y+rowH/2+4);
+  });
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════════════════════════
+   PRUNING SWEEP
+════════════════════════════════════════════ */
+async function runPruningSweep(){
+  C('prune-status').textContent='Running...';
+  var cv=C('prune-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:10,b:35};
+
+  var alphas=[0,0.001,0.002,0.005,0.01,0.015,0.02,0.03,0.04,0.05];
+  var results=[];
+
+  for(var ai=0;ai<alphas.length;ai++){
+    var a=alphas[ai];
+    // Build tree with ccp_alpha as min gain threshold
+    function buildPruned(pts,depth){
+      if(!pts.length)return{leaf:true,cls:0,n:0};
+      var counts=[0,0];pts.forEach(function(p){counts[p.c]++;});
+      var majority=counts[0]>=counts[1]?0:1;
+      var n=pts.length;
+      var parentG=1-Math.pow(counts[0]/n,2)-Math.pow(counts[1]/n,2);
+      if(depth>=10||n<2||parentG<0.001)return{leaf:true,cls:majority,n:n,counts:counts};
+      var bestGain=-1,bestFeat=-1,bestT=0,bestL=[],bestR=[];
+      [0,1].forEach(function(feat){
+        var vals=[...new Set(pts.map(function(p){return feat===0?p.x:p.y;}))].sort(function(a,b){return a-b;});
+        for(var vi=0;vi<vals.length-1;vi++){
+          var t=(vals[vi]+vals[vi+1])/2;
+          var L=pts.filter(function(p){return(feat===0?p.x:p.y)<=t;});
+          var R=pts.filter(function(p){return(feat===0?p.x:p.y)>t;});
+          if(!L.length||!R.length)continue;
+          var lc=[0,0],rc=[0,0];
+          L.forEach(function(p){lc[p.c]++;});R.forEach(function(p){rc[p.c]++;});
+          var lG=1-Math.pow(lc[0]/L.length,2)-Math.pow(lc[1]/L.length,2);
+          var rG=1-Math.pow(rc[0]/R.length,2)-Math.pow(rc[1]/R.length,2);
+          var gain=parentG-(L.length/n*lG+R.length/n*rG);
+          if(gain>bestGain&&gain>a){bestGain=gain;bestFeat=feat;bestT=t;bestL=L;bestR=R;}
+        }
+      });
+      if(bestFeat===-1)return{leaf:true,cls:majority,n:n,counts:counts};
+      return{leaf:false,feat:bestFeat,thresh:bestT,left:buildPruned(bestL,depth+1),right:buildPruned(bestR,depth+1),n:n};
+    }
+    var tree=buildPruned(hpData.trainCanvas,0);
+    var stats=countNodes(tree);
+    function accP(pts){return pts.filter(function(p){return predictTree(tree,p.x,p.y)===p.c;}).length/pts.length;}
+    results.push({alpha:a,train:accP(hpData.trainCanvas),test:accP(hpData.testCanvas),nodes:stats.nodes});
+
+    // Draw incrementally
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+    var n2=results.length;
+    var toX=function(i){return pad.l+i/(alphas.length-1)*(W-pad.l-pad.r);};
+    var toY=function(v){return (1-v)*(H-pad.t-pad.b)+pad.t;};
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+    [0.6,0.7,0.8,0.9,1.0].forEach(function(v){
+      ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+    });
+    alphas.forEach(function(a,i){
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';
+      ctx.fillText(a.toFixed(3),toX(i),H-pad.b+14);
+    });
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('ccp_alpha (pruning strength)',W/2,H-2);
+    if(results.length>1){
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY(r.train)):ctx.lineTo(toX(i),toY(r.train));});
+      ctx.strokeStyle='#4b96ff';ctx.lineWidth=2.5;ctx.stroke();
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY(r.test)):ctx.lineTo(toX(i),toY(r.test));});
+      ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+      results.forEach(function(r,i){
+        ctx.beginPath();ctx.arc(toX(i),toY(r.train),4,0,Math.PI*2);ctx.fillStyle='#4b96ff';ctx.fill();
+        ctx.beginPath();ctx.arc(toX(i),toY(r.test),4,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();
+      });
+    }
+    await delay(80);
+  }
+  var bestA=results.reduce(function(m,r){return r.test>m.test?r:m;},results[0]);
+  C('prune-status').textContent='Done! Best alpha='+bestA.alpha.toFixed(3)+' ('+((bestA.test)*100).toFixed(0)+'% test acc)';
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════════════════════════
+   LIVE EDITOR
+════════════════════════════════════════════ */
+var SNIPPETS=[
+{file:'dt_scratch.py',label:'CART from scratch',code:`import numpy as np
+from collections import Counter
+
+class DecisionTreeClassifier:
+    def __init__(self, max_depth=5, min_samples_split=2,
+                 min_samples_leaf=1, criterion='gini'):
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.criterion = criterion
+
+    def _impurity(self, y):
+        n = len(y)
+        if n == 0: return 0
+        counts = Counter(y)
+        probs = [c/n for c in counts.values()]
+        if self.criterion == 'gini':
+            return 1 - sum(p**2 for p in probs)
+        else:  # entropy
+            return -sum(p * np.log2(p+1e-10) for p in probs)
+
+    def _best_split(self, X, y):
+        best_gain, best_feat, best_thresh = -1, None, None
+        parent_imp = self._impurity(y)
+        n = len(y)
+
+        for feat in range(X.shape[1]):
+            thresholds = np.unique(X[:, feat])
+            for i in range(len(thresholds)-1):
+                t = (thresholds[i] + thresholds[i+1]) / 2
+                left = y[X[:, feat] <= t]
+                right = y[X[:, feat] > t]
+                if len(left) < self.min_samples_leaf: continue
+                if len(right) < self.min_samples_leaf: continue
+
+                gain = parent_imp - (
+                    len(left)/n * self._impurity(left) +
+                    len(right)/n * self._impurity(right)
+                )
+                if gain > best_gain:
+                    best_gain = gain
+                    best_feat = feat
+                    best_thresh = t
+
+        return best_feat, best_thresh, best_gain
+
+    def _build(self, X, y, depth):
+        majority = Counter(y).most_common(1)[0][0]
+
+        if (depth >= self.max_depth or
+            len(y) < self.min_samples_split or
+            len(set(y)) == 1):
+            return {'leaf': True, 'class': majority, 'n': len(y)}
+
+        feat, thresh, gain = self._best_split(X, y)
+        if feat is None:
+            return {'leaf': True, 'class': majority, 'n': len(y)}
+
+        left_mask = X[:, feat] <= thresh
+        return {
+            'leaf': False,
+            'feature': feat,
+            'threshold': thresh,
+            'gain': gain,
+            'left': self._build(X[left_mask], y[left_mask], depth+1),
+            'right': self._build(X[~left_mask], y[~left_mask], depth+1),
+            'n': len(y)
+        }
+
+    def fit(self, X, y):
+        self.tree_ = self._build(X, y, 0)
+        self.classes_ = np.unique(y)
+        return self
+
+    def _predict_one(self, x, node):
+        if node['leaf']: return node['class']
+        if x[node['feature']] <= node['threshold']:
+            return self._predict_one(x, node['left'])
+        return self._predict_one(x, node['right'])
+
+    def predict(self, X):
+        return np.array([self._predict_one(x, self.tree_) for x in X])
+
+    def score(self, X, y):
+        return np.mean(self.predict(X) == y)
+
+# Test on Iris
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+iris = load_iris()
+X_train, X_test, y_train, y_test = train_test_split(
+    iris.data, iris.target, test_size=0.2, random_state=42)
+
+for depth in [2, 3, 5, None]:
+    dt = DecisionTreeClassifier(max_depth=depth or 100)
+    dt.fit(X_train, y_train)
+    train_acc = dt.score(X_train, y_train)
+    test_acc = dt.score(X_test, y_test)
+    print(f"max_depth={str(depth):<4} train={train_acc:.2%}  test={test_acc:.2%}")`},
+{file:'dt_hyperparams.py',label:'Hyperparameter tuning',code:`from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import (train_test_split, cross_val_score,
+                                      GridSearchCV, validation_curve)
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# ── 1. Effect of max_depth ──────────────────────────
+print("max_depth vs train/test accuracy:")
+print(f"{'depth':>6}  {'train':>7}  {'test':>7}  {'gap':>7}  {'status'}")
+print("-" * 46)
+for d in [1,2,3,4,5,6,8,10,None]:
+    dt = DecisionTreeClassifier(max_depth=d, random_state=42)
+    dt.fit(X_train, y_train)
+    tr = dt.score(X_train, y_train)
+    te = dt.score(X_test, y_test)
+    gap = tr - te
+    status = "OVERFIT" if gap > 0.05 else ("underfit" if te < 0.88 else "OK")
+    print(f"{str(d):>6}  {tr:>7.2%}  {te:>7.2%}  {gap:>7.2%}  {status}")
+
+# ── 2. GridSearchCV ─────────────────────────────────
+print()
+param_grid = {
+    'max_depth':         [3, 4, 5, 6, 7],
+    'min_samples_split': [2, 5, 10, 20],
+    'min_samples_leaf':  [1, 2, 5],
+    'criterion':         ['gini', 'entropy'],
+    'ccp_alpha':         [0.0, 0.001, 0.005]
+}
+gs = GridSearchCV(
+    DecisionTreeClassifier(random_state=42),
+    param_grid, cv=5, scoring='accuracy', n_jobs=-1
+)
+gs.fit(X_train, y_train)
+print(f"Best params: {gs.best_params_}")
+print(f"Best CV acc: {gs.best_score_:.4f}")
+print(f"Test acc:    {gs.score(X_test, y_test):.4f}")
+`},
+{file:'dt_pruning.py',label:'Pruning analysis',code:`from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+data = load_wine()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# ── Cost-complexity pruning path ────────────────────
+# Find all alpha values and their effect on tree size
+dt_full = DecisionTreeClassifier(random_state=42)
+path = dt_full.cost_complexity_pruning_path(X_train, y_train)
+ccp_alphas = path.ccp_alphas[:-1]  # remove max alpha (trivial root)
+
+print(f"{'alpha':>8}  {'train':>7}  {'test':>7}  {'nodes':>6}  {'depth':>6}")
+print("-" * 44)
+
+best_test, best_alpha = 0, 0
+for alpha in ccp_alphas[::max(1, len(ccp_alphas)//12)]:
+    dt = DecisionTreeClassifier(ccp_alpha=alpha, random_state=42)
+    dt.fit(X_train, y_train)
+    tr = dt.score(X_train, y_train)
+    te = dt.score(X_test, y_test)
+    nodes = dt.tree_.node_count
+    depth = dt.get_depth()
+    print(f"{alpha:>8.4f}  {tr:>7.2%}  {te:>7.2%}  {nodes:>6}  {depth:>6}")
+    if te > best_test:
+        best_test = te
+        best_alpha = alpha
+
+print(f"\\nBest alpha = {best_alpha:.4f}  (test acc = {best_test:.2%})")
+print(f"Tip: use cross_val_score to find best alpha more robustly")
+`},
+{file:'dt_feature_imp.py',label:'Feature importances',code:`from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.inspection import permutation_importance
+import numpy as np
+
+data = load_iris()
+X, y, names = data.data, data.target, data.feature_names
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42, stratify=y)
+
+dt = DecisionTreeClassifier(max_depth=3, random_state=42)
+dt.fit(X_train, y_train)
+
+print(f"Train: {dt.score(X_train, y_train):.2%}   Test: {dt.score(X_test, y_test):.2%}")
+print()
+
+# ── 1. Built-in feature importance (Gini-based) ─────
+print("Built-in importances (MDI — biased toward high-cardinality):")
+for name, imp in sorted(zip(names, dt.feature_importances_),
+                         key=lambda x: x[1], reverse=True):
+    bar = '#' * int(imp * 40)
+    print(f"  {name:<30} {imp:.4f}  {bar}")
+
+# ── 2. Permutation importance (unbiased) ─────────────
+print()
+pi = permutation_importance(dt, X_test, y_test, n_repeats=30, random_state=42)
+print("Permutation importances (unbiased — measured on test set):")
+for name, mean, std in sorted(
+    zip(names, pi.importances_mean, pi.importances_std),
+    key=lambda x: x[1], reverse=True
+):
+    print(f"  {name:<30} {mean:.4f} ± {std:.4f}")
+
+# ── 3. Human-readable tree rules ────────────────────
+print()
+print("Decision rules:")
+print(export_text(dt, feature_names=list(names)))
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ignored){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  drawIntroTree();
+  drawBuilder();
+  initIGPts();updateImpurity(0.5);updateSplit(5);
+  generateHPData();onHPChange();
+  updateFeatureImportance();
+
+  // Setup editor with reliable poll
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,
+      mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawIntroTree();drawBuilder();drawImpurityCanvas();drawIGCanvas();
+    retrainAndDraw(getHPParams());drawOverfitCurve();updateFeatureImportance();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

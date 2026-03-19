@@ -1,0 +1,688 @@
+<!-- cross-validation.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cross Validation — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(45,212,191,0.09),rgba(75,150,255,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .algo-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+    .algo-step{display:flex;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;transition:border-color .2s;}
+    .algo-step:hover{border-color:rgba(45,212,191,0.4);}
+    .algo-step-num{width:38px;height:38px;border-radius:50%;background:var(--teal-surf);border:2px solid var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--teal);flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--teal-surf);color:var(--teal);margin-bottom:7px;letter-spacing:.04em;}
+    .algo-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:10px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid var(--teal);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+    .cv-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .cv-type-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:16px;cursor:pointer;transition:all .18s;}
+    .cv-type-card:hover,.cv-type-card.active{border-color:var(--teal);background:var(--teal-surf);}
+    .cv-type-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .cv-type-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:100px;background:var(--teal-surf);color:var(--teal);display:inline-block;margin-bottom:8px;}
+    .cv-type-desc{font-size:12px;color:var(--text-3);line-height:1.5;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--teal);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.cv-type-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="cross-validation">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Cross Validation</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Real World</a><span class="sep">/</span>
+            <span class="current">Cross Validation</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(45,212,191,.25);margin-bottom:14px;">Real World &middot; Model Evaluation</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Cross Validation</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">A single train-test split gives a noisy estimate of model performance. CV uses data more efficiently by training and evaluating K times on different splits &mdash; giving a reliable estimate with confidence intervals.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">18 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: K-FOLD ANIMATOR -->
+          <section class="section" id="kfold-viz">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">K</div>
+              K-Fold CV &mdash; animated fold rotation
+            </h2>
+            <p>The <span style="color:var(--teal);font-weight:600;">teal block</span> is the validation set for that fold. Every sample is used for validation exactly once across all K folds.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">K-Fold cross validation</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K folds:</span>
+                  <input type="range" min="2" max="10" value="5" class="ctrl-slider" id="k-slider" style="width:90px;" oninput="updateK(this.value)"/>
+                  <span class="ctrl-value" id="k-val" style="color:var(--teal);">5</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Samples:</span>
+                  <input type="range" min="10" max="40" value="20" step="5" class="ctrl-slider" id="n-slider" style="width:90px;" oninput="updateN(this.value)"/>
+                  <span class="ctrl-value" id="n-val" style="color:var(--teal);">20</span>
+                </div>
+                <button class="ctrl-btn active" id="anim-btn" onclick="toggleAnim()">Play</button>
+                <button class="ctrl-btn" onclick="resetAnim()">Reset</button>
+              </div>
+              <canvas id="cv-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cv-fold" style="color:var(--teal);">-</span><span class="stat-pill-lbl">Current fold</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cv-train-n">-</span><span class="stat-pill-lbl">Train samples</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cv-val-n">-</span><span class="stat-pill-lbl">Val samples</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cv-efficiency">-</span><span class="stat-pill-lbl">Train fraction</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cv-mean-acc" style="color:var(--green);">-</span><span class="stat-pill-lbl">Mean acc</span></div>
+              </div>
+            </div>
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Why K=5 or K=10?</strong> K=5 trains on 80% per fold (fast, efficient). K=10 trains on 90% (more accurate estimate, slower). LOOCV (K=N) is unbiased but extremely slow. K=5 is the standard default.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: CV TYPES -->
+          <section class="section" id="cv-types">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">6</div>
+              CV strategies &mdash; choose the right one
+            </h2>
+            <p>Click each strategy to see how it divides the data differently on the canvas below.</p>
+            <div class="cv-type-grid">
+              <div class="cv-type-card active" id="cvt-kfold" onclick="selectCVType('kfold')">
+                <div class="cv-type-name">K-Fold</div>
+                <div class="cv-type-tag">Default choice</div>
+                <div class="cv-type-desc">Equal-sized rotating folds. Best for regression and balanced classification.</div>
+              </div>
+              <div class="cv-type-card" id="cvt-stratified" onclick="selectCVType('stratified')">
+                <div class="cv-type-name">Stratified K-Fold</div>
+                <div class="cv-type-tag">Imbalanced classes</div>
+                <div class="cv-type-desc">Preserves class proportions in every fold. Always use for classification.</div>
+              </div>
+              <div class="cv-type-card" id="cvt-loocv" onclick="selectCVType('loocv')">
+                <div class="cv-type-name">LOOCV</div>
+                <div class="cv-type-tag">Small datasets</div>
+                <div class="cv-type-desc">Each sample is validated once. K = N. Use when N &lt; 100 samples.</div>
+              </div>
+              <div class="cv-type-card" id="cvt-timeseries" onclick="selectCVType('timeseries')">
+                <div class="cv-type-name">Time Series CV</div>
+                <div class="cv-type-tag">Sequential data</div>
+                <div class="cv-type-desc">Validation always in future of training. Never shuffle time series data.</div>
+              </div>
+              <div class="cv-type-card" id="cvt-group" onclick="selectCVType('group')">
+                <div class="cv-type-name">Group K-Fold</div>
+                <div class="cv-type-tag">Grouped data</div>
+                <div class="cv-type-desc">Keeps all samples from same patient/user in the same fold. Prevents group leakage.</div>
+              </div>
+              <div class="cv-type-card" id="cvt-repeated" onclick="selectCVType('repeated')">
+                <div class="cv-type-name">Repeated K-Fold</div>
+                <div class="cv-type-tag">High variance</div>
+                <div class="cv-type-desc">K-Fold repeated with different random seeds. Reduces variance of the estimate.</div>
+              </div>
+            </div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title" id="cvtype-canvas-title">K-Fold - equal-sized rotating folds</span>
+              </div>
+              <canvas id="cvtype-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 3: STEPS -->
+          <section class="section" id="how-it-works">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">5</div>
+              How CV works &mdash; step by step
+            </h2>
+            <div class="algo-steps">
+              <div class="algo-step">
+                <div class="algo-step-num">1</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Split</div>
+                  <div class="algo-step-title">Shuffle and divide into K equal folds</div>
+                  <div class="algo-step-desc">Shuffle the data (unless time series) then split into K approximately equal folds. With StratifiedKFold, class ratios are preserved in every fold automatically.</div>
+                  <div class="algo-step-formula">kf = KFold(n_splits=5, shuffle=True, random_state=42)
+for train_idx, val_idx in kf.split(X):
+    X_train, X_val = X[train_idx], X[val_idx]</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">2</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Train and evaluate</div>
+                  <div class="algo-step-title">Fit on K-1 folds, score on held-out fold</div>
+                  <div class="algo-step-desc">Train the model from scratch on the training folds. Evaluate on the validation fold only. Record the score. Repeat for all K folds. The model never sees validation data during training.</div>
+                  <div class="algo-step-formula">scores = []
+for train_idx, val_idx in kf.split(X):
+    model.fit(X[train_idx], y[train_idx])
+    scores.append(model.score(X[val_idx], y[val_idx]))</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">3</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Aggregate</div>
+                  <div class="algo-step-title">Average scores and compute standard deviation</div>
+                  <div class="algo-step-desc">Mean score = CV performance estimate. Standard deviation = stability indicator. High std means the model is sensitive to which data it trains on.</div>
+                  <div class="algo-step-formula">cv_mean = np.mean(scores)    # e.g. 0.856
+cv_std  = np.std(scores)     # e.g. 0.023
+# Report: 0.856 +/- 0.023</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">4</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Final model</div>
+                  <div class="algo-step-title">Retrain on ALL data after CV selection</div>
+                  <div class="algo-step-desc">CV gives a performance estimate. After picking the best model/hyperparameters via CV, retrain on the full dataset before deployment.</div>
+                  <div class="algo-step-formula">final_model = best_model.fit(X_all, y_all)
+# Deploy this - trained on all available data</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">5</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Critical: avoid leakage</div>
+                  <div class="algo-step-title">Preprocessing must be inside the CV loop</div>
+                  <div class="algo-step-desc">Scaling or encoding BEFORE CV leaks validation information into training. Always use Pipeline so preprocessing is fitted only on training folds each iteration.</div>
+                  <div class="algo-step-formula">pipe = Pipeline([
+    ('scaler', StandardScaler()),    # fitted per fold only
+    ('model', RandomForestClassifier())
+])
+scores = cross_val_score(pipe, X, y, cv=5)  # correct!</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: VARIANCE CHART -->
+          <section class="section" id="variance-chart">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">~</div>
+              CV score variance &mdash; how stable is your model?
+            </h2>
+            <p>Drag K and noise sliders to see how fold count and model variance affect the reliability of your CV estimate.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Simulated CV score distribution</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K folds:</span>
+                  <input type="range" min="2" max="15" value="5" class="ctrl-slider" id="var-k" style="width:80px;" oninput="updateVarianceChart()"/>
+                  <span class="ctrl-value" id="var-k-val" style="color:var(--teal);">5</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Model noise:</span>
+                  <input type="range" min="1" max="20" value="8" class="ctrl-slider" id="var-noise" style="width:80px;" oninput="updateVarianceChart()"/>
+                </div>
+                <button class="ctrl-btn" onclick="updateVarianceChart()">Resimulate</button>
+              </div>
+              <canvas id="var-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="var-mean" style="color:var(--teal);">-</span><span class="stat-pill-lbl">Mean score</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-std">-</span><span class="stat-pill-lbl">Std dev</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-ci">-</span><span class="stat-pill-lbl">95% CI width</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-stability" style="font-size:13px;">-</span><span class="stat-pill-lbl">Stability</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: basic K-Fold, stratified CV, time series CV, and nested CV for unbiased hyperparameter search.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">cross_validation.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Data leakage: preprocessing before CV.</strong> StandardScaling the full dataset before CV means the scaler has seen validation data. Always put preprocessing inside a Pipeline.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not using StratifiedKFold for classification.</strong> Plain KFold on imbalanced data can create folds with no minority samples. Always use StratifiedKFold for classification.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Shuffling time series data.</strong> Never use shuffle=True on time series. Past must be training, future must be validation. Use TimeSeriesSplit.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using CV score as the final test score.</strong> If CV was used to pick hyperparameters, run a final held-out test set to get an unbiased performance number.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not retraining on all data after CV.</strong> The CV models each used K-1/K of the data. After CV selects the best model, retrain on ALL data before deployment.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>CV gives a more reliable performance estimate than a single split by averaging over K different data partitions.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always use StratifiedKFold for classification. Never shuffle time series data - use TimeSeriesSplit.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Put ALL preprocessing inside a Pipeline to prevent data leakage from validation to training folds.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>K=5 is the default (80% train per fold). K=10 for more accuracy. LOOCV for tiny datasets (&lt;100 samples).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>After CV picks the best model, retrain on ALL data before deployment.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use nested CV for unbiased hyperparameter search: outer CV for performance estimate, inner CV for tuning.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="imbalanced-data.html"><span class="pn-dir">Previous</span><span class="pn-title">Imbalanced Data</span></a>
+            <a class="pn-card next" id="next-card" href="hyperparameter-tuning.html"><span class="pn-dir">Next</span><span class="pn-title">Hyperparameter Tuning</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#kfold-viz">K-Fold animator</a></li>
+            <li class="toc-item"><a href="#cv-types">CV strategies</a></li>
+            <li class="toc-item"><a href="#how-it-works">How it works</a></li>
+            <li class="toc-item"><a href="#variance-chart">Score variance</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+var CVC=C('cv-canvas'),CVX=CVC.getContext('2d');
+var cvK=5,cvN=20,cvFold=0,cvPlaying=false,cvAnim=null,foldScores=[];
+
+function rngSeed(seed){return function(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;};}
+function updateK(v){cvK=parseInt(v);C('k-val').textContent=v;resetAnim();}
+function updateN(v){cvN=parseInt(v);C('n-val').textContent=v;resetAnim();}
+function resetAnim(){cvFold=0;cvPlaying=false;foldScores=[];clearTimeout(cvAnim);C('anim-btn').textContent='Play';drawCVFold(0);}
+function toggleAnim(){cvPlaying=!cvPlaying;C('anim-btn').textContent=cvPlaying?'Pause':'Play';if(cvPlaying)stepAnim();}
+async function stepAnim(){
+  if(!cvPlaying)return;
+  drawCVFold(cvFold);await delay(700);
+  cvFold=(cvFold+1)%cvK;
+  if(cvPlaying)cvAnim=setTimeout(stepAnim,50);
+}
+function drawCVFold(fold){
+  var W=CVC.width,H=CVC.height,pad=30;
+  CVX.clearRect(0,0,W,H);CVX.fillStyle=bg();CVX.fillRect(0,0,W,H);
+  var cellW=(W-2*pad-60)/cvN,cellH=26,startY=55;
+  CVX.fillStyle=tc();CVX.font='12px sans-serif';CVX.textAlign='center';
+  CVX.fillText('Fold '+(fold+1)+' of '+cvK,W/2,pad+8);
+  for(var k=0;k<cvK;k++){
+    var fy=startY+k*(cellH+8);
+    var ks=Math.floor(k*cvN/cvK),ke=Math.floor((k+1)*cvN/cvK);
+    CVX.fillStyle=tc();CVX.font='10px monospace';CVX.textAlign='right';
+    CVX.fillText('Fold '+(k+1),pad-2,fy+cellH/2+3);
+    for(var i=0;i<cvN;i++){
+      var x=pad+i*cellW,inVal=i>=ks&&i<ke,isCurr=k===fold;
+      CVX.fillStyle=isCurr?(inVal?'rgba(45,212,191,0.85)':'rgba(75,150,255,0.7)'):(inVal?'rgba(45,212,191,0.2)':'rgba(75,150,255,0.2)');
+      CVX.fillRect(x+1,fy,cellW-2,cellH);
+    }
+    var rng2=rngSeed(k*37+17),score=0.75+rng2()*0.18;
+    if(k<=fold){
+      foldScores[k]=score;
+      CVX.fillStyle=k===fold?'var(--teal)':tc();CVX.font=k===fold?'bold 10px monospace':'10px monospace';
+      CVX.textAlign='left';CVX.fillText(score.toFixed(3),pad+cvN*cellW+6,fy+cellH/2+3);
+    }
+  }
+  var trainN=cvN-Math.floor(cvN/cvK),valN=Math.floor(cvN/cvK);
+  C('cv-fold').textContent=(fold+1)+'/'+cvK;C('cv-train-n').textContent=trainN;
+  C('cv-val-n').textContent=valN;C('cv-efficiency').textContent=((trainN/cvN)*100).toFixed(0)+'%';
+  if(foldScores.length>0){var mean=foldScores.reduce(function(a,b){return a+b;},0)/foldScores.length;C('cv-mean-acc').textContent=(mean*100).toFixed(1)+'%';}
+  var ly=H-18;
+  CVX.fillStyle='rgba(45,212,191,0.85)';CVX.fillRect(pad,ly,12,12);
+  CVX.fillStyle=tc();CVX.font='11px sans-serif';CVX.textAlign='left';CVX.fillText('Validation',pad+16,ly+10);
+  CVX.fillStyle='rgba(75,150,255,0.7)';CVX.fillRect(pad+100,ly,12,12);
+  CVX.fillText('Training',pad+116,ly+10);
+}
+
+var CTC=C('cvtype-canvas'),CTX=CTC.getContext('2d'),currentCVType='kfold';
+function selectCVType(t){
+  currentCVType=t;
+  document.querySelectorAll('.cv-type-card').forEach(function(el){el.classList.remove('active');});
+  var el=C('cvt-'+t);if(el)el.classList.add('active');
+  var titles={kfold:'K-Fold - equal rotating folds (5 shown)',stratified:'Stratified K-Fold - class proportions preserved (orange = minority)',loocv:'LOOCV - each single sample is validation once (K = N = 12)',timeseries:'Time Series CV - validation always in future of training',group:'Group K-Fold - samples from same group stay together',repeated:'Repeated K-Fold - same K-Fold run 3 times with different seeds'};
+  C('cvtype-canvas-title').textContent=titles[t]||'';
+  drawCVType(t);
+}
+function drawCVType(t){
+  var W=CTC.width,H=CTC.height,pad=30;
+  CTX.clearRect(0,0,W,H);CTX.fillStyle=bg();CTX.fillRect(0,0,W,H);
+  var n=20,k=5,cellW=(W-2*pad)/n,cellH=22,gap=7;
+  if(t==='loocv'){n=12;k=12;cellW=(W-2*pad)/n;}
+  if(t==='repeated'){k=3;}
+  var startY=(H-k*(cellH+gap)-20)/2+10;
+  for(var row=0;row<k;row++){
+    var ry=startY+row*(cellH+gap);
+    var ks=0,ke=0;
+    if(t==='kfold'||t==='stratified'||t==='group'){ks=Math.floor(row*n/k);ke=Math.floor((row+1)*n/k);}
+    else if(t==='loocv'){ks=row;ke=row+1;}
+    else if(t==='timeseries'){ke=Math.min(n-1,Math.floor((row+1)*n/(k+1)));}
+    else if(t==='repeated'){var off=row*4;ks=off%n;ke=(off+Math.ceil(n/k))%n;}
+    CTX.fillStyle=tc();CTX.font='9px monospace';CTX.textAlign='right';CTX.fillText(t==='repeated'?'Run '+(row+1):'Fold '+(row+1),pad-2,ry+cellH/2+3);
+    for(var i=0;i<n;i++){
+      var x=pad+i*cellW,inVal;
+      if(t==='timeseries'){
+        inVal=i===ke;var isTrain=i<ke;
+        CTX.fillStyle=inVal?'rgba(45,212,191,0.85)':isTrain?'rgba(75,150,255,0.6)':'rgba(120,120,120,0.1)';
+      } else if(t==='repeated'){
+        inVal=ks<ke?(i>=ks&&i<ke):(i>=ks||i<ke);
+        CTX.fillStyle=inVal?'rgba(45,212,191,0.85)':'rgba(75,150,255,0.6)';
+      } else {
+        inVal=i>=ks&&i<ke;CTX.fillStyle=inVal?'rgba(45,212,191,0.85)':'rgba(75,150,255,0.6)';
+      }
+      CTX.fillRect(x+1,ry,cellW-2,cellH);
+      if(t==='stratified'&&i%5===0){CTX.fillStyle='rgba(240,165,0,0.6)';CTX.fillRect(x+1,ry+cellH-5,cellW-2,5);}
+    }
+  }
+  var lx=pad,ly=H-16;
+  CTX.fillStyle='rgba(45,212,191,0.85)';CTX.fillRect(lx,ly,10,10);CTX.fillStyle=tc();CTX.font='10px sans-serif';CTX.textAlign='left';CTX.fillText('Validation',lx+14,ly+9);
+  CTX.fillStyle='rgba(75,150,255,0.6)';CTX.fillRect(lx+90,ly,10,10);CTX.fillText('Training',lx+104,ly+9);
+  if(t==='stratified'){CTX.fillStyle='rgba(240,165,0,0.6)';CTX.fillRect(lx+175,ly,10,10);CTX.fillText('Minority class',lx+189,ly+9);}
+  if(t==='timeseries'){CTX.fillStyle='rgba(120,120,120,0.15)';CTX.fillRect(lx+175,ly,10,10);CTX.fillText('Not used',lx+189,ly+9);}
+}
+
+var VC=C('var-canvas'),VX=VC.getContext('2d');
+function updateVarianceChart(){
+  var k=parseInt(C('var-k').value)||5;
+  var noise=parseInt(C('var-noise').value)/100*0.15;
+  C('var-k-val').textContent=k;
+  var seed=Date.now()&0xffff,rng=rngSeed(seed);
+  var scores=[];for(var i=0;i<k;i++)scores.push(Math.max(0.5,Math.min(0.99,0.82+(rng()-0.5)*noise*2)));
+  var mean=scores.reduce(function(a,b){return a+b;},0)/k;
+  var std=Math.sqrt(scores.reduce(function(s,v){return s+(v-mean)**2;},0)/k);
+  var ci=1.96*std/Math.sqrt(k);
+  C('var-mean').textContent=(mean*100).toFixed(1)+'%';C('var-std').textContent=std.toFixed(4);
+  C('var-ci').textContent='+/-'+(ci*100).toFixed(2)+'%';
+  C('var-stability').textContent=std<0.02?'Excellent':std<0.05?'Good':std<0.1?'Moderate':'Unstable';
+  C('var-stability').style.color=std<0.02?'var(--green)':std<0.05?'var(--teal)':std<0.1?'var(--accent)':'var(--red)';
+  var W=VC.width,H=VC.height,pad=45;
+  VX.clearRect(0,0,W,H);VX.fillStyle=bg();VX.fillRect(0,0,W,H);
+  var bw=(W-2*pad)/k,minS=Math.max(0.4,Math.min.apply(null,scores)-0.06),maxS=Math.min(1,Math.max.apply(null,scores)+0.06);
+  scores.forEach(function(s,i){
+    var x=pad+i*bw,bh=(s-minS)/(maxS-minS)*(H-2*pad);
+    VX.fillStyle='rgba(45,212,191,0.7)';VX.fillRect(x+bw*0.1,H-pad-bh,bw*0.8,bh);
+    VX.strokeStyle='var(--teal)';VX.lineWidth=1.5;VX.strokeRect(x+bw*0.1,H-pad-bh,bw*0.8,bh);
+    VX.fillStyle=tc();VX.font='10px monospace';VX.textAlign='center';VX.fillText('F'+(i+1),x+bw/2,H-pad+14);
+    VX.fillStyle='var(--teal)';VX.font='bold 10px monospace';VX.fillText((s*100).toFixed(1)+'%',x+bw/2,H-pad-bh-5);
+  });
+  var meanY=H-pad-(mean-minS)/(maxS-minS)*(H-2*pad);
+  VX.beginPath();VX.strokeStyle='#f0a500';VX.lineWidth=2;VX.setLineDash([6,4]);VX.moveTo(pad,meanY);VX.lineTo(W-pad,meanY);VX.stroke();VX.setLineDash([]);
+  VX.fillStyle='#f0a500';VX.font='bold 11px sans-serif';VX.textAlign='right';VX.fillText('mean='+(mean*100).toFixed(2)+'%',W-pad-4,meanY-5);
+}
+
+var SNIPPETS=[
+{file:'cross_validation.py',label:'Basic K-Fold',code:`from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import KFold, cross_val_score, cross_validate
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+# Preprocessing inside Pipeline prevents leakage
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('clf', LogisticRegression(max_iter=1000, random_state=42))
+])
+
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+scores = cross_val_score(pipe, X, y, cv=kf, scoring='accuracy')
+
+print("5-Fold CV results:")
+print(f"  Scores : {scores.round(4)}")
+print(f"  Mean   : {scores.mean():.4f}")
+print(f"  Std    : {scores.std():.4f}")
+print(f"  Report : {scores.mean():.3f} +/- {scores.std():.3f}")
+
+results = cross_validate(pipe, X, y, cv=kf,
+    scoring=['accuracy','roc_auc'], return_train_score=True)
+print()
+print("Train vs Val:")
+print(f"  Train acc : {results['train_accuracy'].mean():.4f}")
+print(f"  Val acc   : {results['test_accuracy'].mean():.4f}")
+print(f"  Gap       : {results['train_accuracy'].mean()-results['test_accuracy'].mean():.4f}")`},
+{file:'stratified_cv.py',label:'Stratified CV',code:`from sklearn.datasets import make_classification
+from sklearn.model_selection import (KFold, StratifiedKFold,
+                                     cross_val_score)
+from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+
+X, y = make_classification(
+    n_samples=500, n_features=10,
+    weights=[0.85, 0.15], random_state=42)
+
+print("Class distribution:", np.bincount(y))
+
+model = RandomForestClassifier(n_estimators=50, random_state=42)
+
+kf  = KFold(n_splits=5, shuffle=True, random_state=42)
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+scores_kf  = cross_val_score(model, X, y, cv=kf,  scoring='f1')
+scores_skf = cross_val_score(model, X, y, cv=skf, scoring='f1')
+
+print()
+print("Plain KFold F1:      ", scores_kf.round(3))
+print(f"  Mean: {scores_kf.mean():.4f}  Std: {scores_kf.std():.4f}")
+print()
+print("StratifiedKFold F1:  ", scores_skf.round(3))
+print(f"  Mean: {scores_skf.mean():.4f}  Std: {scores_skf.std():.4f}")
+print()
+print("Stratified has more reliable estimate - lower variance!")`},
+{file:'timeseries_cv.py',label:'Time Series CV',code:`from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+from sklearn.linear_model import Ridge
+import numpy as np
+
+np.random.seed(42)
+n = 200
+t = np.arange(n)
+X = np.column_stack([
+    np.sin(t * 0.1),
+    np.cos(t * 0.1),
+    t / n,
+    np.random.randn(n) * 0.1
+])
+y = np.sin(t * 0.1) + np.random.randn(n) * 0.2
+
+tscv = TimeSeriesSplit(n_splits=5)
+model = Ridge()
+
+scores = cross_val_score(model, X, y, cv=tscv, scoring='r2')
+
+print("TimeSeriesSplit CV (R2):")
+for i, s in enumerate(scores):
+    print(f"  Fold {i+1}: R2 = {s:.4f}")
+print(f"Mean R2 : {scores.mean():.4f}")
+print(f"Std     : {scores.std():.4f}")
+print()
+print("Key rules for time series CV:")
+print("  - NEVER shuffle=True")
+print("  - NEVER use KFold (leaks future into past)")
+print("  - Training window must always precede validation")`},
+{file:'nested_cv.py',label:'Nested CV',code:`from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import (KFold, GridSearchCV,
+                                     cross_val_score)
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('svm', SVC(probability=True))
+])
+param_grid = {
+    'svm__C': [0.1, 1, 10],
+    'svm__kernel': ['linear', 'rbf']
+}
+
+# Nested CV: inner loop tunes HP, outer loop estimates performance
+inner_cv = KFold(n_splits=3, shuffle=True, random_state=42)
+outer_cv  = KFold(n_splits=5, shuffle=True, random_state=42)
+
+gs = GridSearchCV(pipe, param_grid, cv=inner_cv, refit=True)
+nested_scores = cross_val_score(gs, X, y, cv=outer_cv)
+
+print("Nested CV (unbiased estimate with HP tuning):")
+print(f"  Scores : {nested_scores.round(4)}")
+print(f"  Mean   : {nested_scores.mean():.4f}")
+print(f"  Std    : {nested_scores.std():.4f}")
+print()
+print("Use nested CV when HP search is part of model selection.")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+window.addEventListener('load',function(){
+  drawCVFold(0);selectCVType('kfold');updateVarianceChart();initEditor();
+  new MutationObserver(function(){
+    drawCVFold(cvFold);if(currentCVType)drawCVType(currentCVType);updateVarianceChart();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

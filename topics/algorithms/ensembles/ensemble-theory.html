@@ -1,0 +1,610 @@
+<!-- ensemble-theory.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ensemble Theory &mdash; ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,165,0,0.09),rgba(62,207,142,0.06));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .theory-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:18px;margin-bottom:12px;}
+    .theory-card-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+    .theory-card-body{font-size:13.5px;color:var(--text-2);line-height:1.7;}
+    .formula-box{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);margin:10px 0;overflow-x:auto;white-space:pre;}
+    .method-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin:16px 0;}
+    .method-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;transition:border-color .2s;}
+    .method-card:hover{border-color:var(--border-md);}
+    .method-icon{font-size:20px;margin-bottom:8px;}
+    .method-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:6px;}
+    .method-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+    .method-tag{display:inline-block;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;margin-top:6px;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;} .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;} .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;} .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;} .cm-s-one-dark .cm-string{color:#4ade80;} .cm-s-one-dark .cm-number{color:#fb923c;} .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;} .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;} .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;} .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);} .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--accent);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);} .run-pill:disabled{opacity:.4;cursor:not-allowed;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .py-status{font-size:11px;color:var(--text-3);} .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.method-grid{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="ensemble-theory">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Ensemble Theory</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb"><a href="../../../index.html">Home</a><span class="sep">/</span><a href="../../../index.html#roadmap">Ensemble Methods</a><span class="sep">/</span><span class="current">Ensemble Theory</span></nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(240,165,0,.3);background:rgba(240,165,0,0.1);color:var(--accent);margin-bottom:14px;">Theory &middot; Foundations &middot; Bias-Variance</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Ensemble Theory</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              <strong>Why do ensembles work?</strong> The maths behind combining models &mdash;
+              bias-variance decomposition, the diversity theorem, Condorcet&rsquo;s jury theorem,
+              and a decision guide for when to use Bagging vs Boosting vs Stacking vs Voting.
+              Understanding the theory makes you a better ensemble designer.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#9201; 30 min</span>
+              <span class="topic-meta-item">&#9670;&#9670;&#9670; Advanced</span>
+              <span class="topic-meta-item">Theory + Code</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: BIAS-VARIANCE -->
+          <section class="section" id="bias-variance">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.15);color:var(--accent);">&#963;</div>
+              Bias-variance decomposition
+            </h2>
+            <p>Every supervised learning error can be broken into three parts. Understanding this decomposition explains <em>exactly</em> why bagging and boosting work in different situations.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0;">
+              <div class="theory-card" style="border-left:3px solid var(--blue);">
+                <div class="theory-card-title"><span style="color:var(--blue);">&#8594;</span> Bias&sup2;</div>
+                <div class="theory-card-body">How far the <em>average</em> prediction is from the true answer. High bias = model too simple, underfitting. Linear regression on a curved surface has high bias.</div>
+              </div>
+              <div class="theory-card" style="border-left:3px solid var(--orange);">
+                <div class="theory-card-title"><span style="color:var(--orange);">&#8645;</span> Variance</div>
+                <div class="theory-card-body">How much predictions <em>change</em> across different training datasets. High variance = model too complex, overfitting. Deep trees have high variance.</div>
+              </div>
+              <div class="theory-card" style="border-left:3px solid var(--text-3);">
+                <div class="theory-card-title"><span style="color:var(--text-3);">&#10070;</span> Noise</div>
+                <div class="theory-card-body">Irreducible error from randomness in the data itself. No model can do better than this. You can&rsquo;t reduce noise &mdash; only bias and variance.</div>
+              </div>
+            </div>
+
+            <div class="formula-box" style="border-left-color:var(--accent);">Expected Error = Bias&sup2; + Variance + Irreducible Noise
+Bias&sup2;   = (E[f_hat(x)] - f(x))^2        # how wrong on average
+Variance = E[(f_hat(x) - E[f_hat(x)])^2]  # how unstable</div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Bias-variance interactive &mdash; drag complexity slider</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Model complexity:</span>
+                  <input type="range" min="1" max="10" value="3" step="1" class="ctrl-slider" id="bv-complexity" oninput="drawBVCanvas()" style="width:120px;"/>
+                  <span class="ctrl-value" id="bv-comp-val" style="color:var(--accent);">3</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">n_samples:</span>
+                  <input type="range" min="20" max="200" value="80" step="20" class="ctrl-slider" id="bv-n" oninput="drawBVCanvas()" style="width:100px;"/>
+                  <span class="ctrl-value" id="bv-n-val">80</span>
+                </div>
+              </div>
+              <canvas id="bv-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="bv-bias" style="color:var(--blue);">--</span><span class="stat-pill-lbl">Bias&sup2;</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bv-var" style="color:var(--orange);">--</span><span class="stat-pill-lbl">Variance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bv-total" style="color:var(--accent);">--</span><span class="stat-pill-lbl">Total error</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bv-opt" style="color:var(--green);">--</span><span class="stat-pill-lbl">Optimal complexity</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2: HOW ENSEMBLES HELP -->
+          <section class="section" id="how-ensembles-help">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.15);color:var(--accent);">&#9679;</div>
+              How ensembles reduce error
+            </h2>
+            <p>Different ensemble methods attack different parts of the error decomposition:</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0;">
+              <div class="theory-card" style="border-left:3px solid var(--blue);">
+                <div class="theory-card-title" style="color:var(--blue);">Bagging &rarr; reduces Variance</div>
+                <div class="theory-card-body">Average of B uncorrelated models has variance &sigma;&sup2;/B. With 100 trees, variance drops 100&times;. Works on high-variance models like deep trees.</div>
+                <div class="formula-box" style="border-left-color:var(--blue);font-size:12px;">Var(mean of B models) = sigma^2 / B
+(when models are uncorrelated)
+Correlation reduces this benefit
+-> Random Forest adds feature randomness to reduce correlation</div>
+              </div>
+              <div class="theory-card" style="border-left:3px solid var(--red);">
+                <div class="theory-card-title" style="color:var(--red);">Boosting &rarr; reduces Bias</div>
+                <div class="theory-card-body">Sequentially correct systematic errors. Each learner is trained to fix what the previous ones got wrong. Can turn a barely-better-than-random stump into a strong classifier.</div>
+                <div class="formula-box" style="border-left-color:var(--red);font-size:12px;">F_T(x) = sum_t alpha_t * h_t(x)
+Each h_t corrects residuals from F_{t-1}
+As T grows, bias shrinks
+Risk: variance can grow if T too large
+-> use early stopping</div>
+              </div>
+            </div>
+
+            <!-- Variance reduction canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Variance reduction visualiser &mdash; averaging reduces instability</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">n_trees:</span>
+                  <input type="range" min="1" max="50" value="1" step="1" class="ctrl-slider" id="var-n" oninput="drawVarReduction()" style="width:100px;"/>
+                  <span class="ctrl-value" id="var-n-val" style="color:var(--blue);">1</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Correlation:</span>
+                  <input type="range" min="0" max="0.9" value="0" step="0.1" class="ctrl-slider" id="var-rho" oninput="drawVarReduction()" style="width:100px;"/>
+                  <span class="ctrl-value" id="var-rho-val">0.0</span>
+                </div>
+              </div>
+              <canvas id="var-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="var-single" style="color:var(--orange);">--</span><span class="stat-pill-lbl">Single model var</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-ensemble" style="color:var(--green);">--</span><span class="stat-pill-lbl">Ensemble var</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-reduction">--</span><span class="stat-pill-lbl">Reduction</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: DIVERSITY -->
+          <section class="section" id="diversity">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">&#9651;</div>
+              The diversity theorem
+            </h2>
+            <p>The most important result in ensemble theory &mdash; the <strong>ambiguity decomposition</strong>. It proves that diversity <em>always</em> helps, regardless of individual model quality.</p>
+
+            <div class="formula-box">Ensemble Error = Average Individual Error - Diversity
+
+where:
+  Diversity = (1/B) * sum_i E[(f_i(x) - f_ensemble(x))^2]
+            = avg squared deviation from ensemble mean
+
+Implication:
+  1. More diverse models -> lower ensemble error
+  2. Can improve ensemble without improving individuals
+  3. Even adding weak diverse models can help!</div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Diversity simulator &mdash; adjust individual accuracy and correlation</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Indiv acc:</span>
+                  <input type="range" min="0.5" max="0.95" value="0.75" step="0.05" class="ctrl-slider" id="div-acc" oninput="drawDiversityCanvas()" style="width:90px;"/>
+                  <span class="ctrl-value" id="div-acc-val" style="color:var(--green);">0.75</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Correlation:</span>
+                  <input type="range" min="0" max="0.99" value="0.3" step="0.01" class="ctrl-slider" id="div-rho" oninput="drawDiversityCanvas()" style="width:90px;"/>
+                  <span class="ctrl-value" id="div-rho-val">0.30</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">n_models:</span>
+                  <input type="range" min="2" max="20" value="5" step="1" class="ctrl-slider" id="div-n" oninput="drawDiversityCanvas()" style="width:80px;"/>
+                  <span class="ctrl-value" id="div-n-val">5</span>
+                </div>
+              </div>
+              <canvas id="div-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="div-ind-err" style="color:var(--orange);">--</span><span class="stat-pill-lbl">Indiv error</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="div-diversity" style="color:var(--teal);">--</span><span class="stat-pill-lbl">Diversity</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="div-ens-err" style="color:var(--green);">--</span><span class="stat-pill-lbl">Ensemble error</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="div-condorcet" style="color:var(--blue);">--</span><span class="stat-pill-lbl">Condorcet pred</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: CONDORCET -->
+          <section class="section" id="condorcet">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(75,150,255,0.15);color:var(--blue);">&#9745;</div>
+              Condorcet&rsquo;s Jury Theorem &mdash; why majority voting works
+            </h2>
+            <p>From 18th-century political science: if each voter has a <em>better-than-random</em> chance of being correct, and votes are independent, then majority vote approaches 100% accuracy as the jury size grows.</p>
+
+            <div class="formula-box">If each classifier has accuracy p > 0.5 and errors are independent:
+P(ensemble correct) = sum_{k=ceil(n/2)}^{n} C(n,k) * p^k * (1-p)^(n-k)
+
+As n -> infinity, P(correct) -> 1.0
+
+Example: 21 classifiers each at 70% accuracy
+  P(majority correct) = ~97.6%
+
+Caveats:
+  - Errors must be UNCORRELATED (hard to guarantee)
+  - Each model must be > 50% (also not guaranteed for all inputs)
+  - This is an upper bound; real gains are smaller</div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Condorcet&rsquo;s theorem &mdash; ensemble accuracy vs jury size</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Indiv acc:</span>
+                  <input type="range" min="0.51" max="0.99" value="0.7" step="0.01" class="ctrl-slider" id="cond-p" oninput="drawCondorcet()" style="width:100px;"/>
+                  <span class="ctrl-value" id="cond-p-val" style="color:var(--blue);">0.70</span>
+                </div>
+              </div>
+              <canvas id="cond-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cond-3" style="color:var(--blue);">--</span><span class="stat-pill-lbl">3 voters</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cond-11">--</span><span class="stat-pill-lbl">11 voters</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cond-51" style="color:var(--green);">--</span><span class="stat-pill-lbl">51 voters</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cond-inf">--</span><span class="stat-pill-lbl">Limit</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: DECISION GUIDE -->
+          <section class="section" id="decision-guide">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.15);color:var(--accent);">&#9673;</div>
+              Decision guide &mdash; which ensemble to use?
+            </h2>
+            <p>Use this guide to pick the right ensemble strategy for your problem:</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar"><span class="canvas-title">Interactive decision tree &mdash; answer questions to find your ensemble</span><button class="ctrl-btn active" onclick="resetDecision()">&#8634; Start over</button></div>
+              <div style="padding:20px;" id="decision-tree-panel">
+                <div id="decision-question" style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:14px;"></div>
+                <div id="decision-options" style="display:flex;flex-direction:column;gap:8px;"></div>
+                <div id="decision-result" style="display:none;background:var(--bg-input);border:2px solid var(--accent);border-radius:var(--r-md);padding:16px;margin-top:12px;"></div>
+              </div>
+            </div>
+
+            <div class="method-grid">
+              <div class="method-card" style="border-left:3px solid var(--blue);">
+                <div class="method-icon">&#9679;</div>
+                <div class="method-name">Bagging</div>
+                <div class="method-desc">Same model, different data. Reduces variance. Great for unstable models.</div>
+                <span class="method-tag" style="background:rgba(75,150,255,0.15);color:var(--blue);">variance reducer</span>
+              </div>
+              <div class="method-card" style="border-left:3px solid var(--red);">
+                <div class="method-icon">&#9650;</div>
+                <div class="method-name">Boosting</div>
+                <div class="method-desc">Sequential, corrects errors. Reduces bias. Best overall accuracy on tabular data.</div>
+                <span class="method-tag" style="background:rgba(240,96,96,0.15);color:var(--red);">bias reducer</span>
+              </div>
+              <div class="method-card" style="border-left:3px solid var(--green);">
+                <div class="method-icon">&#9782;</div>
+                <div class="method-name">Stacking</div>
+                <div class="method-desc">Meta-model learns when to trust each base model. Most powerful but complex.</div>
+                <span class="method-tag" style="background:rgba(62,207,142,0.15);color:var(--green);">meta-learning</span>
+              </div>
+              <div class="method-card" style="border-left:3px solid var(--teal);">
+                <div class="method-icon">&#9745;</div>
+                <div class="method-name">Voting</div>
+                <div class="method-desc">Simple majority/average. Fast, interpretable, good first ensemble.</div>
+                <span class="method-tag" style="background:rgba(45,212,191,0.15);color:var(--teal);">simple combo</span>
+              </div>
+              <div class="method-card" style="border-left:3px solid var(--accent);">
+                <div class="method-icon">&#9679;</div>
+                <div class="method-name">Blending</div>
+                <div class="method-desc">Holdout-based stacking. Faster, better for large datasets and Kaggle.</div>
+                <span class="method-tag" style="background:rgba(240,165,0,0.15);color:var(--accent);">holdout meta</span>
+              </div>
+              <div class="method-card" style="border-left:3px solid var(--orange);">
+                <div class="method-icon">&#9650;</div>
+                <div class="method-name">Random Forest</div>
+                <div class="method-desc">Bagging + feature randomness. Excellent default, handles most problems well.</div>
+                <span class="method-tag" style="background:rgba(251,140,64,0.15);color:var(--orange);">go-to baseline</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar"><div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div><span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">bias_variance.py</span><span class="py-status" id="py-status">Python not loaded</span></div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click &#9654; Run to execute...</div>
+              <div class="editor-actions"><button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button><button class="reset-pill" onclick="resetEditor()">&#8634; Reset</button><button class="reset-pill" onclick="clearOutput()">&#10005; Clear</button><span class="py-status" id="run-time" style="margin-left:auto;"></span></div>
+            </div>
+          </section>
+
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#9733;</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Error = Bias&sup2; + Variance + Noise.</strong> Bagging attacks Variance. Boosting attacks Bias. You can&rsquo;t reduce noise.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Diversity theorem:</strong> Ensemble Error = Avg Individual Error &minus; Diversity. More diverse models always produce a lower ensemble error.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Condorcet&rsquo;s theorem:</strong> If models are better than random and errors are independent, majority vote accuracy approaches 100% as n grows. The independence assumption is the hard part.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Variance of an average = &sigma;&sup2;/B for uncorrelated models. Correlation between models limits the reduction &mdash; which is why Random Forest adds extra randomness.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Rule of thumb:</strong> Start with Random Forest (best single model for tabular data). Add GBM/XGBoost for more accuracy. Use stacking only when you need maximum performance and have enough data.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="bagging.html"><span class="pn-dir">&#8592; Previous</span><span class="pn-title">Bagging</span></a>
+            <a class="pn-card next" href="../../regression/linear-regression.html"><span class="pn-dir">Next &#8594;</span><span class="pn-title">Linear Regression</span></a>
+          </nav>
+        </article>
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#bias-variance">Bias-variance</a></li>
+            <li class="toc-item"><a href="#how-ensembles-help">How ensembles help</a></li>
+            <li class="toc-item"><a href="#diversity">Diversity theorem</a></li>
+            <li class="toc-item"><a href="#condorcet">Condorcet theorem</a></li>
+            <li class="toc-item"><a href="#decision-guide">Decision guide</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ── SECTION 1: BIAS-VARIANCE CANVAS ── */
+function drawBVCanvas(){
+  var complexity=parseInt(C('bv-complexity').value);
+  var nSamples=parseInt(C('bv-n').value);
+  C('bv-comp-val').textContent=complexity;
+  C('bv-n-val').textContent=nSamples;
+  var cv=C('bv-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad={l:55,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var maxC=10;
+  // Bias decreases with complexity (sigmoid-like), variance increases
+  function biasF(c){return 0.35*Math.exp(-0.4*(c-1));}
+  function varF(c,n){return 0.03*Math.exp(0.45*(c-1))/(nSamples/80);}
+  var biasArr=[],varArr=[],totalArr=[];
+  for(var c=1;c<=maxC;c++){biasArr.push(biasF(c));varArr.push(varF(c,nSamples));totalArr.push(biasF(c)+varF(c,nSamples)+0.04);}
+  var maxY=Math.max.apply(null,totalArr)*1.1;
+  var toX=function(c){return pad.l+(c-1)/(maxC-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return(1-v/maxY)*(H-pad.t-pad.b)+pad.t;};
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,0.1,0.2,0.3,0.4].forEach(function(v){ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-3,toY(v)+4);});
+  for(var c2=1;c2<=maxC;c2++){ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(c2,toX(c2),H-pad.b+14);}
+  // Lines
+  [['Bias²','#4b96ff',biasArr],['Variance','#fb8c40',varArr],['Total','#f0a500',totalArr]].forEach(function(item){
+    ctx.beginPath();item[2].forEach(function(v,i){i===0?ctx.moveTo(toX(i+1),toY(v)):ctx.lineTo(toX(i+1),toY(v));});
+    ctx.strokeStyle=item[1];ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle=item[1];ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+    ctx.fillText(item[0],toX(maxC)+4,toY(item[2][maxC-1])+4);
+  });
+  // Current complexity marker
+  var cb=biasF(complexity),cv2=varF(complexity,nSamples),ct=cb+cv2+0.04;
+  ctx.beginPath();ctx.moveTo(toX(complexity),pad.t);ctx.lineTo(toX(complexity),H-pad.b);
+  ctx.strokeStyle='rgba(240,165,0,0.5)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.arc(toX(complexity),toY(ct),7,0,Math.PI*2);ctx.fillStyle='#f0a500';ctx.fill();
+  // Optimal
+  var minT=Math.min.apply(null,totalArr);var optC=totalArr.indexOf(minT)+1;
+  C('bv-bias').textContent=cb.toFixed(4);C('bv-var').textContent=cv2.toFixed(4);C('bv-total').textContent=ct.toFixed(4);C('bv-opt').textContent=optC;
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Model complexity',W/2,H-2);ctx.textAlign='start';
+}
+
+/* ── SECTION 2: VARIANCE REDUCTION ── */
+function drawVarReduction(){
+  var B=parseInt(C('var-n').value),rho=parseFloat(C('var-rho').value);
+  C('var-n-val').textContent=B;C('var-rho-val').textContent=rho.toFixed(1);
+  var sigma2=0.1;// single model variance
+  var ensVar=rho*sigma2+(1-rho)*sigma2/B;
+  var reduction=(1-ensVar/sigma2)*100;
+  C('var-single').textContent=sigma2.toFixed(4);C('var-ensemble').textContent=ensVar.toFixed(4);C('var-reduction').textContent=reduction.toFixed(0)+'%';
+  C('var-ensemble').style.color=ensVar<sigma2?'var(--green)':'var(--red)';
+  var cv=C('var-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad={l:55,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  // Draw variance vs n_trees for different rho values
+  var rhos=[0,0.3,0.6,0.9];var cols=['#3ecf8e','#4b96ff','#fb8c40','#f06060'];
+  var maxV=sigma2*1.1;var maxB=50;
+  var toX=function(b){return pad.l+(b-1)/(maxB-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return(1-v/maxV)*(H-pad.t-pad.b)+pad.t;};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,0.02,0.04,0.06,0.08,0.1].forEach(function(v){ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-3,toY(v)+4);});
+  rhos.forEach(function(r2,ri){
+    ctx.beginPath();
+    for(var b2=1;b2<=maxB;b2++){var v=r2*sigma2+(1-r2)*sigma2/b2;ctx.lineTo(toX(b2),toY(v));}
+    ctx.strokeStyle=cols[ri];ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=cols[ri];ctx.font='bold 10px sans-serif';ctx.textAlign='left';
+    ctx.fillText('rho='+r2,W-pad.r+3,toY(rhos[ri]*sigma2+(1-rhos[ri])*sigma2/maxB)+4);
+  });
+  // Current point
+  ctx.beginPath();ctx.arc(toX(B),toY(ensVar),7,0,Math.PI*2);ctx.fillStyle='#f0a500';ctx.fill();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('n_trees',W/2,H-2);ctx.textAlign='start';
+}
+
+/* ── SECTION 3: DIVERSITY CANVAS ── */
+function drawDiversityCanvas(){
+  var indAcc=parseFloat(C('div-acc').value),rho=parseFloat(C('div-rho').value),n=parseInt(C('div-n').value);
+  C('div-acc-val').textContent=indAcc.toFixed(2);C('div-rho-val').textContent=rho.toFixed(2);C('div-n-val').textContent=n;
+  // Simulate: each model has same accuracy p, pairwise error correlation rho
+  var indErr=1-indAcc;
+  // Ensemble error via diversity decomposition (approximate)
+  // diversity = indErr * (1-rho) * (1 - 1/n)  (approximate for binary errors)
+  var diversity=indErr*(1-rho)*(1-1/n);
+  var ensErr=Math.max(indErr-diversity,0);
+  var condorcetP=condorcetAccuracy(indAcc,n);
+  C('div-ind-err').textContent=indErr.toFixed(4);C('div-diversity').textContent=diversity.toFixed(4);
+  C('div-ens-err').textContent=ensErr.toFixed(4);C('div-condorcet').textContent=(condorcetP*100).toFixed(1)+'%';
+  C('div-ens-err').style.color=ensErr<indErr?'var(--green)':'var(--red)';
+
+  var cv=C('div-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad={l:55,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  // Draw ensemble error vs n_models for different rho values
+  var rhos=[0,0.3,0.6,0.9];var cols=['#3ecf8e','#4b96ff','#fb8c40','#f06060'];
+  var toX=function(ni){return pad.l+(ni-1)/19*(W-pad.l-pad.r);};
+  var toY=function(v){return(1-v/indErr)*(H-pad.t-pad.b)*0.9+pad.t+( H-pad.t-pad.b)*0.05;};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,0.25,0.5,0.75,1.0].forEach(function(f){var v=indErr*f;ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(3),pad.l-3,toY(v)+4);});
+  rhos.forEach(function(r2,ri){
+    ctx.beginPath();
+    for(var ni=2;ni<=20;ni++){var d=indErr*(1-r2)*(1-1/ni);var e=Math.max(indErr-d,0);ni===2?ctx.moveTo(toX(ni),toY(e)):ctx.lineTo(toX(ni),toY(e));}
+    ctx.strokeStyle=cols[ri];ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=cols[ri];ctx.font='bold 10px sans-serif';ctx.textAlign='right';
+    var lastE=Math.max(indErr-indErr*(1-r2)*(1-1/20),0);
+    ctx.fillText('rho='+r2,toX(20)+2,toY(lastE)+4);
+  });
+  ctx.beginPath();ctx.arc(toX(n),toY(ensErr),7,0,Math.PI*2);ctx.fillStyle='#f0a500';ctx.fill();
+  // Horizontal: individual error
+  ctx.beginPath();ctx.moveTo(pad.l,toY(indErr));ctx.lineTo(W-pad.r,toY(indErr));ctx.strokeStyle='rgba(240,165,0,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#f0a500';ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('indiv err',pad.l+2,toY(indErr)-3);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Number of models',W/2,H-2);ctx.textAlign='start';
+}
+
+function condorcetAccuracy(p,n){
+  // P(majority correct) using binomial sum
+  var majority=Math.ceil(n/2);var prob=0;
+  function C2(n2,k){var r=1;for(var i=0;i<k;i++){r=r*(n2-i)/(i+1);}return r;}
+  for(var k=majority;k<=n;k++){prob+=C2(n,k)*Math.pow(p,k)*Math.pow(1-p,n-k);}
+  return prob;
+}
+
+/* ── SECTION 4: CONDORCET CANVAS ── */
+function drawCondorcet(){
+  var p=parseFloat(C('cond-p').value);C('cond-p-val').textContent=p.toFixed(2);
+  function C2(n,k){var r=1;for(var i=0;i<k;i++)r=r*(n-i)/(i+1);return r;}
+  function condP(n){var maj=Math.ceil(n/2),pr=0;for(var k=maj;k<=n;k++)pr+=C2(n,k)*Math.pow(p,k)*Math.pow(1-p,n-k);return pr;}
+  C('cond-3').textContent=(condP(3)*100).toFixed(1)+'%';
+  C('cond-11').textContent=(condP(11)*100).toFixed(1)+'%';
+  C('cond-51').textContent=(condP(51)*100).toFixed(1)+'%';
+  C('cond-inf').textContent=p>0.5?'100%':'0%';
+  var cv=C('cond-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad={l:55,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var ps=[0.55,0.65,0.75,0.85];var cols=['#fb8c40','#4b96ff','#3ecf8e','#f0a500'];
+  var toX=function(n){return pad.l+(n-1)/99*(W-pad.l-pad.r);};
+  var toY=function(v){return(1-v)*(H-pad.t-pad.b)+pad.t;};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function(v){ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);});
+  ps.forEach(function(pi,i){
+    ctx.beginPath();
+    for(var n=1;n<=100;n+=2){var pr=condP2(pi,n);n===1?ctx.moveTo(toX(n),toY(pr)):ctx.lineTo(toX(n),toY(pr));}
+    ctx.strokeStyle=cols[i];ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=cols[i];ctx.font='bold 10px sans-serif';ctx.textAlign='left';ctx.fillText('p='+pi.toFixed(2),W-pad.r+3,toY(condP2(pi,99))+4);
+  });
+  // Current p
+  ctx.beginPath();
+  for(var n=1;n<=100;n+=2){var pr=condP(n);n===1?ctx.moveTo(toX(n),toY(pr)):ctx.lineTo(toX(n),toY(pr));}
+  ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Number of voters (odd)',W/2,H-2);ctx.textAlign='start';
+  function condP2(pi,n2){var maj=Math.ceil(n2/2),pr=0;function C3(nn,k){var r=1;for(var ii=0;ii<k;ii++)r=r*(nn-ii)/(ii+1);return r;}for(var k=maj;k<=n2;k++)pr+=C3(n2,k)*Math.pow(pi,k)*Math.pow(1-pi,n2-k);return pr;}
+}
+
+/* ── SECTION 5: DECISION GUIDE ── */
+var decisionStep=0;
+var decisionTree=[
+  {q:'What is your primary goal?',opts:[
+    {label:'Maximum accuracy (competition/production)',next:1},
+    {label:'Speed + simplicity (prototype/baseline)',next:2},
+    {label:'Reduce overfitting / variance',next:3},
+  ]},
+  {q:'How much data do you have?',opts:[
+    {label:'> 10k samples',next:4},
+    {label:'< 10k samples',result:'Stacking with cross-validation (cv=5). Small data means blending wastes too much. Use diverse base models + LogisticRegression meta-model.'},
+  ]},
+  {q:'What matters more: speed or accuracy?',opts:[
+    {label:'Speed (sub-second inference)',result:'Soft voting with 3 diverse models (LR + RF + SVM). Fast, interpretable, easy to deploy.'},
+    {label:'Accuracy (a few percent improvement)',result:'Random Forest + GBM soft voting. Good accuracy with reasonable speed.'},
+  ]},
+  {q:'What type of model is overfitting?',opts:[
+    {label:'Decision tree / deep model (high variance)',result:'Bagging. Train 50-200 identical models on bootstrap samples. Set oob_score=True for free validation.'},
+    {label:'Linear model / shallow model (high bias)',result:'Boosting (AdaBoost or GBM). Sequential learners correct systematic errors that bagging cannot fix.'},
+  ]},
+  {q:'Do you need fast training or can you wait?',opts:[
+    {label:'Fast training needed',result:'Blending. Three-way split: train base models, train meta-model on blend set. Use weighted average blending for maximum speed.'},
+    {label:'Training time is not a constraint',result:'Full stacking with 5-fold CV. Use diverse base models (RF + GBM + LR + SVM) and a simple LogisticRegression meta-model.'},
+  ]},
+];
+
+function showDecision(step){
+  decisionStep=step;var node=decisionTree[step];
+  if(node.result){
+    C('decision-question').textContent='Recommendation:';
+    C('decision-options').innerHTML='';
+    C('decision-result').style.display='block';
+    C('decision-result').innerHTML='<div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent);margin-bottom:8px;">Use: '+node.result.split('.')[0]+'</div><div style="font-size:13.5px;color:var(--text-2);line-height:1.6;">'+node.result+'</div>';
+  } else {
+    C('decision-question').textContent=node.q;
+    C('decision-options').innerHTML=node.opts.map(function(o,i){
+      return '<button class="ctrl-btn" style="text-align:left;padding:10px 16px;width:100%;justify-content:flex-start;font-size:13px;" onclick="showDecision('+(o.next!==undefined?o.next:-1-i)+')">'+o.label+'</button>';
+    }).join('');
+    // patch: handle inline result
+    node.opts.forEach(function(o,i){
+      if(o.result){decisionTree[-1-i]={result:o.result};}
+    });
+    C('decision-result').style.display='none';
+  }
+}
+function resetDecision(){showDecision(0);}
+
+var SNIPPETS=[
+{file:"bias_variance.py",label:"Bias-variance tradeoff",code:"# Bias-Variance decomposition\n# Error = Bias^2 + Variance + Irreducible noise\n#\n# Bias:     how far avg prediction is from truth (underfitting)\n# Variance: how much prediction changes across datasets (overfitting)\n# Goal:     find model complexity that minimises bias^2 + variance\n\nfrom sklearn.datasets import make_regression\nfrom sklearn.tree import DecisionTreeRegressor\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.preprocessing import PolynomialFeatures\nfrom sklearn.pipeline import Pipeline\nimport numpy as np\n\n# True function: y = sin(x) + noise\nnp.random.seed(42)\nn_trials = 50\nx_test = np.linspace(-3, 3, 100).reshape(-1, 1)\ny_true = np.sin(x_test).ravel()\n\nmodels = {\n    'Linear (high bias)':    LinearRegression(),\n    'Poly-10 (high var)':    Pipeline([('poly', PolynomialFeatures(10)), ('lr', LinearRegression())]),\n    'DecTree depth=2':       DecisionTreeRegressor(max_depth=2),\n    'DecTree depth=8':       DecisionTreeRegressor(max_depth=8),\n}\n\nprint(f\"{'Model':<25}  {'Bias^2':>8}  {'Variance':>10}  {'Total':>8}\")\nprint(\"-\" * 58)\n\nfor name, model in models.items():\n    preds = []\n    for seed in range(n_trials):\n        np.random.seed(seed)\n        x_tr = np.random.uniform(-3, 3, 80).reshape(-1, 1)\n        y_tr = np.sin(x_tr).ravel() + np.random.normal(0, 0.3, 80)\n        model.fit(x_tr, y_tr)\n        preds.append(model.predict(x_test))\n\n    preds = np.array(preds)\n    mean_pred = preds.mean(axis=0)\n    bias_sq = np.mean((mean_pred - y_true) ** 2)\n    variance = np.mean(preds.var(axis=0))\n    print(f\"{name:<25}  {bias_sq:>8.4f}  {variance:>10.4f}  {bias_sq+variance:>8.4f}\")\n\nprint()\nprint(\"Key insight:\")\nprint(\"  High bias   -> model too simple, underfits\")\nprint(\"  High variance -> model too complex, overfits\")\nprint(\"  Ensemble methods reduce variance (bagging) or bias (boosting)\")\n"},
+{file:"diversity_theorem.py",label:"Diversity theorem",code:"# The Ambiguity Decomposition (diversity theorem)\n# Ensemble error = avg individual error - DIVERSITY\n# More diverse models = lower ensemble error\n#\n# diversity = avg(model_pred - ensemble_pred)^2\n\nimport numpy as np\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.svm import SVC\nfrom sklearn.tree import DecisionTreeClassifier\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y)\nsc = StandardScaler()\nX_train = sc.fit_transform(X_train)\nX_test  = sc.transform(X_test)\n\nmodels = [\n    LogisticRegression(max_iter=1000, random_state=42),\n    RandomForestClassifier(n_estimators=100, random_state=42),\n    GradientBoostingClassifier(n_estimators=100, random_state=42),\n    DecisionTreeClassifier(max_depth=5, random_state=42),\n]\n\nfor m in models:\n    m.fit(X_train, y_train)\n\n# Get probability predictions\nprobs = np.array([m.predict_proba(X_test)[:, 1] for m in models])  # shape: (n_models, n_samples)\nensemble_prob = probs.mean(axis=0)\n\n# Individual errors (MSE on probabilities as proxy)\nindividual_errors = [np.mean((p - y_test) ** 2) for p in probs]\navg_error = np.mean(individual_errors)\n\n# Diversity = mean squared deviation from ensemble\ndiversity = np.mean([np.mean((p - ensemble_prob) ** 2) for p in probs])\n\nensemble_error = np.mean((ensemble_prob - y_test) ** 2)\n\nprint(\"Ambiguity decomposition:\")\nprint(f\"  Avg individual error:  {avg_error:.6f}\")\nprint(f\"  Diversity:             {diversity:.6f}\")\nprint(f\"  Ensemble error:        {ensemble_error:.6f}\")\nprint()\nprint(f\"  avg_error - diversity = {avg_error - diversity:.6f}\")\nprint(f\"  (should match ensemble error)\")\nprint()\nprint(\"Key theorem: ensemble_error = avg_individual_error - diversity\")\nprint(\"More diversity = lower ensemble error, even if individuals stay same!\")\n"},
+{file:"when_to_ensemble.py",label:"When ensembles help",code:"# Ensembles help most when:\n# 1. Models make different errors (diverse)\n# 2. Each model is reasonably accurate (>50%)\n# 3. Dataset is large enough for all models\n#\n# Ensembles DON'T help when:\n# - All models fail on the same examples (correlated errors)\n# - One model is much better than the rest\n\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import cross_val_score\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.ensemble import VotingClassifier, RandomForestClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.svm import SVC\nfrom sklearn.tree import DecisionTreeClassifier\nimport numpy as np\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nsc = StandardScaler()\nX_s = sc.fit_transform(X)\n\n# Scenario 1: Diverse models (good for ensembles)\ndiverse = VotingClassifier(estimators=[\n    ('lr',  LogisticRegression(max_iter=1000, random_state=42)),\n    ('rf',  RandomForestClassifier(n_estimators=100, random_state=42)),\n    ('svm', SVC(probability=True, random_state=42)),\n], voting='soft')\n\n# Scenario 2: Similar models (less benefit)\nsimilar = VotingClassifier(estimators=[\n    ('lr1', LogisticRegression(C=0.1, max_iter=1000)),\n    ('lr2', LogisticRegression(C=1.0, max_iter=1000)),\n    ('lr3', LogisticRegression(C=10,  max_iter=1000)),\n], voting='soft')\n\n# Scenario 3: One strong model dominates\nstrong_only = RandomForestClassifier(n_estimators=200, random_state=42)\n\nprint(f\"{'Model':<30}  {'CV Acc':>8}  {'Std':>6}\")\nprint(\"-\" * 48)\nfor name, model in [\n    (\"LR alone\",       LogisticRegression(max_iter=1000, random_state=42)),\n    (\"RF alone\",       RandomForestClassifier(n_estimators=100, random_state=42)),\n    (\"SVM alone\",      SVC(probability=True, random_state=42)),\n    (\"Diverse ensemble\", diverse),\n    (\"Similar ensemble\", similar),\n    (\"Strong RF (200)\", strong_only),\n]:\n    s = cross_val_score(model, X_s, y, cv=5)\n    print(f\"{name:<30}  {s.mean():>8.4f}  {s.std():>6.4f}\")\n\nprint()\nprint(\"Diverse ensemble > similar ensemble, even with same individual models.\")\nprint(\"Strong single model may beat a diverse ensemble if gap is large enough.\")\n"},
+{file:"ensemble_selection.py",label:"Choosing an ensemble",code:"# Quick guide: which ensemble method to use when?\n#\n# Bagging:   high-variance model + clean data + want stability\n# Boosting:  sequential, reduces bias, great on tabular data\n# Voting:    quick, model-agnostic, good first ensemble to try\n# Stacking:  most powerful, needs enough data, slow to build\n\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import cross_val_score\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.ensemble import (BaggingClassifier, AdaBoostClassifier,\n                               GradientBoostingClassifier, RandomForestClassifier,\n                               VotingClassifier, StackingClassifier)\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.svm import SVC\nfrom sklearn.tree import DecisionTreeClassifier\nimport numpy as np\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nsc = StandardScaler()\nX_s = sc.fit_transform(X)\n\nbase = [\n    ('lr',  LogisticRegression(max_iter=1000, random_state=42)),\n    ('rf',  RandomForestClassifier(n_estimators=50, random_state=42)),\n    ('svm', SVC(probability=True, random_state=42)),\n]\n\nmethods = {\n    \"Bagging (100 trees)\":      BaggingClassifier(n_estimators=100, n_jobs=-1, random_state=42),\n    \"AdaBoost (100 stumps)\":    AdaBoostClassifier(n_estimators=100, random_state=42),\n    \"GBM (100 trees)\":          GradientBoostingClassifier(n_estimators=100, random_state=42),\n    \"Random Forest (100)\":      RandomForestClassifier(n_estimators=100, n_jobs=-1, random_state=42),\n    \"Soft Voting\":              VotingClassifier(estimators=base, voting='soft'),\n    \"Stacking (LR meta)\":       StackingClassifier(estimators=base,\n                                    final_estimator=LogisticRegression(max_iter=1000), cv=5),\n}\n\nprint(f\"{'Method':<25}  {'5-fold CV':>10}  {'Std':>7}\")\nprint(\"-\" * 46)\nfor name, m in methods.items():\n    s = cross_val_score(m, X_s, y, cv=5)\n    print(f\"{name:<25}  {s.mean():>10.4f}  {s.std():>7.4f}\")\n\nprint()\nprint(\"Start with Random Forest or GBM for tabular data.\")\nprint(\"Add stacking for competition-style accuracy maximisation.\")\nprint(\"Soft voting when you need speed and interpretability.\")\n"}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return'<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){var btn=C('run-btn'),out=C('editor-output');var code=cmEditor?cmEditor.getValue():'';btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';var t0=Date.now();if(!pyodide){var st=C('py-status');st.textContent='Loading...';try{if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}st.textContent='Python ready';st.className='py-status ready';}catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}}out.textContent='Running...';try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}btn.disabled=false;btn.textContent='Run';}
+function initEditor(){(function trySetup(){if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}buildTabs();var mount=C('cm-editor-mount');if(!mount)return;cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});cmEditor.setSize('100%',null);setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);})();}
+window.addEventListener('load',function(){
+  drawBVCanvas(); drawVarReduction(); drawDiversityCanvas(); drawCondorcet(); resetDecision(); initEditor();
+  new MutationObserver(function(){drawBVCanvas();drawVarReduction();drawDiversityCanvas();drawCondorcet();if(cmEditor)cmEditor.refresh();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

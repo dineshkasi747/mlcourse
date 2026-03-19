@@ -1,0 +1,1721 @@
+<!-- lasso-regression.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lasso Regression — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(52,211,153,0.09),rgba(16,185,129,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(52,211,153,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--teal);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .3s;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:18px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:#34d399;font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:rgba(52,211,153,0.1);border:1.5px solid #34d399;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:#34d399;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid #34d399;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .ridge-lasso-compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+    .rl-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:20px;}
+    .rl-card.ridge{border-color:rgba(139,92,246,0.4);}
+    .rl-card.lasso{border-color:rgba(52,211,153,0.4);}
+    .rl-title{font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:12px;}
+    .rl-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
+    .rl-row:last-child{border-bottom:none;}
+    .rl-key{color:var(--text-3);}
+    .rl-val{font-weight:600;color:var(--text-1);}
+    .feature-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+    .feature-badge{padding:4px 10px;border-radius:100px;font-size:11.5px;font-weight:600;font-family:var(--font-mono);transition:all .3s;}
+    .fb-active{background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3);}
+    .fb-zero{background:var(--bg-input);color:var(--text-3);border:1px solid var(--border);text-decoration:line-through;opacity:0.5;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(52,211,153,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#059669;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}.ridge-lasso-compare{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="lasso-regression">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Lasso Regression</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <span class="current">Lasso Regression</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(52,211,153,.3);background:rgba(52,211,153,0.08);color:#34d399;margin-bottom:14px;">Regularisation · L1 · Feature Selection</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Lasso Regression (L1)</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Ridge shrinks coefficients. Lasso <strong>kills them outright</strong>.
+              By penalising the sum of absolute values instead of squares, Lasso drives
+              irrelevant feature coefficients to <em>exactly zero</em> —
+              automatically selecting only the features that matter.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 20 min</span>
+              <span class="topic-meta-item">◆ Intermediate</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — INTUITION -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">✂</div>
+              Intuition — the automatic feature eraser
+            </h2>
+            <p>
+              Imagine you have 50 features but only 5 actually predict the target.
+              Ridge will shrink all 50 coefficients a little — you still have 50 features in your model.
+              Lasso will shrink 45 of them all the way to <strong>exactly zero</strong>,
+              leaving you with a clean 5-feature model that's easy to interpret and deploy.
+            </p>
+            <p>
+              This is the single most important difference between Ridge and Lasso:
+              <strong>Lasso does automatic feature selection</strong>. It's not just regularisation —
+              it's a built-in variable selector.
+            </p>
+
+            <div class="callout info">
+              <span class="callout-icon">🧠</span>
+              <p><strong>Why does L1 produce zeros but L2 doesn't?</strong>
+              The L1 penalty (|β|) has a sharp corner at zero — the gradient jumps from −1 to +1 right at β=0.
+              This corner is like a trap: once a coefficient gets close to zero,
+              the penalty actively pulls it to exactly zero and keeps it there.
+              The L2 penalty (β²) has a smooth curve — its gradient near zero is nearly flat, so
+              coefficients just get pushed close to zero but never quite reach it.</p>
+            </div>
+
+            <!-- LIVE FEATURE SELECTION DEMO -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Watch features get eliminated as alpha increases</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">alpha:</span>
+                  <input type="range" min="0" max="1" value="0" step="0.01" class="ctrl-slider"
+                    id="lasso-alpha-slider" oninput="onLassoAlpha(this.value)" style="width:120px;"/>
+                  <span class="ctrl-value" id="lasso-alpha-val" style="color:#34d399;">0.00</span>
+                </div>
+                <button class="ctrl-btn active" onclick="animateLassoAlpha()">▶ Animate</button>
+              </div>
+              <canvas id="lasso-shrink-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;">
+                <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">Active features (non-zero coefficients):</div>
+                <div class="feature-badges" id="feature-badges"></div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ls-active" style="color:#34d399;">—</span><span class="stat-pill-lbl">Active features</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ls-zeroed" style="color:var(--red);">—</span><span class="stat-pill-lbl">Zeroed out</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ls-train-r2">—</span><span class="stat-pill-lbl">Train R²</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ls-test-r2" style="color:var(--green);">—</span><span class="stat-pill-lbl">Test R²</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — DIAMOND GEOMETRY -->
+          <section class="section" id="geometry">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">◆</div>
+              Geometry — the diamond creates exact zeros
+            </h2>
+            <p>
+              This is <strong>the most important visualisation in all of regularisation</strong>.
+              Ridge uses a circle (L2 ball). Lasso uses a diamond (L1 ball).
+              The diamond has sharp corners that sit exactly on the axes.
+              The loss contours (ellipses) almost always hit the diamond at a corner —
+              right where one coefficient is exactly zero.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">L1 diamond vs L2 circle — why Lasso creates exact zeros</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">alpha:</span>
+                  <input type="range" min="0.1" max="3" value="1.0" step="0.05" class="ctrl-slider"
+                    id="geom-alpha" oninput="drawDiamondGeometry(this.value)" style="width:110px;"/>
+                  <span class="ctrl-value" id="geom-alpha-val" style="color:#34d399;">1.00</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Show:</span>
+                  <button class="ctrl-btn active" id="show-lasso-btn" onclick="toggleGeomMode('lasso')">Lasso (L1)</button>
+                  <button class="ctrl-btn" id="show-ridge-btn" onclick="toggleGeomMode('ridge')">Ridge (L2)</button>
+                  <button class="ctrl-btn" id="show-both-btn" onclick="toggleGeomMode('both')">Both</button>
+                </div>
+              </div>
+              <canvas id="geom-canvas" width="700" height="380" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12.5px;color:var(--text-3);">
+                Green dot = Lasso solution (hits corner → β₂ = 0 exactly) &nbsp;·&nbsp;
+                Purple dot = Ridge solution (on smooth circle → β₂ near but not zero) &nbsp;·&nbsp;
+                Drag alpha to resize the constraint region
+              </div>
+            </div>
+
+            <div class="callout success">
+              <span class="callout-icon">💡</span>
+              <p><strong>Key insight for beginners:</strong> A circle has no corners — when you shrink it,
+              it's almost impossible for the minimum of an arbitrary loss function to land exactly on an axis.
+              A diamond has sharp corners that sit exactly on the axes (where β=0).
+              Shrinking the diamond almost always makes the solution snap to a corner — giving you an exact zero.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — COORDINATE DESCENT ANIMATION -->
+          <section class="section" id="coord-descent">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">↕</div>
+              Coordinate descent — how Lasso is actually solved
+            </h2>
+            <p>
+              Unlike Ridge which has a neat closed-form formula, Lasso has no closed-form solution because
+              |β| is not differentiable at zero. The standard solver is <strong>coordinate descent</strong>:
+              optimise one coefficient at a time, holding all others fixed, cycling through all features
+              until convergence.
+            </p>
+            <p>
+              Each single-feature update has a clean analytical solution called
+              <strong>soft thresholding</strong>: if the OLS coefficient for that feature would be
+              smaller than the penalty, set it to zero. Otherwise, shrink it toward zero by the penalty amount.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Coordinate descent — animated step by step</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">alpha:</span>
+                  <input type="range" min="0.05" max="0.8" value="0.2" step="0.05" class="ctrl-slider"
+                    id="cd-alpha" oninput="resetCD()" style="width:100px;"/>
+                  <span class="ctrl-value" id="cd-alpha-val" style="color:#34d399;">0.20</span>
+                </div>
+                <button class="ctrl-btn active" onclick="runCDStep()">▶ One step</button>
+                <button class="ctrl-btn active" onclick="runCDFull()">⏩ Run to convergence</button>
+                <button class="ctrl-btn" onclick="resetCD()">↺ Reset</button>
+              </div>
+              <canvas id="cd-canvas" width="700" height="360" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cd-iter" style="color:#34d399;">0</span><span class="stat-pill-lbl">Iterations</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cd-b1">—</span><span class="stat-pill-lbl">beta_1</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cd-b2">—</span><span class="stat-pill-lbl">beta_2</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cd-loss">—</span><span class="stat-pill-lbl">Lasso Loss</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cd-converged" style="font-size:12px;">Not converged</span><span class="stat-pill-lbl">Status</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — RIDGE vs LASSO COMPARE -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">⚡</div>
+              Ridge vs Lasso — side-by-side regularisation paths
+            </h2>
+            <p>
+              The most instructive comparison: as alpha increases, Ridge smoothly shrinks all coefficients
+              toward (but never reaching) zero. Lasso aggressively drives coefficients to exactly zero,
+              one by one, dropping features from the model entirely.
+            </p>
+            <div class="ridge-lasso-compare">
+              <div class="rl-card ridge">
+                <div class="rl-title" style="color:#a78bfa;">Ridge (L2)</div>
+                <div class="rl-row"><span class="rl-key">Penalty</span><span class="rl-val">||β||² = Σβ²</span></div>
+                <div class="rl-row"><span class="rl-key">Shape</span><span class="rl-val">Circle (smooth)</span></div>
+                <div class="rl-row"><span class="rl-key">Exact zeros?</span><span class="rl-val" style="color:var(--red);">Never</span></div>
+                <div class="rl-row"><span class="rl-key">Feature selection?</span><span class="rl-val" style="color:var(--red);">No</span></div>
+                <div class="rl-row"><span class="rl-key">Best when</span><span class="rl-val">Many small effects</span></div>
+                <div class="rl-row"><span class="rl-key">Solver</span><span class="rl-val">Closed form (fast)</span></div>
+              </div>
+              <div class="rl-card lasso">
+                <div class="rl-title" style="color:#34d399;">Lasso (L1)</div>
+                <div class="rl-row"><span class="rl-key">Penalty</span><span class="rl-val">||β||₁ = Σ|β|</span></div>
+                <div class="rl-row"><span class="rl-key">Shape</span><span class="rl-val">Diamond (corners)</span></div>
+                <div class="rl-row"><span class="rl-key">Exact zeros?</span><span class="rl-val" style="color:var(--green);">Yes!</span></div>
+                <div class="rl-row"><span class="rl-key">Feature selection?</span><span class="rl-val" style="color:var(--green);">Yes</span></div>
+                <div class="rl-row"><span class="rl-key">Best when</span><span class="rl-val">Sparse: few true features</span></div>
+                <div class="rl-row"><span class="rl-key">Solver</span><span class="rl-val">Coordinate descent</span></div>
+              </div>
+            </div>
+
+            <!-- Side by side path comparison -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Regularisation paths — Ridge vs Lasso</span>
+                <select class="ctrl-select" id="path-nfeatures" onchange="drawBothPaths()">
+                  <option value="6">6 features (2 true)</option>
+                  <option value="10">10 features (3 true)</option>
+                  <option value="15">15 features (4 true)</option>
+                </select>
+                <button class="ctrl-btn active" onclick="animateBothPaths()">▶ Animate</button>
+              </div>
+              <canvas id="path-canvas" width="700" height="340" style="width:100%;display:block;"></canvas>
+              <div style="padding:8px 18px;font-size:12px;color:var(--text-3);">
+                Top: Lasso path — features drop to zero one by one.  &nbsp;Bottom: Ridge path — all converge smoothly.
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — HYPERPARAMETER TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">⚙</div>
+              Hyperparameter tuning — alpha controls sparsity
+            </h2>
+            <p>
+              Lasso's alpha controls how many features survive. Small alpha = nearly OLS (all features kept).
+              Large alpha = very sparse (few features kept). Use <strong>LassoCV</strong> to find the
+              alpha that gives the best cross-validated score while achieving useful sparsity.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="hp-r2" style="color:#34d399;">—</div>
+                <div class="acc-label">Test R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-r2-bar" style="background:#34d399;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-active" style="color:var(--blue);">—</div>
+                <div class="acc-label">Active features</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-active-bar" style="background:var(--blue);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-sparsity" style="color:var(--accent);">—</div>
+                <div class="acc-label">Sparsity %</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-sparsity-bar" style="background:var(--accent);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-status" style="font-size:16px;color:var(--green);">—</div>
+                <div class="acc-label">Fit Status</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-status-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">⚙ Controls — drag alpha up to watch features disappear</div>
+              <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">Set alpha=0 to see all features active, then slowly increase to watch elimination in real time</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">alpha (L1 penalty)</span><span class="hp-val" id="hp-alpha-val">0.1</span></div>
+                  <input type="range" min="0" max="1" value="0.1" step="0.01" class="ctrl-slider" id="hp-alpha" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">The key knob. Small = dense model. Large = sparse model (few features).</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">True features (signal)</span><span class="hp-val" id="hp-true-val">3</span></div>
+                  <input type="range" min="1" max="8" value="3" step="1" class="ctrl-slider" id="hp-true" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">How many features actually predict y. The rest are pure noise.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Total features (p)</span><span class="hp-val" id="hp-p-val">10</span></div>
+                  <input type="range" min="3" max="20" value="10" step="1" class="ctrl-slider" id="hp-p" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Total features including noise. p - true_features = noise features.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Noise level (sigma)</span><span class="hp-val" id="hp-noise-val">0.5</span></div>
+                  <input type="range" min="0.1" max="3" value="0.5" step="0.1" class="ctrl-slider" id="hp-noise" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More noise makes feature selection harder — true features harder to distinguish.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Active features badge panel -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Live feature selection — which features survive?</span>
+              </div>
+              <canvas id="hp-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div style="padding:12px 18px;">
+                <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">Feature survival status:</div>
+                <div class="feature-badges" id="hp-feature-badges"></div>
+              </div>
+            </div>
+
+            <!-- Alpha sweep -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Alpha sweep — test R² and active features vs alpha</span>
+                <button class="ctrl-btn active" onclick="runAlphaSweep()">▶ Run sweep</button>
+                <span id="sweep-status" style="font-size:12px;color:var(--text-3);margin-left:8px;"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 6 — MATH -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">∑</div>
+              The math — L1 penalty and soft thresholding
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Lasso objective function</div>
+                  <div class="derive-desc">Replace Ridge's squared penalty (||β||²) with absolute value penalty (||β||₁). This small change causes dramatically different behaviour — exact zeros become possible.</div>
+                  <div class="derive-formula">Lasso loss = ||y - Xβ||²  +  alpha · ||β||₁
+             fitting error      L1 penalty = sum of |β_j|
+
+vs Ridge:  ||y - Xβ||²  +  alpha · ||β||²
+                                  L2 penalty = sum of β_j²</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Why no closed form? The kink at zero</div>
+                  <div class="derive-desc">|β| is not differentiable at β=0. You can't just set the gradient to zero and solve like OLS/Ridge. Instead, use the <strong>subdifferential</strong> (generalised gradient). The solution exists but requires an iterative algorithm.</div>
+                  <div class="derive-formula">d/dβ |β| = {  -1  if β < 0
+              {  +1  if β > 0
+              { [-1, +1]  if β = 0  ← not a single value!
+
+This "kink" is why L1 creates exact zeros:
+the subdifferential can equal zero at β=0 exactly.</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Coordinate descent update — soft thresholding</div>
+                  <div class="derive-desc">Update one coefficient at a time. For feature j, compute the OLS residual ignoring j (the "partial residual"), then apply soft thresholding: if the raw estimate is smaller than alpha/2, set to zero. Otherwise shrink by alpha/2.</div>
+                  <div class="derive-formula">Partial residual: r_j = y - X_{-j} β_{-j}
+OLS update:       rho_j = X_j · r_j / ||X_j||²
+
+Soft threshold:   β_j = S(rho_j, alpha/(2||X_j||²))
+where S(z, t) = sign(z) · max(|z| - t, 0)
+              = 0   if |z| <= t   (zero out small coefficients!)
+              = z-t if z > t      (shrink positive coefficient)
+              = z+t if z < -t     (shrink negative coefficient)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Why soft thresholding creates exact zeros</div>
+                  <div class="derive-desc">If the "signal" for feature j (the partial correlation with residuals) is smaller than the penalty threshold, the feature is zeroed out completely. The penalty is strong enough to overcome the signal entirely.</div>
+                  <div class="derive-formula">If |X_j · r_j| < alpha/2:  set β_j = 0  (feature eliminated!)
+
+Intuition: feature j explains less variance than it costs
+in penalty — not worth keeping in the model.
+
+Ridge: β_j = rho_j / (1 + alpha)  ← always nonzero
+Lasso: β_j = S(rho_j, alpha/2)    ← zero when signal weak</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">lasso_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not scaling before Lasso.</strong> Just like Ridge, Lasso penalises coefficient size — but a feature in large units will have a tiny coefficient and escape the penalty unfairly. Always StandardScaler before Lasso.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using Lasso when features are correlated.</strong> With correlated features, Lasso arbitrarily keeps one and zeros the other. The kept feature depends on tiny data fluctuations. Use ElasticNet (ridge + lasso combined) for correlated features.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Trusting zeroed features are truly irrelevant.</strong> With a small dataset, Lasso may zero out a feature that matters. Always validate feature selection stability with bootstrap resampling or stability selection.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Setting max_iter too low.</strong> Lasso uses coordinate descent which can need many iterations on large datasets. If you see a ConvergenceWarning, increase max_iter (default 1000, try 10000) or increase tol.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Forgetting that alpha in sklearn is alpha/(2n).</strong> sklearn's Lasso uses loss = (1/2n)||y-Xβ||² + alpha||β||₁. The 1/n scaling means optimal alpha depends on dataset size. LassoCV handles this correctly.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Lasso adds <strong>alpha · ||β||₁</strong> (sum of absolute values). This L1 penalty creates exact zeros — automatic feature selection.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The <strong>diamond shape</strong> of the L1 ball is why zeros happen: its corners sit exactly on the axes, and loss contours almost always hit a corner first.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Lasso is solved with <strong>coordinate descent + soft thresholding</strong>. If a feature's signal is weaker than the penalty, it gets zeroed out completely.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use Lasso when you believe <strong>few features truly matter</strong> out of many. Use Ridge when all features contribute a little. Use ElasticNet for both.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always scale features first.</strong> Use LassoCV for automatic alpha selection. Watch for ConvergenceWarning and increase max_iter if needed.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>With correlated features, Lasso unstably picks one and drops the other. <strong>ElasticNet</strong> (next topic) fixes this by combining L1 + L2.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="ridge-regression.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Ridge Regression</span>
+            </a>
+            <a class="pn-card next" href="elasticnet-regression.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">ElasticNet Regression</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Intuition</a></li>
+            <li class="toc-item"><a href="#geometry">Diamond geometry</a></li>
+            <li class="toc-item"><a href="#coord-descent">Coordinate descent</a></li>
+            <li class="toc-item"><a href="#comparison">Ridge vs Lasso</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#math">The math</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ── helpers ── */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* seeded RNG */
+var _seed=42;
+function srnd(){_seed=(_seed*1664525+1013904223)&0xffffffff;return(_seed>>>0)/0xffffffff;}
+function rseed(s){_seed=s||42;}
+
+/* r2 helper */
+function r2score(y,yh){
+  var m=y.reduce(function(a,b){return a+b;},0)/y.length;
+  var st=y.reduce(function(s,v){return s+(v-m)*(v-m);},0);
+  var sr=y.reduce(function(s,v,i){return s+(v-yh[i])*(v-yh[i]);},0);
+  return st>0?1-sr/st:1;
+}
+
+/* soft threshold */
+function softThresh(z,t){
+  if(z>t) return z-t;
+  if(z<-t) return z+t;
+  return 0;
+}
+
+/* ── Lasso via coordinate descent ── */
+function lassoCD(X,y,alpha,maxIter,tol){
+  maxIter=maxIter||500; tol=tol||1e-6;
+  var n=X.length, p=X[0].length;
+  var beta=new Array(p).fill(0);
+  var colNorms=[];
+  for(var j=0;j<p;j++){
+    var s=0;for(var i=0;i<n;i++) s+=X[i][j]*X[i][j];
+    colNorms.push(s);
+  }
+  for(var iter=0;iter<maxIter;iter++){
+    var maxChange=0;
+    for(var j=0;j<p;j++){
+      var oldBj=beta[j];
+      // partial residual
+      var rho=0;
+      for(var i=0;i<n;i++){
+        var res=y[i];
+        for(var k=0;k<p;k++) if(k!==j) res-=X[i][k]*beta[k];
+        rho+=X[i][j]*res;
+      }
+      var newBj=colNorms[j]>1e-10?softThresh(rho/colNorms[j],alpha/(2*colNorms[j])):0;
+      beta[j]=newBj;
+      maxChange=Math.max(maxChange,Math.abs(newBj-oldBj));
+    }
+    if(maxChange<tol) break;
+  }
+  return beta;
+}
+
+/* ── Generate sparse dataset ── */
+function makeSparseDataset(n,pTotal,pTrue,noise,seed_){
+  rseed(seed_||42);
+  var X=[], y=[];
+  var truCoefs=[];
+  for(var j=0;j<pTotal;j++){
+    truCoefs.push(j<pTrue?(srnd()*4-2):0);
+  }
+  for(var i=0;i<n;i++){
+    var row=[];
+    for(var j=0;j<pTotal;j++) row.push(srnd()*2-1);
+    X.push(row);
+    var pred=0;
+    for(var j=0;j<pTotal;j++) pred+=row[j]*truCoefs[j];
+    y.push(pred+(srnd()-0.5)*2*noise);
+  }
+  // normalise columns
+  for(var j=0;j<pTotal;j++){
+    var m=X.reduce(function(s,r){return s+r[j];},0)/n;
+    var s=Math.sqrt(X.reduce(function(s,r){return s+(r[j]-m)*(r[j]-m);},0)/n)||1;
+    X.forEach(function(r){r[j]=(r[j]-m)/s;});
+  }
+  var ym=y.reduce(function(a,b){return a+b;},0)/n;
+  var ys=Math.sqrt(y.reduce(function(s,v){return s+(v-ym)*(v-ym);},0)/n)||1;
+  y=y.map(function(v){return (v-ym)/ys;});
+  return{X:X,y:y,trueCoefs:truCoefs,pTrue:pTrue};
+}
+
+/* ════ SECTION 1 — LASSO SHRINKAGE DEMO ════ */
+var lassoData=null;
+var lassoOLSCoefs=null;
+var animLassoTimer=null;
+
+function initLassoData(){
+  rseed(42);
+  var n=80,p=8;
+  lassoData=makeSparseDataset(n,p,3,0.6,42);
+  // OLS
+  lassoOLSCoefs=lassoCD(lassoData.X,lassoData.y,0,1000,1e-8);
+}
+
+function onLassoAlpha(v){
+  v=parseFloat(v);
+  C('lasso-alpha-val').textContent=v.toFixed(2);
+  drawLassoShrink(v);
+}
+
+async function animateLassoAlpha(){
+  if(animLassoTimer){clearInterval(animLassoTimer);animLassoTimer=null;return;}
+  var step=0,steps=100;
+  animLassoTimer=setInterval(function(){
+    var val=step/steps;
+    C('lasso-alpha-slider').value=val;
+    onLassoAlpha(val);
+    step++;
+    if(step>steps){clearInterval(animLassoTimer);animLassoTimer=null;}
+  },35);
+}
+
+function drawLassoShrink(alpha){
+  if(!lassoData) return;
+  var d=lassoData;
+  var n=d.X.length,p=d.X[0].length;
+  var tn=Math.floor(n*0.8);
+  var Xtr=d.X.slice(0,tn),ytr=d.y.slice(0,tn);
+  var Xte=d.X.slice(tn),yte=d.y.slice(tn);
+
+  var coefs=lassoCD(Xtr,ytr,alpha,500,1e-6);
+  var olsCoefs=lassoOLSCoefs||coefs;
+
+  var trainPreds=Xtr.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+  var testPreds=Xte.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+  var trainR2=Math.max(0,r2score(ytr,trainPreds));
+  var testR2=Math.max(-0.5,r2score(yte,testPreds));
+
+  var active=coefs.filter(function(c){return Math.abs(c)>1e-5;}).length;
+  var zeroed=p-active;
+
+  C('ls-active').textContent=active;
+  C('ls-zeroed').textContent=zeroed;
+  C('ls-train-r2').textContent=trainR2.toFixed(3);
+  C('ls-test-r2').textContent=testR2.toFixed(3);
+  C('ls-test-r2').style.color=testR2>0.5?'var(--green)':testR2>0.2?'var(--accent)':'var(--red)';
+
+  // Feature badges
+  var FEAT_NAMES=['BMI','blood_pressure','cholesterol','insulin','glucose','age','skin','s6'];
+  var badgesEl=C('feature-badges');
+  badgesEl.innerHTML=coefs.map(function(c,j){
+    var isActive=Math.abs(c)>1e-5;
+    var isTrue=j<d.pTrue;
+    var cls=isActive?'fb-active':'fb-zero';
+    var extra=isTrue&&isActive?' (signal)':isTrue&&!isActive?' (missed!)':'';
+    return '<span class="feature-badge '+cls+'">'+FEAT_NAMES[j]+(isActive?': '+c.toFixed(3):'=0')+extra+'</span>';
+  }).join('');
+
+  // Canvas
+  var cv=C('lasso-shrink-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:20,b:30};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var maxC=Math.max.apply(null,(olsCoefs||coefs).map(Math.abs))||1;
+  var barH=(H-pad.t-pad.b)/p-5;
+  var cx=W*0.4;
+  var colors=['#34d399','#60a5fa','#fb923c','#f06060','#f0a500','#e879f9','#a78bfa','#2dd4bf'];
+
+  coefs.forEach(function(c,j){
+    var olsC=(olsCoefs||coefs)[j];
+    var y0=pad.t+j*(barH+5);
+    var isTrue=j<d.pTrue;
+
+    // Background track (OLS extent)
+    var olsW=Math.abs(olsC)/maxC*(W-pad.l-pad.r)*0.55;
+    ctx.fillStyle=bgIn();
+    ctx.fillRect(olsC>=0?cx:cx-olsW,y0,olsW,barH);
+
+    // Current lasso bar
+    var isZero=Math.abs(c)<1e-5;
+    if(!isZero){
+      var ridgeW=Math.abs(c)/maxC*(W-pad.l-pad.r)*0.55;
+      ctx.fillStyle=colors[j%colors.length];
+      ctx.globalAlpha=0.85;
+      ctx.fillRect(c>=0?cx:cx-ridgeW,y0,ridgeW,barH);
+      ctx.globalAlpha=1;
+    } else {
+      // Zero indicator — vertical line at cx
+      ctx.fillStyle='rgba(240,96,96,0.6)';
+      ctx.fillRect(cx-1,y0,2,barH);
+    }
+
+    // Labels
+    var FEAT_NAMES2=['BMI','blood_p.','cholest.','insulin','glucose','age','skin','s6'];
+    ctx.fillStyle=isZero?'rgba(240,96,96,0.5)':tc();
+    ctx.font=isZero?'11px sans-serif':'11px sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText((isTrue?'*':'')+FEAT_NAMES2[j],cx-4,y0+barH/2+4);
+
+    // Value
+    if(!isZero){
+      ctx.fillStyle=colors[j%colors.length];ctx.font='bold 10px monospace';ctx.textAlign='left';
+      ctx.fillText(c.toFixed(3),cx+Math.abs(c)/maxC*(W-pad.l-pad.r)*0.55+5,y0+barH/2+4);
+    } else {
+      ctx.fillStyle='var(--red)';ctx.font='bold 10px monospace';ctx.textAlign='left';
+      ctx.fillText('= 0 (eliminated)',cx+6,y0+barH/2+4);
+    }
+  });
+
+  // Legend
+  ctx.fillStyle='#34d399';ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('* = true signal feature',pad.l,H-4);
+  ctx.fillStyle=tc();ctx.textAlign='center';
+  ctx.fillText('alpha = '+alpha.toFixed(2)+' | active: '+active+'/'+p,W*0.7,16);
+
+  // Centre zero line
+  ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,H-pad.b);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 2 — DIAMOND GEOMETRY ════ */
+var geomMode='lasso';
+function toggleGeomMode(m){
+  geomMode=m;
+  ['lasso','ridge','both'].forEach(function(k){
+    C('show-'+k+'-btn').classList.toggle('active',k===m);
+  });
+  drawDiamondGeometry(C('geom-alpha').value);
+}
+
+function drawDiamondGeometry(alphaStr){
+  var alpha=parseFloat(alphaStr);
+  C('geom-alpha-val').textContent=alpha.toFixed(2);
+  var cv=C('geom-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var cx=W/2,cy=H/2,sc=75;
+  var radius=Math.max(10,sc*2.2/(1+alpha*0.9));
+
+  // Axes
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx-220,cy);ctx.lineTo(cx+220,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy-190);ctx.lineTo(cx,cy+190);ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';
+  ctx.textAlign='center';ctx.fillText('beta_1',cx+210,cy-8);
+  ctx.textAlign='left';ctx.fillText('beta_2',cx+8,cy-180);
+
+  // Grid numbers
+  [-2,-1,1,2].forEach(function(v){
+    ctx.fillStyle=tc();ctx.font='10px mono';
+    ctx.textAlign='center';ctx.fillText(v,cx+v*sc,cy+14);
+    ctx.textAlign='right';ctx.fillText(v,cx-6,cy-v*sc+4);
+  });
+
+  // OLS solution
+  var olsB1=1.8,olsB2=1.4;
+  var olsX=cx+olsB1*sc,olsY=cy-olsB2*sc;
+
+  // Loss contours (ellipses around OLS)
+  var ea=sc*1.7,eb=sc*1.05;
+  ctx.strokeStyle=isDark()?'rgba(240,96,96,0.25)':'rgba(200,50,50,0.2)';
+  [0.3,0.6,1.0,1.5,2.2,3.0].forEach(function(r){
+    ctx.beginPath();ctx.ellipse(olsX,olsY,ea*r,eb*r,0.35,0,Math.PI*2);
+    ctx.lineWidth=0.8;ctx.stroke();
+  });
+
+  if(geomMode==='lasso'||geomMode==='both'){
+    // L1 diamond
+    var grd=ctx.createLinearGradient(cx,cy-radius,cx,cy+radius);
+    grd.addColorStop(0,'rgba(52,211,153,0.08)');
+    grd.addColorStop(1,'rgba(52,211,153,0.04)');
+    ctx.beginPath();
+    ctx.moveTo(cx+radius,cy);ctx.lineTo(cx,cy-radius);
+    ctx.lineTo(cx-radius,cy);ctx.lineTo(cx,cy+radius);ctx.closePath();
+    ctx.fillStyle=grd;ctx.fill();
+    ctx.strokeStyle='#34d399';ctx.lineWidth=2.5;ctx.stroke();
+
+    // Lasso solution — hits corner of diamond
+    // The diamond corner on positive beta_1 axis
+    var lassoX=cx+radius,lassoY=cy;  // hits right corner (beta_2=0)
+    if(olsB1<0) lassoX=cx-radius; // adjust for OLS position
+
+    // Arrow
+    ctx.beginPath();ctx.moveTo(olsX,olsY);ctx.lineTo(lassoX,lassoY);
+    ctx.strokeStyle='rgba(52,211,153,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+
+    // Lasso dot
+    ctx.beginPath();ctx.arc(lassoX,lassoY,10,0,Math.PI*2);
+    ctx.fillStyle='#34d399';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+    ctx.fillText('Lasso: beta_2 = 0 exactly!',lassoX+14,lassoY-4);
+    ctx.fillText('(corner of diamond)',lassoX+14,lassoY+10);
+
+    // Arrow pointing to corner with label
+    ctx.fillStyle='rgba(52,211,153,0.8)';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Sharp corner',cx+radius+2,cy+radius+20);
+    ctx.fillText('sits on axis!',cx+radius+2,cy+radius+32);
+  }
+
+  if(geomMode==='ridge'||geomMode==='both'){
+    // L2 circle
+    var ridgeR=radius*(geomMode==='both'?0.85:1);
+    var grd2=ctx.createRadialGradient(cx,cy,0,cx,cy,ridgeR);
+    grd2.addColorStop(0,'rgba(139,92,246,0.08)');
+    grd2.addColorStop(1,'rgba(139,92,246,0.02)');
+    ctx.beginPath();ctx.arc(cx,cy,ridgeR,0,Math.PI*2);
+    ctx.fillStyle=grd2;ctx.fill();
+    ctx.strokeStyle='#a78bfa';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+
+    // Ridge solution on circle
+    var dist=Math.sqrt((olsX-cx)*(olsX-cx)+(olsY-cy)*(olsY-cy));
+    var ridgeX=cx+(olsX-cx)/dist*ridgeR,ridgeY=cy+(olsY-cy)/dist*ridgeR;
+    ctx.beginPath();ctx.arc(ridgeX,ridgeY,10,0,Math.PI*2);
+    ctx.fillStyle='#a78bfa';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+
+    var rB2=(cy-ridgeY)/sc;
+    ctx.fillStyle='#a78bfa';ctx.font='bold 11px sans-serif';
+    ctx.textAlign=geomMode==='both'?'right':'left';
+    var offset=geomMode==='both'?-14:14;
+    ctx.fillText('Ridge: beta_2 = '+rB2.toFixed(2),ridgeX+offset,ridgeY-6);
+    ctx.fillText('(never exactly 0)',ridgeX+offset,ridgeY+8);
+  }
+
+  // OLS dot
+  ctx.beginPath();ctx.arc(olsX,olsY,9,0,Math.PI*2);
+  ctx.fillStyle='#f06060';ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#f06060';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('OLS solution',olsX,olsY-14);
+
+  // Origin
+  ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);
+  ctx.fillStyle=isDark()?'rgba(255,255,255,0.4)':'rgba(0,0,0,0.3)';ctx.fill();
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 3 — COORDINATE DESCENT ANIMATION ════ */
+var cdState={beta:[0,0],iter:0,path:[],converged:false};
+var cdData=null;
+
+function initCDData(){
+  rseed(55);
+  var n=50;
+  var X=[],y=[];
+  for(var i=0;i<n;i++){
+    var x1=srnd()*2-1,x2=srnd()*2-1;
+    X.push([x1,x2]);
+    y.push(1.5*x1-0.8*x2+(srnd()-0.5)*0.4);
+  }
+  // Normalise
+  for(var j=0;j<2;j++){
+    var m=X.reduce(function(s,r){return s+r[j];},0)/n;
+    var s=Math.sqrt(X.reduce(function(s,r){return s+(r[j]-m)*(r[j]-m);},0)/n)||1;
+    X.forEach(function(r){r[j]=(r[j]-m)/s;});
+  }
+  var ym=y.reduce(function(a,b){return a+b;},0)/n;
+  var ys=Math.sqrt(y.reduce(function(s,v){return s+(v-ym)*(v-ym);},0)/n)||1;
+  y=y.map(function(v){return (v-ym)/ys;});
+  cdData={X:X,y:y};
+}
+
+function resetCD(){
+  var alpha=parseFloat(C('cd-alpha').value);
+  C('cd-alpha-val').textContent=alpha.toFixed(2);
+  cdState={beta:[0,0],iter:0,path:[[0,0]],converged:false};
+  C('cd-iter').textContent=0;
+  C('cd-b1').textContent='0.000';
+  C('cd-b2').textContent='0.000';
+  C('cd-converged').textContent='Not converged';
+  C('cd-converged').style.color='var(--text-3)';
+  drawCDCanvas();
+}
+
+function cdLoss(beta,X,y,alpha){
+  var n=X.length;
+  var sse=y.reduce(function(s,yi,i){var pred=X[i][0]*beta[0]+X[i][1]*beta[1];return s+(yi-pred)*(yi-pred);},0);
+  var l1=Math.abs(beta[0])+Math.abs(beta[1]);
+  return sse/n+alpha*l1;
+}
+
+function runCDStep(){
+  if(!cdData||cdState.converged) return;
+  var alpha=parseFloat(C('cd-alpha').value);
+  var X=cdData.X,y=cdData.y,n=X.length;
+  var beta=cdState.beta.slice();
+  var changed=false;
+
+  for(var j=0;j<2;j++){
+    var oldBj=beta[j];
+    var rho=0,colNorm=0;
+    for(var i=0;i<n;i++){
+      var res=y[i];
+      for(var k=0;k<2;k++) if(k!==j) res-=X[i][k]*beta[k];
+      rho+=X[i][j]*res;
+      colNorm+=X[i][j]*X[i][j];
+    }
+    beta[j]=colNorm>1e-10?softThresh(rho/colNorm,alpha/(2*colNorm)):0;
+    if(Math.abs(beta[j]-oldBj)>1e-6) changed=true;
+  }
+
+  cdState.beta=beta;
+  cdState.iter++;
+  cdState.path.push(beta.slice());
+  if(!changed){cdState.converged=true;}
+
+  var loss=cdLoss(beta,X,y,alpha);
+  C('cd-iter').textContent=cdState.iter;
+  C('cd-b1').textContent=beta[0].toFixed(4);
+  C('cd-b2').textContent=beta[1].toFixed(4);
+  C('cd-loss').textContent=loss.toFixed(4);
+  if(cdState.converged){
+    C('cd-converged').textContent='Converged!';
+    C('cd-converged').style.color='var(--green)';
+  }
+  drawCDCanvas();
+}
+
+async function runCDFull(){
+  while(!cdState.converged&&cdState.iter<200){
+    runCDStep();
+    if(cdState.iter%5===0) await delay(30);
+  }
+}
+
+function drawCDCanvas(){
+  var cv=C('cd-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var split=Math.floor(W*0.52);
+  var alpha=parseFloat(C('cd-alpha').value);
+
+  /* LEFT: 2D contour plot with path */
+  var lpad={l:30,r:10,t:20,b:30};
+  var lW=split-lpad.l-lpad.r,lH=H-lpad.t-lpad.b;
+  var bRange=2;
+  var toX=function(b){return lpad.l+(b+bRange)/(2*bRange)*lW;};
+  var toY=function(b){return lpad.t+(1-(b+bRange)/(2*bRange))*lH;};
+
+  // Background: loss heatmap
+  if(cdData){
+    var res=14;
+    for(var px=0;px<lW;px+=res){
+      for(var py=0;py<lH;py+=res){
+        var b1=px/lW*2*bRange-bRange;
+        var b2=(1-py/lH)*2*bRange-bRange;
+        var loss=cdLoss([b1,b2],cdData.X,cdData.y,alpha);
+        var intensity=Math.max(0,Math.min(1,1-loss*1.5));
+        ctx.fillStyle='rgba(52,211,153,'+intensity*0.25+')';
+        ctx.fillRect(lpad.l+px,lpad.t+py,res,res);
+      }
+    }
+  }
+
+  // Axes
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';ctx.lineWidth=1;
+  var zeroBx=toX(0),zeroBy=toY(0);
+  ctx.beginPath();ctx.moveTo(lpad.l,zeroBy);ctx.lineTo(lpad.l+lW,zeroBy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(zeroBx,lpad.t);ctx.lineTo(zeroBx,lpad.t+lH);ctx.stroke();
+
+  // L1 diamond
+  var dRadius=alpha*lW/4;
+  ctx.beginPath();
+  ctx.moveTo(zeroBx+dRadius,zeroBy);
+  ctx.lineTo(zeroBx,zeroBy-dRadius);
+  ctx.lineTo(zeroBx-dRadius,zeroBy);
+  ctx.lineTo(zeroBx,zeroBy+dRadius);
+  ctx.closePath();
+  ctx.strokeStyle='rgba(52,211,153,0.6)';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='rgba(52,211,153,0.06)';ctx.fill();
+
+  // Path
+  if(cdState.path.length>1){
+    ctx.beginPath();
+    cdState.path.forEach(function(pt,i){
+      i===0?ctx.moveTo(toX(pt[0]),toY(pt[1])):ctx.lineTo(toX(pt[0]),toY(pt[1]));
+    });
+    ctx.strokeStyle='rgba(240,165,0,0.8)';ctx.lineWidth=1.8;ctx.stroke();
+    // Step markers
+    cdState.path.forEach(function(pt,i){
+      if(i===0||i===cdState.path.length-1||cdState.path.length<20){
+        ctx.beginPath();ctx.arc(toX(pt[0]),toY(pt[1]),3,0,Math.PI*2);
+        ctx.fillStyle=i===0?'rgba(255,255,255,0.5)':'#f0a500';ctx.fill();
+      }
+    });
+  }
+
+  // Current point
+  var cur=cdState.beta;
+  ctx.beginPath();ctx.arc(toX(cur[0]),toY(cur[1]),7,0,Math.PI*2);
+  ctx.fillStyle='#34d399';ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('beta_1',lpad.l+lW/2,H-lpad.b+12);
+  ctx.save();ctx.translate(10,lpad.t+lH/2);ctx.rotate(-Math.PI/2);ctx.fillText('beta_2',0,0);ctx.restore();
+  ctx.fillStyle='rgba(52,211,153,0.8)';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+  ctx.fillText('L1 diamond',lpad.l,lpad.t+12);
+
+  /* RIGHT: Soft thresholding function */
+  var rpad={l:20,r:20,t:20,b:30};
+  var rX0=split+rpad.l,rW=W-split-rpad.l-rpad.r,rH=H-rpad.t-rpad.b;
+  var rhoRange=1.5,thr=alpha*0.3;
+  var toRX=function(v){return rX0+(v+rhoRange)/(2*rhoRange)*rW;};
+  var toRY=function(v){return rpad.t+(1-(v+rhoRange)/(2*rhoRange))*rH;};
+
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(rX0,rpad.t+(rpad.t+rH)/2);ctx.lineTo(rX0+rW,rpad.t+(rpad.t+rH)/2);ctx.stroke();
+
+  // Axes
+  var rzeroX=toRX(0),rzeroY=toRY(0);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(rX0,rzeroY);ctx.lineTo(rX0+rW,rzeroY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(rzeroX,rpad.t);ctx.lineTo(rzeroX,rpad.t+rH);ctx.stroke();
+
+  // y=x reference line (OLS behaviour)
+  ctx.beginPath();ctx.moveTo(rX0,rpad.t+rH);ctx.lineTo(rX0+rW,rpad.t);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+
+  // Soft threshold function
+  ctx.beginPath();
+  var steps=200;
+  for(var si=0;si<=steps;si++){
+    var rho=-rhoRange+si/steps*2*rhoRange;
+    var beta_j=softThresh(rho,thr);
+    var px=toRX(rho),py=toRY(beta_j);
+    si===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle='#34d399';ctx.lineWidth=3;ctx.stroke();
+
+  // Threshold markers
+  ctx.fillStyle='rgba(240,165,0,0.7)';
+  ctx.fillRect(toRX(thr)-1,rpad.t,2,rH);
+  ctx.fillRect(toRX(-thr)-1,rpad.t,2,rH);
+
+  // Labels
+  ctx.fillStyle='rgba(240,165,0,0.8)';ctx.font='10px mono';ctx.textAlign='center';
+  ctx.fillText('+t',toRX(thr),rpad.t+10);
+  ctx.fillText('-t',toRX(-thr),rpad.t+10);
+
+  ctx.fillStyle='rgba(240,96,96,0.7)';ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('ZERO ZONE',rzeroX,rzeroY-8);
+
+  ctx.fillStyle='#34d399';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Soft threshold S(rho, t)',rX0+rW/2,rpad.t+12);
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';
+  ctx.fillText('(if |rho| < t, beta = 0)',rX0+rW/2,rpad.t+24);
+  ctx.fillText('rho (unconstrained estimate)',rX0+rW/2,rpad.t+rH+14);
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 4 — BOTH PATHS ════ */
+var pathAnimTimer=null;
+function drawBothPaths(upTo){
+  var nf=parseInt(C('path-nfeatures').value);
+  var pTrue=nf<=6?2:nf<=10?3:4;
+  rseed(42);
+  var coefMag=[];
+  for(var j=0;j<nf;j++) coefMag.push(j<pTrue?(1.5-j*0.2):0);
+
+  var alphas=[];for(var a=0;a<=1;a+=0.025) alphas.push(a);
+  var n=alphas.length;
+  var showN=upTo!==undefined?Math.min(upTo+1,n):n;
+
+  var lassoCoefs=alphas.slice(0,showN).map(function(a){
+    return coefMag.map(function(c){return softThresh(c,a*0.8);});
+  });
+  var ridgeCoefs=alphas.slice(0,showN).map(function(a){
+    return coefMag.map(function(c){return c/(1+a*2);});
+  });
+
+  var cv=C('path-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,halfH=H/2;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var colors=['#34d399','#60a5fa','#fb923c','#f06060','#f0a500','#e879f9','#a78bfa','#2dd4bf','#4ade80','#c084fc'];
+  var pad={l:40,r:80,t:14,b:14};
+
+  function drawPanel(coefPaths,panelY,panelH,title,lineCol){
+    ctx.fillStyle=isDark()?'rgba(255,255,255,0.02)':'rgba(0,0,0,0.01)';
+    ctx.fillRect(0,panelY,W,panelH);
+    ctx.fillStyle=lineCol;ctx.font='bold 12px sans-serif';ctx.textAlign='left';
+    ctx.fillText(title,pad.l,panelY+14);
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.06)';
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,panelY+panelH);ctx.lineTo(W,panelY+panelH);ctx.stroke();
+
+    var maxC=Math.max.apply(null,coefMag)||1;
+    var toX=function(i){return pad.l+i/(n-1)*(W-pad.l-pad.r);};
+    var toY=function(v){return panelY+pad.t+(1-(v+maxC)/(2*maxC))*(panelH-pad.t-pad.b);};
+
+    // Zero line
+    ctx.beginPath();ctx.moveTo(pad.l,toY(0));ctx.lineTo(W-pad.r,toY(0));
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.stroke();
+
+    coefMag.forEach(function(startC,fi){
+      if(Math.abs(startC)<1e-6&&coefPaths.every(function(cp){return Math.abs(cp[fi])<1e-6;})) return;
+      ctx.beginPath();
+      coefPaths.forEach(function(cp,ai){
+        ai===0?ctx.moveTo(toX(ai),toY(cp[fi])):ctx.lineTo(toX(ai),toY(cp[fi]));
+      });
+      ctx.strokeStyle=colors[fi%colors.length];ctx.lineWidth=2;ctx.stroke();
+      // End label
+      var lastV=coefPaths[coefPaths.length-1][fi];
+      ctx.fillStyle=colors[fi%colors.length];ctx.font='10px sans-serif';ctx.textAlign='left';
+      ctx.fillText('f'+(fi+1),W-pad.r+4,toY(startC)+4);
+    });
+
+    // x labels
+    [0,0.25,0.5,0.75,1.0].forEach(function(a){
+      var i=Math.round(a*(n-1));
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';
+      ctx.fillText(a.toFixed(2),toX(i),panelY+panelH-2);
+    });
+  }
+
+  drawPanel(lassoCoefs,0,halfH,'Lasso (L1) — features drop to exactly zero','#34d399');
+  drawPanel(ridgeCoefs,halfH,halfH,'Ridge (L2) — all features shrink but never zero','#a78bfa');
+
+  // Shared x-axis label
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('alpha (regularisation strength)',W/2,H-2);
+  ctx.textAlign='start';
+}
+
+async function animateBothPaths(){
+  if(pathAnimTimer){clearInterval(pathAnimTimer);pathAnimTimer=null;return;}
+  var step=0,total=40;
+  pathAnimTimer=setInterval(function(){
+    drawBothPaths(step);
+    step++;
+    if(step>total){clearInterval(pathAnimTimer);pathAnimTimer=null;}
+  },60);
+}
+
+/* ════ SECTION 5 — HYPERPARAMETER TUNING ════ */
+function onHPChange(){
+  var alpha=parseFloat(C('hp-alpha').value);
+  var pTrue=parseInt(C('hp-true').value);
+  var p=parseInt(C('hp-p').value);
+  var noise=parseFloat(C('hp-noise').value);
+  C('hp-alpha-val').textContent=alpha.toFixed(2);
+  C('hp-true-val').textContent=pTrue;
+  C('hp-p-val').textContent=p;
+  C('hp-noise-val').textContent=noise.toFixed(1);
+
+  if(p<pTrue) p=pTrue;
+  rseed(42);
+  var n=100;
+  var d=makeSparseDataset(n,p,pTrue,noise,42);
+  var tn=Math.floor(n*0.75);
+  var Xtr=d.X.slice(0,tn),ytr=d.y.slice(0,tn);
+  var Xte=d.X.slice(tn),yte=d.y.slice(tn);
+
+  var coefs=lassoCD(Xtr,ytr,alpha,500,1e-6);
+  var testPreds=Xte.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+  var testR2=Math.max(0,r2score(yte,testPreds));
+  var active=coefs.filter(function(c){return Math.abs(c)>1e-5;}).length;
+  var sparsity=(p-active)/p*100;
+  var gap=0;
+  var trainPreds=Xtr.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+  gap=r2score(ytr,trainPreds)-testR2;
+  var status=gap>0.2?'Overfitting':testR2<0.2?'Underfitting':'Good fit';
+
+  C('hp-r2').textContent=testR2.toFixed(3);
+  C('hp-active').textContent=active+'/'+p;
+  C('hp-sparsity').textContent=sparsity.toFixed(0)+'%';
+  C('hp-status').textContent=status;
+  C('hp-r2-bar').style.width=(testR2*100)+'%';
+  C('hp-active-bar').style.width=(active/p*100)+'%';
+  C('hp-sparsity-bar').style.width=(sparsity)+'%';
+
+  // Feature badges
+  var badgesEl=C('hp-feature-badges');
+  badgesEl.innerHTML=coefs.map(function(c,j){
+    var isActive=Math.abs(c)>1e-5;
+    var isTrue=j<pTrue;
+    var cls=isActive?'fb-active':'fb-zero';
+    var label='f'+(j+1)+(isTrue?' (signal)':' (noise)');
+    return '<span class="feature-badge '+cls+'">'+label+(isActive?': '+c.toFixed(2):'=0')+'</span>';
+  }).join('');
+
+  drawHPCanvas(d,coefs,p,pTrue,alpha,testR2);
+}
+
+function drawHPCanvas(d,coefs,p,pTrue,alpha,testR2){
+  var cv=C('hp-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:20,b:30};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var maxC=Math.max.apply(null,coefs.map(Math.abs))||0.1;
+  var barH=(H-pad.t-pad.b)/p-3;
+  var cx=W*0.38;
+  var colors=['#34d399','#60a5fa','#fb923c','#f06060','#f0a500','#e879f9','#a78bfa','#2dd4bf','#4ade80','#c084fc',
+              '#34d399','#60a5fa','#fb923c','#f06060','#f0a500','#e879f9','#a78bfa','#2dd4bf','#4ade80','#c084fc'];
+
+  coefs.forEach(function(c,j){
+    var y0=pad.t+j*(barH+3);
+    var isZero=Math.abs(c)<1e-5;
+    var isTrue=j<pTrue;
+
+    ctx.fillStyle=isTrue?'rgba(52,211,153,0.08)':'rgba(0,0,0,0)';
+    ctx.fillRect(0,y0-1,W,barH+2);
+
+    if(!isZero){
+      var barW=Math.abs(c)/maxC*(W*0.45);
+      ctx.fillStyle=colors[j%colors.length];
+      ctx.globalAlpha=0.8;
+      ctx.fillRect(c>=0?cx:cx-barW,y0,barW,barH);
+      ctx.globalAlpha=1;
+      ctx.fillStyle=colors[j%colors.length];ctx.font='bold 10px mono';ctx.textAlign='left';
+      ctx.fillText(c.toFixed(3),cx+barW+4,y0+barH/2+4);
+    } else {
+      ctx.fillStyle='rgba(240,96,96,0.5)';ctx.font='10px mono';ctx.textAlign='left';
+      ctx.fillText('0.000 (eliminated)',cx+4,y0+barH/2+4);
+    }
+
+    ctx.fillStyle=isTrue?'#34d399':tc();
+    ctx.font=(isTrue?'bold ':'')+'10px sans-serif';ctx.textAlign='right';
+    ctx.fillText('f'+(j+1)+(isTrue?' *':''),cx-4,y0+barH/2+4);
+  });
+
+  ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,H-pad.b);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();
+
+  ctx.fillStyle='#34d399';ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('* = true signal features',pad.l,H-4);
+  ctx.textAlign='start';
+}
+
+async function runAlphaSweep(){
+  C('sweep-status').textContent='Running...';
+  var p=parseInt(C('hp-p').value),pTrue=parseInt(C('hp-true').value),noise=parseFloat(C('hp-noise').value);
+  if(p<pTrue) p=pTrue;
+  rseed(42);
+  var n=100,d=makeSparseDataset(n,p,pTrue,noise,42);
+  var tn=Math.floor(n*0.75);
+  var Xtr=d.X.slice(0,tn),ytr=d.y.slice(0,tn);
+  var Xte=d.X.slice(tn),yte=d.y.slice(tn);
+
+  var alphas=[];for(var a=0;a<=1;a+=0.02) alphas.push(a);
+  var results=[];
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:50,t:15,b:35};
+
+  for(var ai=0;ai<alphas.length;ai++){
+    var a=alphas[ai];
+    var coefs=lassoCD(Xtr,ytr,a,300,1e-5);
+    var tp=Xtr.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+    var ep=Xte.map(function(r){return r.reduce(function(s,v,j){return s+v*coefs[j];},0);});
+    var tR=Math.max(0,Math.min(1,r2score(ytr,tp)));
+    var eR=Math.max(-0.1,Math.min(1,r2score(yte,ep)));
+    var act=coefs.filter(function(c){return Math.abs(c)>1e-5;}).length;
+    results.push({a:a,train:tR,test:eR,active:act});
+
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+    var toX=function(i){return pad.l+i/(alphas.length-1)*(W-pad.l-pad.r);};
+    var toY=function(v){return H-pad.b-Math.max(0,v)*(H-pad.t-pad.b);};
+    var toY2=function(v){return H-pad.b-v/p*(H-pad.t-pad.b);};
+
+    // Grid
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+    [0,0.25,0.5,0.75,1].forEach(function(v){
+      ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-2,toY(v)+4);
+    });
+    alphas.forEach(function(a,i){
+      if(i%10===0){ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(a.toFixed(1),toX(i),H-pad.b+14);}
+    });
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('alpha',W/2,H-2);
+
+    if(results.length>1){
+      // Train R²
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY(r.train)):ctx.lineTo(toX(i),toY(r.train));});
+      ctx.strokeStyle='rgba(240,96,96,0.6)';ctx.lineWidth=2;ctx.stroke();
+      // Test R²
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY(r.test)):ctx.lineTo(toX(i),toY(r.test));});
+      ctx.strokeStyle='#34d399';ctx.lineWidth=2.5;ctx.stroke();
+      // Active features (right axis, step function)
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY2(r.active)):ctx.lineTo(toX(i),toY2(r.active));});
+      ctx.strokeStyle='rgba(96,165,250,0.7)';ctx.lineWidth=1.5;ctx.setLineDash([4,2]);ctx.stroke();ctx.setLineDash([]);
+    }
+    // Current alpha marker
+    ctx.beginPath();ctx.moveTo(toX(ai),pad.t);ctx.lineTo(toX(ai),H-pad.b);
+    ctx.strokeStyle='rgba(240,165,0,0.5)';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+
+    // Legend
+    ctx.font='10px sans-serif';ctx.textAlign='left';
+    ctx.fillStyle='rgba(240,96,96,0.7)';ctx.fillText('Train R²',W-pad.r+2,pad.t+14);
+    ctx.fillStyle='#34d399';ctx.fillText('Test R²',W-pad.r+2,pad.t+28);
+    ctx.fillStyle='rgba(96,165,250,0.7)';ctx.fillText('Active',W-pad.r+2,pad.t+42);
+    ctx.textAlign='start';
+    if(ai%3===0) await delay(25);
+  }
+  var best=results.reduce(function(m,r){return r.test>m.test?r:m;},results[0]);
+  C('sweep-status').textContent='Best alpha='+best.a.toFixed(2)+' | Test R²='+best.test.toFixed(3)+' | Active='+best.active+'/'+p;
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'lasso_scratch.py',label:'Lasso from scratch',code:`import numpy as np
+
+def soft_threshold(z, t):
+    """The core of Lasso: shrink toward zero, set to zero if |z| <= t"""
+    if z > t:   return z - t   # positive: shrink down
+    if z < -t:  return z + t   # negative: shrink up
+    return 0.0                  # zero zone: exactly 0!
+
+def lasso_coordinate_descent(X, y, alpha, max_iter=1000, tol=1e-6):
+    """Solve Lasso via coordinate descent (one feature at a time)"""
+    n, p = X.shape
+    beta = np.zeros(p)
+    col_norms = np.sum(X**2, axis=0)
+
+    for iteration in range(max_iter):
+        beta_old = beta.copy()
+
+        for j in range(p):
+            # Partial residual: y minus contribution of all OTHER features
+            residual = y - X @ beta + X[:, j] * beta[j]
+
+            # OLS estimate for this feature alone
+            rho = X[:, j] @ residual / col_norms[j]
+
+            # Apply soft thresholding (the L1 magic)
+            threshold = alpha / (2 * col_norms[j])
+            beta[j] = soft_threshold(rho, threshold)
+
+        # Check convergence
+        if np.max(np.abs(beta - beta_old)) < tol:
+            print(f"Converged in {iteration + 1} iterations")
+            break
+
+    return beta
+
+# Demo on a sparse dataset: 15 features, only 3 matter
+np.random.seed(42)
+n, p_total, p_true = 100, 15, 3
+X = np.random.randn(n, p_total)
+# Only first 3 features have signal
+true_coef = np.array([2.5, -1.8, 1.2] + [0.0]*(p_total-3))
+y = X @ true_coef + np.random.randn(n) * 0.5
+
+# Normalise
+X = (X - X.mean(0)) / X.std(0)
+y = (y - y.mean()) / y.std()
+split = int(n * 0.8)
+X_tr, X_te = X[:split], X[split:]
+y_tr, y_te = y[:split], y[split:]
+
+print(f"Sparse dataset: {p_total} features, {p_true} are true signals")
+print()
+print(f"{'alpha':>8}  {'active':>7}  {'train R²':>9}  {'test R²':>9}  note")
+print("-" * 52)
+
+for alpha in [0.001, 0.01, 0.05, 0.1, 0.2, 0.5]:
+    beta = lasso_coordinate_descent(X_tr, y_tr, alpha)
+    active = np.sum(np.abs(beta) > 1e-5)
+    y_hat_tr = X_tr @ beta
+    y_hat_te = X_te @ beta
+    r2_tr = 1 - np.sum((y_tr - y_hat_tr)**2) / np.sum((y_tr - y_tr.mean())**2)
+    r2_te = 1 - np.sum((y_te - y_hat_te)**2) / np.sum((y_te - y_te.mean())**2)
+    note = "sparse model" if active <= p_true + 1 else "still dense"
+    print(f"{alpha:>8.3f}  {active:>7}  {r2_tr:>9.4f}  {r2_te:>9.4f}  {note}")
+
+print()
+print("Identified coefficients (alpha=0.1):")
+beta_best = lasso_coordinate_descent(X_tr, y_tr, 0.1)
+for j in range(p_total):
+    if abs(beta_best[j]) > 1e-5:
+        true_val = true_coef[j]
+        print(f"  Feature {j+1:2d}: beta={beta_best[j]:.4f}  (true={true_val:.1f})")
+`},
+{file:'lasso_sklearn.py',label:'sklearn + LassoCV',code:`from sklearn.linear_model import Lasso, LassoCV, Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_regression
+import numpy as np
+
+# Sparse dataset: 100 features, only 5 actually predict y
+X, y, true_coef = make_regression(
+    n_samples=200, n_features=100, n_informative=5,
+    noise=10, coef=True, random_state=42)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# ── 1. Lasso with various alpha ──────────────────────
+print("Lasso — effect of alpha on sparsity:")
+print(f"{'alpha':>10}  {'active':>8}  {'train R²':>9}  {'test R²':>9}")
+print("-" * 44)
+
+scaler = StandardScaler()
+X_tr_s = scaler.fit_transform(X_train)
+X_te_s = scaler.transform(X_test)
+
+for alpha in [0.001, 0.01, 0.1, 1.0, 10.0, 50.0]:
+    lasso = Lasso(alpha=alpha, max_iter=5000)
+    lasso.fit(X_tr_s, y_train)
+    active = np.sum(np.abs(lasso.coef_) > 1e-5)
+    tr = lasso.score(X_tr_s, y_train)
+    te = lasso.score(X_te_s, y_test)
+    print(f"{alpha:>10}  {active:>8}  {tr:>9.4f}  {te:>9.4f}")
+
+# ── 2. LassoCV: automatic alpha selection ─────────────
+print()
+print("LassoCV — automatic alpha selection:")
+pipe = Pipeline([
+    ('scale', StandardScaler()),
+    ('model', LassoCV(cv=5, max_iter=5000, random_state=42))
+])
+pipe.fit(X_train, y_train)
+best_alpha = pipe.named_steps['model'].alpha_
+active_cv = np.sum(np.abs(pipe.named_steps['model'].coef_) > 1e-5)
+print(f"  Best alpha:     {best_alpha:.4f}")
+print(f"  Active features: {active_cv}/100")
+print(f"  Train R²:       {pipe.score(X_train, y_train):.4f}")
+print(f"  Test  R²:       {pipe.score(X_test, y_test):.4f}")
+
+# ── 3. Which features did Lasso find? ─────────────────
+print()
+print("Feature recovery — did Lasso find the 5 true features?")
+coef = pipe.named_steps['model'].coef_
+true_idx = set(np.where(np.abs(true_coef) > 0)[0])
+found_idx = set(np.where(np.abs(coef) > 1e-5)[0])
+tp = len(true_idx & found_idx)
+fp = len(found_idx - true_idx)
+fn = len(true_idx - found_idx)
+print(f"  True positives (signal found):    {tp}/5")
+print(f"  False positives (noise selected): {fp}")
+print(f"  False negatives (signal missed):  {fn}")
+`},
+{file:'lasso_vs_ridge.py',label:'Lasso vs Ridge comparison',code:`import numpy as np
+
+# Compare Lasso and Ridge on sparse vs dense signal datasets
+np.random.seed(42)
+
+def lasso_cd(X, y, alpha, n_iter=500):
+    n, p = X.shape
+    beta = np.zeros(p)
+    col_norms = np.sum(X**2, axis=0)
+    for _ in range(n_iter):
+        beta_old = beta.copy()
+        for j in range(p):
+            r = y - X @ beta + X[:, j] * beta[j]
+            rho = X[:, j] @ r / col_norms[j]
+            t = alpha / (2 * col_norms[j])
+            z = rho - t if rho > t else rho + t if rho < -t else 0.0
+            beta[j] = z
+        if np.max(np.abs(beta - beta_old)) < 1e-6:
+            break
+    return beta
+
+def ridge(X, y, alpha):
+    return np.linalg.solve(X.T @ X + alpha * np.eye(X.shape[1]), X.T @ y)
+
+def r2(y, yh):
+    return 1 - np.sum((y-yh)**2) / max(np.sum((y-y.mean())**2), 1e-10)
+
+def run_experiment(name, n, p, p_true, noise, coef_style):
+    X = np.random.randn(n, p)
+    if coef_style == 'sparse':
+        true_c = np.zeros(p); true_c[:p_true] = np.random.randn(p_true) * 2
+    else:  # dense
+        true_c = np.random.randn(p) * 0.3
+    y = X @ true_c + np.random.randn(n) * noise
+    X = (X - X.mean(0)) / (X.std(0) + 1e-8)
+    y = (y - y.mean()) / (y.std() + 1e-8)
+    split = int(n * 0.75)
+    Xtr, Xte, ytr, yte = X[:split], X[split:], y[:split], y[split:]
+
+    # Find best alpha for each by sweep
+    best_lasso_r2, best_ridge_r2 = -9, -9
+    for a in np.logspace(-3, 0, 20):
+        lc = lasso_cd(Xtr, ytr, a)
+        rc = ridge(Xtr, ytr, a)
+        lr = r2(yte, Xte @ lc); rr = r2(yte, Xte @ rc)
+        if lr > best_lasso_r2: best_lasso_r2 = lr
+        if rr > best_ridge_r2: best_ridge_r2 = rr
+
+    winner = "Lasso" if best_lasso_r2 > best_ridge_r2 + 0.02 else "Ridge" if best_ridge_r2 > best_lasso_r2 + 0.02 else "Tie"
+    print(f"  {name:<35} Lasso={best_lasso_r2:.3f} Ridge={best_ridge_r2:.3f} -> {winner}")
+
+print("When to use Lasso vs Ridge:")
+print()
+print("Sparse signal (few true features):")
+run_experiment("n=200, p=50, 3 true features",   200, 50, 3, 0.5, 'sparse')
+run_experiment("n=100, p=30, 2 true features",   100, 30, 2, 1.0, 'sparse')
+run_experiment("n=50,  p=20, 1 true feature",     50, 20, 1, 0.5, 'sparse')
+print()
+print("Dense signal (all features contribute):")
+run_experiment("n=200, p=20, all features",       200, 20,20, 0.5, 'dense')
+run_experiment("n=100, p=10, all features",       100, 10,10, 1.0, 'dense')
+print()
+print("Conclusion:")
+print("  Sparse signal (few features matter) -> Lasso wins")
+print("  Dense signal (all features matter)  -> Ridge wins or ties")
+print("  Unsure? -> ElasticNet combines both!")
+`},
+{file:'stability_selection.py',label:'Stability selection',code:`import numpy as np
+
+# Stability selection: which Lasso-selected features are STABLE?
+# (won't change with tiny data perturbations)
+np.random.seed(42)
+
+def lasso_cd(X, y, alpha, n_iter=300):
+    n, p = X.shape
+    beta = np.zeros(p)
+    cnorms = np.sum(X**2, axis=0)
+    for _ in range(n_iter):
+        b0 = beta.copy()
+        for j in range(p):
+            r = y - X @ beta + X[:,j]*beta[j]
+            rho = X[:,j] @ r / cnorms[j]
+            t = alpha / (2*cnorms[j])
+            beta[j] = rho-t if rho>t else rho+t if rho<-t else 0
+        if np.max(np.abs(beta-b0))<1e-6: break
+    return beta
+
+# Dataset: 20 features, 4 true signals
+n, p, p_true = 150, 20, 4
+X = np.random.randn(n, p)
+true_c = np.zeros(p); true_c[:p_true] = [3.0, -2.0, 1.5, -1.0]
+y = X @ true_c + np.random.randn(n)*0.8
+X = (X - X.mean(0)) / X.std(0)
+y = (y - y.mean()) / y.std()
+
+alpha = 0.08
+n_bootstrap = 50
+selection_freq = np.zeros(p)
+
+print(f"Running {n_bootstrap} bootstrap rounds of Lasso (alpha={alpha})...")
+for b in range(n_bootstrap):
+    # Subsample 50% of data
+    idx = np.random.choice(n, n//2, replace=False)
+    Xb, yb = X[idx], y[idx]
+    beta_b = lasso_cd(Xb, yb, alpha)
+    selection_freq += (np.abs(beta_b) > 1e-5).astype(float)
+
+selection_freq /= n_bootstrap
+
+print()
+print(f"{'Feature':>10}  {'Select %':>9}  {'True signal':>12}  {'Stable?'}")
+print("-" * 48)
+for j in range(p):
+    freq = selection_freq[j]
+    is_true = j < p_true
+    stable = "YES" if freq >= 0.8 else "maybe" if freq >= 0.5 else "no"
+    marker = " *" if is_true else ""
+    print(f"  f{j+1:02d}  {marker:<4}  {freq:>8.0%}  {str(is_true):>12}  {stable}")
+
+print()
+print("Stable features (selected >80% of the time):")
+stable_idx = np.where(selection_freq >= 0.8)[0]
+print(f"  Features: {[i+1 for i in stable_idx]}")
+print(f"  True signals: {list(range(1, p_true+1))}")
+print()
+print("Stability selection avoids false positives that single Lasso misses.")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click \u25b6 Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='\u25cf Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='\u25b6 Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='\u25b6 Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  initLassoData();
+  onLassoAlpha(0);
+  drawDiamondGeometry(1.0);
+  initCDData();
+  resetCD();
+  drawBothPaths();
+  onHPChange();
+
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawLassoShrink(parseFloat(C('lasso-alpha-slider').value));
+    drawDiamondGeometry(C('geom-alpha').value);
+    drawCDCanvas();drawBothPaths();onHPChange();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

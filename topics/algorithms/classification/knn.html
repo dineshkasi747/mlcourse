@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K-Nearest Neighbors — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <!-- CodeMirror for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(45,212,191,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(167,139,250,0.1) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10.5px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* ── EDITOR WRAP ── */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-filename{font-size:11px;color:var(--text-3);font-family:var(--font-mono);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    /* CodeMirror overrides — match site theme */
+    .CodeMirror {
+      font-family: var(--font-mono, 'Fira Code', monospace);
+      font-size: 13.5px;
+      line-height: 1.75;
+      height: auto !important;   /* AUTO HEIGHT — no scrolling */
+      background: #0f0f14;
+      color: #e2e0d9;
+      border: none;
+    }
+    [data-theme="light"] .CodeMirror {
+      background: #eeece6;
+      color: #1a1916;
+    }
+    .CodeMirror-scroll {
+      overflow: visible !important;
+      min-height: unset !important;
+    }
+    .CodeMirror-sizer { min-height: unset !important; }
+    .CodeMirror-lines { padding: 16px 0; }
+    .CodeMirror pre.CodeMirror-line { padding: 0 20px; }
+    /* token colors — dark */
+    .cm-s-one-dark .cm-keyword    { color: #e879f9; font-weight: 500; }
+    .cm-s-one-dark .cm-def        { color: #60a5fa; }
+    .cm-s-one-dark .cm-variable   { color: #e2e0d9; }
+    .cm-s-one-dark .cm-variable-2 { color: #f0abfc; }
+    .cm-s-one-dark .cm-property   { color: #2dd4bf; }
+    .cm-s-one-dark .cm-string     { color: #4ade80; }
+    .cm-s-one-dark .cm-string-2   { color: #4ade80; }
+    .cm-s-one-dark .cm-number     { color: #fb923c; }
+    .cm-s-one-dark .cm-comment    { color: #4b4f5e; font-style: italic; }
+    .cm-s-one-dark .cm-operator   { color: #94a3b8; }
+    .cm-s-one-dark .cm-builtin    { color: #60a5fa; }
+    .cm-s-one-dark .cm-atom       { color: #fb923c; }
+    .CodeMirror-gutters { background: #0f0f14 !important; border-right: 1px solid rgba(255,255,255,0.07) !important; }
+    .CodeMirror-linenumber { color: #3a3a50 !important; font-size: 12px; padding: 0 8px 0 4px; }
+    .CodeMirror-cursor { border-left: 2px solid #f0a500 !important; }
+    .CodeMirror-selected { background: rgba(167,139,250,0.18) !important; }
+    /* light theme token overrides */
+    [data-theme="light"] .CodeMirror-gutters { background: #eeece6 !important; border-right-color: rgba(0,0,0,0.08) !important; }
+    [data-theme="light"] .CodeMirror-linenumber { color: #b0ad9e !important; }
+    [data-theme="light"] .cm-s-one-dark .cm-keyword    { color: #8b00b0; }
+    [data-theme="light"] .cm-s-one-dark .cm-def        { color: #1a5dbf; }
+    [data-theme="light"] .cm-s-one-dark .cm-variable   { color: #1a1916; }
+    [data-theme="light"] .cm-s-one-dark .cm-variable-2 { color: #7a00a0; }
+    [data-theme="light"] .cm-s-one-dark .cm-property   { color: #0a7a70; }
+    [data-theme="light"] .cm-s-one-dark .cm-string     { color: #1a7a40; }
+    [data-theme="light"] .cm-s-one-dark .cm-number     { color: #b04000; }
+    [data-theme="light"] .cm-s-one-dark .cm-comment    { color: #8a8880; }
+    [data-theme="light"] .cm-s-one-dark .cm-builtin    { color: #1a5dbf; }
+
+    /* output box */
+    .editor-output {
+      background: #080810;
+      border-top: 1px solid var(--border);
+      padding: 14px 20px;
+      font-family: var(--font-mono, 'Fira Code', monospace);
+      font-size: 13px;
+      line-height: 1.65;
+      color: #7ec8a0;
+      white-space: pre-wrap;
+      max-height: 340px;
+      overflow-y: auto;
+      min-height: 52px;
+    }
+    .editor-output.idle  { color: var(--text-3); }
+    .editor-output.error { color: #f06060; }
+    [data-theme="light"] .editor-output { background: #e8e6e0; color: #1a7a40; }
+    [data-theme="light"] .editor-output.idle { color: var(--text-3); }
+    [data-theme="light"] .editor-output.error { color: #c04040; }
+
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--purple);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    /* tab bar */
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 18px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+
+    .stepper{display:flex;flex-direction:column;gap:0;}
+    .step-item{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);}
+    .step-item:last-child{border-bottom:none;}
+    .step-num{width:36px;height:36px;border-radius:50%;background:var(--purple-surf);border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--purple);flex-shrink:0;}
+    .step-body{flex:1;}
+    .step-title{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text-1);margin-bottom:6px;}
+    .step-desc{font-size:14px;color:var(--text-2);line-height:1.6;}
+    .step-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);margin-top:10px;}
+    .dist-card{display:flex;flex-direction:column;gap:8px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all .18s;}
+    .dist-card:hover,.dist-card.active{border-color:var(--teal);background:var(--teal-surf);}
+  </style>
+</head>
+<body data-topic-id="knn">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">K-Nearest Neighbors</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Classification</a><span class="sep">/</span>
+            <span class="current">K-Nearest Neighbors</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(167,139,250,.25);margin-bottom:14px;">Classification · Instance-based</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">K-Nearest Neighbors</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              The simplest ML algorithm that actually works. To classify a new point,
+              find its K closest neighbours and take a vote. No training — just memory.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">16 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- VIZ 1 -->
+          <section class="section" id="interactive-classifier">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">+</div>
+              Click to classify — live KNN demo
+            </h2>
+            <p><strong>Click anywhere</strong> on the canvas to add a test point. KNN instantly finds its K nearest neighbours, draws the search radius, and classifies it by majority vote.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">KNN classifier</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K =</span>
+                  <input type="range" min="1" max="15" value="3" class="ctrl-slider" id="k-slider" oninput="updateK(this.value)"/>
+                  <span class="ctrl-value" id="k-val" style="color:var(--purple);min-width:20px;">3</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Distance:</span>
+                  <select class="ctrl-select" id="dist-sel" onchange="redrawAll()">
+                    <option value="euclidean">Euclidean</option>
+                    <option value="manhattan">Manhattan</option>
+                    <option value="minkowski">Minkowski p=3</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="toggleBoundary()" id="boundary-btn">Show boundary</button>
+                <button class="ctrl-btn" onclick="resetCanvas()">Reset</button>
+                <button class="ctrl-btn" onclick="addRandomPoints()">+ Random data</button>
+              </div>
+              <canvas id="knn-canvas" width="700" height="400" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-k">3</span><span class="stat-pill-lbl">K value</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-class" style="font-size:13px;">—</span><span class="stat-pill-lbl">Predicted class</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-votes">—</span><span class="stat-pill-lbl">Vote count</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-dist">—</span><span class="stat-pill-lbl">Avg distance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-n">0</span><span class="stat-pill-lbl">Training pts</span></div>
+              </div>
+            </div>
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Try K=1 vs K=15.</strong> K=1 creates jagged boundaries that overfit noise. K=15 smooths everything but may underfit. The best K is in the middle.</p>
+            </div>
+          </section>
+
+          <!-- VIZ 2 -->
+          <section class="section" id="decision-boundary">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">~</div>
+              Decision boundary — watch K change it
+            </h2>
+            <p>Drag the K slider to see how the decision boundary morphs. Each pixel is classified in real time.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Decision boundary map</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K =</span>
+                  <input type="range" min="1" max="19" step="2" value="3" class="ctrl-slider" id="db-k-slider" oninput="updateDBK(this.value)" style="width:120px;"/>
+                  <span class="ctrl-value" id="db-k-val" style="color:var(--purple);">3</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="db-dataset" onchange="regenerateDB()">
+                    <option value="moons">Two moons</option>
+                    <option value="circles">Concentric circles</option>
+                    <option value="blobs">Gaussian blobs</option>
+                    <option value="xor">XOR pattern</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="regenerateDB()">Regenerate</button>
+              </div>
+              <canvas id="db-canvas" width="700" height="380" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="db-k-stat">3</span><span class="stat-pill-lbl">K</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="db-complexity">High</span><span class="stat-pill-lbl">Complexity</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="db-bias">Low</span><span class="stat-pill-lbl">Bias</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="db-variance">High</span><span class="stat-pill-lbl">Variance</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIZ 3 -->
+          <section class="section" id="distance-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">d</div>
+              Distance metric explorer
+            </h2>
+            <p>KNN's entire behaviour depends on how you measure "closeness". Click a metric to see how it reshapes the neighbourhood.</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;" id="metric-cards">
+              <div class="dist-card active" id="mc-euclidean" onclick="selectMetric('euclidean')">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);">Euclidean</div>
+                <div style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--teal-surf);color:var(--teal);display:inline-block;margin:4px 0;">L2 norm</div>
+                <div style="font-size:12px;color:var(--text-3);">Straight-line distance. Works well when features are on similar scales.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);margin-top:6px;background:var(--bg-input);padding:6px 8px;border-radius:var(--r-sm);">sqrt(sum((xi-yi)^2))</div>
+              </div>
+              <div class="dist-card" id="mc-manhattan" onclick="selectMetric('manhattan')">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);">Manhattan</div>
+                <div style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--orange-surf);color:var(--orange);display:inline-block;margin:4px 0;">L1 norm</div>
+                <div style="font-size:12px;color:var(--text-3);">City-block distance. More robust to outliers. Good for high-dimensional data.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);margin-top:6px;background:var(--bg-input);padding:6px 8px;border-radius:var(--r-sm);">sum(|xi - yi|)</div>
+              </div>
+              <div class="dist-card" id="mc-minkowski" onclick="selectMetric('minkowski')">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);">Minkowski</div>
+                <div style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--purple-surf);color:var(--purple);display:inline-block;margin:4px 0;">Lp norm</div>
+                <div style="font-size:12px;color:var(--text-3);">Generalises both. p=1 is Manhattan, p=2 is Euclidean, p=inf is Chebyshev.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);margin-top:6px;background:var(--bg-input);padding:6px 8px;border-radius:var(--r-sm);">(sum(|xi-yi|^p))^(1/p)</div>
+              </div>
+            </div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="metric-canvas-title">Euclidean neighbourhood — circular radius</span>
+                <div class="ctrl-group" id="p-group" style="display:none;">
+                  <span class="ctrl-label">p =</span>
+                  <input type="range" min="1" max="8" value="3" step="0.5" class="ctrl-slider" id="p-slider" oninput="updateP(this.value)" style="width:80px;"/>
+                  <span class="ctrl-value" id="p-val">3.0</span>
+                </div>
+              </div>
+              <canvas id="metric-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- VIZ 4 -->
+          <section class="section" id="k-selection">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">K?</div>
+              How to pick the right K
+            </h2>
+            <p>Run cross-validation across K values and watch the elbow curve. The best K sits where validation error stops improving.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">K vs accuracy (cross-validation)</span>
+                <button class="ctrl-btn active" onclick="runKSelection()">Run CV sweep</button>
+                <button class="ctrl-btn" onclick="clearKChart()">Clear</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:8px;" id="k-sel-status"></span>
+              </div>
+              <canvas id="k-sel-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+              <div style="padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;">Rule of thumb</div>
+                <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);margin-bottom:4px;">K = sqrt(n)</div>
+                <div style="font-size:12px;color:var(--text-3);">Start here for a baseline</div>
+              </div>
+              <div style="padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;">Use odd K</div>
+                <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);margin-bottom:4px;">K = 3, 5, 7...</div>
+                <div style="font-size:12px;color:var(--text-3);">Avoids ties in binary classification</div>
+              </div>
+              <div style="padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;">Always cross-validate</div>
+                <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);margin-bottom:4px;">GridSearchCV</div>
+                <div style="font-size:12px;color:var(--text-3);">Never guess K in production</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- STEPPER -->
+          <section class="section" id="how-it-works">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">5</div>
+              Algorithm — step by step
+            </h2>
+            <div class="stepper">
+              <div class="step-item"><div class="step-num">1</div><div class="step-body"><div class="step-title">Store all training data</div><div class="step-desc">KNN has no training phase. It simply memorises every (X, y) pair. This is called a lazy learner — all work happens at prediction time.</div><div class="step-formula">model.fit(X_train, y_train)  # just stores X, y</div></div></div>
+              <div class="step-item"><div class="step-num">2</div><div class="step-body"><div class="step-title">Receive a new query point</div><div class="step-desc">At prediction time, receive unseen point x_query. We need to find what class it belongs to.</div><div class="step-formula">x_query = [5.1, 3.5, 1.4, 0.2]  # new flower measurements</div></div></div>
+              <div class="step-item"><div class="step-num">3</div><div class="step-body"><div class="step-title">Compute distance to every training point</div><div class="step-desc">Calculate the distance from x_query to all N training points using the chosen metric. This is the expensive step — O(N) per query.</div><div class="step-formula">d(x, y) = sqrt( sum( (xi - yi)^2 ) )  # Euclidean</div></div></div>
+              <div class="step-item"><div class="step-num">4</div><div class="step-body"><div class="step-title">Sort and select K nearest</div><div class="step-desc">Sort all distances ascending. Take the K training points with the smallest distances — these are the K nearest neighbours.</div><div class="step-formula">neighbours = argsort(distances)[:K]</div></div></div>
+              <div class="step-item"><div class="step-num">5</div><div class="step-body"><div class="step-title">Majority vote (classification) or mean (regression)</div><div class="step-desc">For classification: the most common class among K neighbours wins. For regression: return the average of K neighbours' values.</div><div class="step-formula">prediction = mode(y[neighbours])  # classification
+prediction = mean(y[neighbours])  # regression</div></div></div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR (CodeMirror) ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four tabs — from scratch in NumPy to production sklearn with full evaluation. Edit any line and hit Run — Pyodide executes real Python in your browser.</p>
+
+            <!-- Tab bar -->
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span class="editor-filename" id="editor-filename">knn_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+
+              <!-- CodeMirror mounts here -->
+              <div id="cm-editor-mount"></div>
+
+              <!-- Output -->
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not scaling features.</strong> If age (0-100) and salary (0-100000) are both raw, salary dominates all distances. Always StandardScale or MinMaxScale first.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">K=1 in production.</strong> Memorises training data perfectly, generalises terribly. One noisy point becomes a decision region. Use CV to tune K.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using KNN on high-dimensional data.</strong> The curse of dimensionality makes all points equidistant above ~20 features. Use PCA first.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Forgetting prediction cost.</strong> KNN is O(N) per query — with 10M training points and 100K queries, that is 1 trillion distance calculations. Use KD-tree or Ball-tree (default in sklearn).</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Even K for binary classification.</strong> K=4 with 2 classes tied 2-2 causes random tie-breaking. Always use odd K for 2 classes.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>KNN stores all training data and classifies by majority vote of K nearest neighbours at prediction time.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always scale features before KNN — distance is meaningless when features have different units.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Small K = complex boundary (overfits). Large K = smooth boundary (underfits). Tune with cross-validation.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>KNN has no training cost but O(N) prediction cost. Use KD-tree or Ball-tree for large N.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Works for both classification (vote) and regression (average).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Struggles above ~20 features due to the curse of dimensionality — apply PCA first.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="naive-bayes.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Naive Bayes</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="svm.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Support Vector Machine</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#interactive-classifier">Live classifier</a></li>
+            <li class="toc-item"><a href="#decision-boundary">Decision boundary</a></li>
+            <li class="toc-item"><a href="#distance-explorer">Distance metrics</a></li>
+            <li class="toc-item"><a href="#k-selection">Choosing K</a></li>
+            <li class="toc-item"><a href="#how-it-works">Algorithm steps</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ══ helpers ══ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bgCard(){return isDark()?'#18181d':'#e9e7e1';}
+function bgInput(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gridColor(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)';}
+function textColor(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+const CLASS_COLORS=['#a78bfa','#3ecf8e','#fb8c40','#4b96ff','#f06060'];
+const CLASS_NAMES=['Class A','Class B','Class C','Class D','Class E'];
+
+/* ══════════════════════════════════════════
+   VIZ 1 — INTERACTIVE KNN CLASSIFIER
+══════════════════════════════════════════ */
+const KC=C('knn-canvas'),KX=KC.getContext('2d');
+let trainPts=[],testPt=null,currentK=3,showBoundary=false;
+
+function dist(a,b,metric){
+  const dx=a[0]-b[0],dy=a[1]-b[1];
+  if(metric==='manhattan') return Math.abs(dx)+Math.abs(dy);
+  if(metric==='minkowski') return Math.pow(Math.pow(Math.abs(dx),3)+Math.pow(Math.abs(dy),3),1/3);
+  return Math.sqrt(dx*dx+dy*dy);
+}
+
+function knnPredict(pt,pts,k,metric){
+  if(pts.length===0) return null;
+  const dists=pts.map((p,i)=>({d:dist(pt,p,metric),cls:p[2],i}));
+  dists.sort((a,b)=>a.d-b.d);
+  const knn=dists.slice(0,Math.min(k,pts.length));
+  const votes={};
+  knn.forEach(n=>{votes[n.cls]=(votes[n.cls]||0)+1;});
+  const winner=Object.entries(votes).sort((a,b)=>b[1]-a[1])[0];
+  return{cls:parseInt(winner[0]),votes,neighbours:knn};
+}
+
+function drawKNN(){
+  const W=KC.width,H=KC.height,metric=C('dist-sel').value;
+  KX.clearRect(0,0,W,H);
+  KX.fillStyle=bgCard();KX.fillRect(0,0,W,H);
+  const classes=[...new Set(trainPts.map(p=>p[2]))].sort();
+  classes.forEach((cls,i)=>{
+    KX.fillStyle=CLASS_COLORS[cls%CLASS_COLORS.length];KX.fillRect(10+i*90,8,12,12);
+    KX.fillStyle=textColor();KX.font='11px sans-serif';KX.fillText(CLASS_NAMES[cls],26+i*90,19);
+  });
+  if(showBoundary&&trainPts.length>=2){
+    const res=3;
+    for(let px=0;px<W;px+=res)for(let py=0;py<H;py+=res){
+      const r=knnPredict([px,py],trainPts,currentK,metric);
+      if(!r) continue;
+      KX.fillStyle=CLASS_COLORS[r.cls%CLASS_COLORS.length]+'28';KX.fillRect(px,py,res,res);
+    }
+  }
+  if(testPt&&trainPts.length>0){
+    const res2=knnPredict(testPt,trainPts,currentK,metric);
+    if(res2){
+      const farthest=res2.neighbours[res2.neighbours.length-1].d;
+      KX.beginPath();
+      if(metric==='euclidean'){KX.arc(testPt[0],testPt[1],farthest,0,Math.PI*2);}
+      else{KX.moveTo(testPt[0],testPt[1]-farthest);KX.lineTo(testPt[0]+farthest,testPt[1]);KX.lineTo(testPt[0],testPt[1]+farthest);KX.lineTo(testPt[0]-farthest,testPt[1]);KX.closePath();}
+      KX.strokeStyle='rgba(167,139,250,0.5)';KX.lineWidth=1.5;KX.setLineDash([5,4]);KX.stroke();KX.setLineDash([]);
+      res2.neighbours.forEach(n=>{
+        const p=trainPts[n.i];
+        KX.beginPath();KX.moveTo(testPt[0],testPt[1]);KX.lineTo(p[0],p[1]);
+        KX.strokeStyle='rgba(167,139,250,0.4)';KX.lineWidth=1;KX.stroke();
+        KX.beginPath();KX.arc(p[0],p[1],9,0,Math.PI*2);KX.strokeStyle='#a78bfa';KX.lineWidth=2.5;KX.stroke();
+      });
+      updateKNNStats(res2,trainPts.length);
+    }
+  }
+  trainPts.forEach(p=>{
+    KX.beginPath();KX.arc(p[0],p[1],6,0,Math.PI*2);
+    KX.fillStyle=CLASS_COLORS[p[2]%CLASS_COLORS.length];KX.fill();
+    KX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';KX.lineWidth=1;KX.stroke();
+  });
+  if(testPt){
+    const res2=knnPredict(testPt,trainPts,currentK,metric);
+    const predCol=res2?CLASS_COLORS[res2.cls%CLASS_COLORS.length]:'#a78bfa';
+    KX.beginPath();KX.arc(testPt[0],testPt[1],14,0,Math.PI*2);KX.fillStyle=predCol+'30';KX.fill();
+    KX.beginPath();KX.arc(testPt[0],testPt[1],8,0,Math.PI*2);KX.fillStyle=predCol;KX.fill();
+    KX.strokeStyle='#fff';KX.lineWidth=2.5;KX.stroke();
+    KX.fillStyle='#fff';KX.font='bold 10px sans-serif';KX.textAlign='center';
+    KX.fillText('?',testPt[0],testPt[1]+4);KX.textAlign='start';
+  }
+  C('stat-n').textContent=trainPts.length;
+}
+
+function updateKNNStats(res,n){
+  const avgD=(res.neighbours.reduce((s,n)=>s+n.d,0)/res.neighbours.length).toFixed(1);
+  const votesStr=Object.entries(res.votes).map(([c,v])=>CLASS_NAMES[c]+':'+v).join(', ');
+  C('stat-class').textContent=CLASS_NAMES[res.cls];
+  C('stat-class').style.color=CLASS_COLORS[res.cls%CLASS_COLORS.length];
+  C('stat-votes').textContent=votesStr;C('stat-dist').textContent=avgD;
+}
+
+KC.addEventListener('click',e=>{
+  const r=KC.getBoundingClientRect(),sx=KC.width/r.width,sy=KC.height/r.height;
+  const x=(e.clientX-r.left)*sx,y=(e.clientY-r.top)*sy;
+  if(e.shiftKey){trainPts.push([x,y,Math.floor(Math.random()*3)]);}else{testPt=[x,y];}
+  drawKNN();
+});
+
+function addRandomPoints(){
+  const W=KC.width,H=KC.height;
+  const centers=[[W*0.25,H*0.35],[W*0.7,H*0.3],[W*0.5,H*0.72]];
+  centers.forEach((c,cls)=>{for(let i=0;i<18;i++){const x=c[0]+(Math.random()-0.5)*130,y=c[1]+(Math.random()-0.5)*130;if(x>10&&x<W-10&&y>10&&y<H-10)trainPts.push([x,y,cls]);}});
+  drawKNN();
+}
+
+function resetCanvas(){trainPts=[];testPt=null;showBoundary=false;C('boundary-btn').classList.remove('active');C('stat-class').textContent='—';C('stat-class').style.color='';C('stat-votes').textContent='—';C('stat-dist').textContent='—';drawKNN();}
+function updateK(v){currentK=parseInt(v);C('k-val').textContent=v;C('stat-k').textContent=v;drawKNN();}
+function redrawAll(){drawKNN();}
+function toggleBoundary(){showBoundary=!showBoundary;C('boundary-btn').classList.toggle('active',showBoundary);C('boundary-btn').textContent=showBoundary?'Hide boundary':'Show boundary';drawKNN();}
+
+/* ══════════════════════════════════════════
+   VIZ 2 — DECISION BOUNDARY
+══════════════════════════════════════════ */
+const DC=C('db-canvas'),DX=DC.getContext('2d');
+let dbPts=[],dbK=3;
+
+function genDataset(type,n=120){
+  const W=DC.width,H=DC.height,pts=[],cx=W/2,cy=H/2;
+  if(type==='moons'){for(let i=0;i<n/2;i++){const t=Math.PI*i/(n/2);pts.push([cx-80+Math.cos(t)*160+(Math.random()-0.5)*30,cy-30+Math.sin(t)*80+(Math.random()-0.5)*30,0]);pts.push([cx+80+Math.cos(t+Math.PI)*160+(Math.random()-0.5)*30,cy+30+Math.sin(t+Math.PI)*80+(Math.random()-0.5)*30,1]);}}
+  else if(type==='circles'){for(let i=0;i<n;i++){const r=i<n/2?80:180,a=Math.random()*Math.PI*2,nr=r+(Math.random()-0.5)*35;pts.push([cx+Math.cos(a)*nr,cy+Math.sin(a)*nr,i<n/2?0:1]);}}
+  else if(type==='blobs'){const centers=[[cx-120,cy-80],[cx+120,cy-80],[cx,cy+100]];centers.forEach((c,cls)=>{for(let i=0;i<n/3;i++)pts.push([c[0]+(Math.random()-0.5)*100,c[1]+(Math.random()-0.5)*100,cls]);});}
+  else{for(let i=0;i<n;i++){const x=cx+(Math.random()-0.5)*300,y=cy+(Math.random()-0.5)*240,cls=((x>cx)!==(y>cy))?0:1;pts.push([x+(Math.random()-0.5)*20,y+(Math.random()-0.5)*20,cls]);}}
+  return pts;
+}
+
+function drawDecisionBoundary(){
+  const W=DC.width,H=DC.height,res=5;
+  DX.clearRect(0,0,W,H);DX.fillStyle=bgCard();DX.fillRect(0,0,W,H);
+  for(let px=0;px<W;px+=res)for(let py=0;py<H;py+=res){
+    const r=knnPredict([px,py],dbPts,dbK,'euclidean');if(!r)continue;
+    DX.fillStyle=CLASS_COLORS[r.cls%CLASS_COLORS.length]+'30';DX.fillRect(px,py,res,res);
+  }
+  dbPts.forEach(p=>{DX.beginPath();DX.arc(p[0],p[1],5,0,Math.PI*2);DX.fillStyle=CLASS_COLORS[p[2]%CLASS_COLORS.length];DX.fill();DX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';DX.lineWidth=1;DX.stroke();});
+  const k=dbK;C('db-k-stat').textContent=k;C('db-complexity').textContent=k<=3?'High':k<=7?'Medium':'Low';C('db-bias').textContent=k<=3?'Low':k<=7?'Medium':'High';C('db-variance').textContent=k<=3?'High':k<=7?'Medium':'Low';
+}
+
+function updateDBK(v){dbK=parseInt(v);C('db-k-val').textContent=v;if(dbPts.length>0)drawDecisionBoundary();}
+function regenerateDB(){dbPts=genDataset(C('db-dataset').value);drawDecisionBoundary();}
+
+/* ══════════════════════════════════════════
+   VIZ 3 — DISTANCE METRIC
+══════════════════════════════════════════ */
+const MC=C('metric-canvas'),MX=MC.getContext('2d');
+let currentMetric='euclidean',currentP=3;
+
+function drawMetricViz(){
+  const W=MC.width,H=MC.height,cx=W/2,cy=H/2;
+  MX.clearRect(0,0,W,H);MX.fillStyle=bgCard();MX.fillRect(0,0,W,H);
+  MX.strokeStyle=gridColor();MX.lineWidth=0.5;
+  for(let i=0;i<W;i+=40){MX.beginPath();MX.moveTo(i,0);MX.lineTo(i,H);MX.stroke();}
+  for(let i=0;i<H;i+=40){MX.beginPath();MX.moveTo(0,i);MX.lineTo(W,i);MX.stroke();}
+  const radii=[40,80,120];
+  const metricColors={euclidean:'#a78bfa',manhattan:'#fb8c40',minkowski:'#3ecf8e'};
+  const col=metricColors[currentMetric]||'#a78bfa';
+  radii.forEach((r,ri)=>{
+    MX.beginPath();MX.strokeStyle=col;MX.lineWidth=ri===1?2.5:1.2;MX.globalAlpha=ri===1?1:0.5;
+    if(currentMetric==='euclidean'){MX.arc(cx,cy,r,0,Math.PI*2);}
+    else if(currentMetric==='manhattan'){MX.moveTo(cx,cy-r);MX.lineTo(cx+r,cy);MX.lineTo(cx,cy+r);MX.lineTo(cx-r,cy);MX.closePath();}
+    else{const steps=200;for(let i=0;i<=steps;i++){const t=(i/steps)*Math.PI*2,ct=Math.cos(t),st=Math.sin(t),p=currentP,scale=r/Math.pow(Math.pow(Math.abs(ct),p)+Math.pow(Math.abs(st),p),1/p),px2=cx+ct*scale,py2=cy+st*scale;i===0?MX.moveTo(px2,py2):MX.lineTo(px2,py2);}MX.closePath();}
+    MX.stroke();MX.globalAlpha=1;
+  });
+  MX.beginPath();MX.arc(cx,cy,7,0,Math.PI*2);MX.fillStyle=col;MX.fill();MX.strokeStyle='#fff';MX.lineWidth=2;MX.stroke();
+  const samplePts=[[cx+55,cy-30],[cx-70,cy+20],[cx+30,cy+75],[cx-45,cy-65],[cx+90,cy+40],[cx-100,cy-20],[cx+15,cy-100],[cx-60,cy+80],[cx+110,cy-50],[cx-120,cy+60]];
+  samplePts.forEach(p=>{
+    const d=currentMetric==='euclidean'?Math.sqrt((p[0]-cx)**2+(p[1]-cy)**2):currentMetric==='manhattan'?Math.abs(p[0]-cx)+Math.abs(p[1]-cy):Math.pow(Math.pow(Math.abs(p[0]-cx),currentP)+Math.pow(Math.abs(p[1]-cy),currentP),1/currentP);
+    const isNear=d<85;MX.beginPath();MX.arc(p[0],p[1],5,0,Math.PI*2);MX.fillStyle=isNear?col:'rgba(160,158,152,0.4)';MX.fill();
+    if(isNear){MX.strokeStyle=col+'88';MX.lineWidth=2;MX.stroke();}
+  });
+  const title={euclidean:'Euclidean — circular neighbourhoods',manhattan:'Manhattan — diamond-shaped neighbourhoods',minkowski:'Minkowski p='+currentP.toFixed(1)+' neighbourhood'}[currentMetric];
+  C('metric-canvas-title').textContent=title;
+}
+
+function selectMetric(m){
+  currentMetric=m;
+  ['euclidean','manhattan','minkowski'].forEach(k=>{const el=C('mc-'+k);if(el)el.classList.toggle('active',k===m);});
+  C('p-group').style.display=m==='minkowski'?'flex':'none';drawMetricViz();
+}
+function updateP(v){currentP=parseFloat(v);C('p-val').textContent=parseFloat(v).toFixed(1);drawMetricViz();}
+
+/* ══════════════════════════════════════════
+   VIZ 4 — K SELECTION
+══════════════════════════════════════════ */
+const KSC=C('k-sel-canvas'),KSX=KSC.getContext('2d');
+let kSelData=null;
+
+function simulateKAccuracy(kMax=21){
+  const train=[],val=[];
+  for(let k=1;k<=kMax;k+=2){
+    const baseAcc=0.65+0.25*(1-Math.exp(-k/4)),noise=(Math.random()-0.5)*0.04,overfit=k===1?0.08:0;
+    train.push({k,acc:Math.min(0.99,baseAcc+0.08-overfit+noise*0.5)});
+    val.push({k,acc:Math.max(0.4,baseAcc+noise-(k>11?0.005*(k-11):0))});
+  }
+  return{train,val};
+}
+
+function drawKSelChart(data){
+  const W=KSC.width,H=KSC.height,pad=45;
+  KSX.clearRect(0,0,W,H);KSX.fillStyle=bgCard();KSX.fillRect(0,0,W,H);
+  KSX.strokeStyle=gridColor();KSX.lineWidth=0.5;
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(v=>{
+    const y=pad+(H-2*pad)*(1-(v-0.4)/0.65);KSX.beginPath();KSX.moveTo(pad,y);KSX.lineTo(W-10,y);KSX.stroke();
+    KSX.fillStyle=textColor();KSX.font='10px monospace';KSX.textAlign='right';KSX.fillText((v*100).toFixed(0)+'%',pad-4,y+3);
+  });
+  data.val.forEach(p=>{const x=pad+(W-pad-10)*(p.k-1)/20;KSX.fillStyle=textColor();KSX.font='10px monospace';KSX.textAlign='center';KSX.fillText('K='+p.k,x,H-5);});
+  if(data.train.length){KSX.beginPath();KSX.strokeStyle='#4b96ff';KSX.lineWidth=2;KSX.setLineDash([4,3]);data.train.forEach((p,i)=>{const x=pad+(W-pad-10)*(p.k-1)/20,y=pad+(H-2*pad)*(1-(p.acc-0.4)/0.65);i===0?KSX.moveTo(x,y):KSX.lineTo(x,y);});KSX.stroke();KSX.setLineDash([]);}
+  if(data.val.length){KSX.beginPath();KSX.strokeStyle='#3ecf8e';KSX.lineWidth=2.5;data.val.forEach((p,i)=>{const x=pad+(W-pad-10)*(p.k-1)/20,y=pad+(H-2*pad)*(1-(p.acc-0.4)/0.65);i===0?KSX.moveTo(x,y):KSX.lineTo(x,y);});KSX.stroke();data.val.forEach(p=>{const x=pad+(W-pad-10)*(p.k-1)/20,y=pad+(H-2*pad)*(1-(p.acc-0.4)/0.65);KSX.beginPath();KSX.arc(x,y,4,0,Math.PI*2);KSX.fillStyle='#3ecf8e';KSX.fill();});}
+  if(data.val.length>1){const best=data.val.reduce((m,p)=>p.acc>m.acc?p:m,data.val[0]);const bx=pad+(W-pad-10)*(best.k-1)/20,by=pad+(H-2*pad)*(1-(best.acc-0.4)/0.65);KSX.beginPath();KSX.arc(bx,by,7,0,Math.PI*2);KSX.fillStyle='#f0a500';KSX.fill();KSX.strokeStyle='#fff';KSX.lineWidth=2;KSX.stroke();KSX.fillStyle='#f0a500';KSX.font='bold 11px sans-serif';KSX.textAlign='center';KSX.fillText('Best K='+best.k,bx,by-14);}
+  KSX.fillStyle='#4b96ff';KSX.fillRect(pad,8,20,3);KSX.fillStyle=textColor();KSX.font='11px sans-serif';KSX.textAlign='left';KSX.fillText('Train accuracy',pad+26,14);
+  KSX.fillStyle='#3ecf8e';KSX.fillRect(pad+150,8,20,3);KSX.fillText('Validation accuracy',pad+176,14);
+  KSX.fillStyle='#f0a500';KSX.beginPath();KSX.arc(pad+320,11,5,0,Math.PI*2);KSX.fill();KSX.fillStyle=textColor();KSX.fillText('Optimal K',pad+332,14);
+}
+
+async function runKSelection(){
+  C('k-sel-status').textContent='Running 5-fold CV...';
+  KSX.clearRect(0,0,KSC.width,KSC.height);KSX.fillStyle=bgCard();KSX.fillRect(0,0,KSC.width,KSC.height);
+  await delay(400);kSelData=simulateKAccuracy();
+  for(let i=1;i<=kSelData.val.length;i++){drawKSelChart({train:kSelData.train.slice(0,i),val:kSelData.val.slice(0,i)});await delay(80);}
+  drawKSelChart(kSelData);
+  const best=kSelData.val.reduce((m,p)=>p.acc>m.acc?p:m,kSelData.val[0]);
+  C('k-sel-status').textContent='Done! Best K='+best.k+' (val acc: '+(best.acc*100).toFixed(1)+'%)';
+}
+
+function clearKChart(){kSelData=null;KSX.clearRect(0,0,KSC.width,KSC.height);C('k-sel-status').textContent='';}
+
+/* ══════════════════════════════════════════
+   LIVE EDITOR — CodeMirror
+══════════════════════════════════════════ */
+const SNIPPETS=[
+  {file:'knn_scratch.py',label:'From scratch',code:`import numpy as np
+from collections import Counter
+
+class KNNClassifier:
+    def __init__(self, k=3, metric='euclidean'):
+        self.k = k
+        self.metric = metric
+
+    def fit(self, X, y):
+        # No training - just store data
+        self.X_train = np.array(X)
+        self.y_train = np.array(y)
+        return self
+
+    def _distance(self, a, b):
+        if self.metric == 'euclidean':
+            return np.sqrt(np.sum((a - b) ** 2))
+        elif self.metric == 'manhattan':
+            return np.sum(np.abs(a - b))
+        else:
+            return np.sqrt(np.sum((a - b) ** 2))
+
+    def predict_one(self, x):
+        distances = [self._distance(x, xi) for xi in self.X_train]
+        k_indices = np.argsort(distances)[:self.k]
+        k_labels = self.y_train[k_indices]
+        return Counter(k_labels).most_common(1)[0][0]
+
+    def predict(self, X):
+        return np.array([self.predict_one(x) for x in X])
+
+    def score(self, X, y):
+        return np.mean(self.predict(X) == y)
+
+# Test on synthetic data
+np.random.seed(42)
+n = 80
+X = np.vstack([
+    np.random.randn(n//2, 2) + [2, 2],
+    np.random.randn(n//2, 2) + [-2, -2]
+])
+y = np.array([0]*(n//2) + [1]*(n//2))
+
+split = int(0.8 * n)
+model = KNNClassifier(k=5)
+model.fit(X[:split], y[:split])
+acc = model.score(X[split:], y[split:])
+print(f"KNN from scratch - k=5 - accuracy: {acc:.2%}")
+
+# Try different K values
+for k in [1, 3, 5, 7, 11, 15]:
+    m = KNNClassifier(k=k).fit(X[:split], y[:split])
+    print(f"  K={k:2d}  acc={m.score(X[split:], y[split:]):.2%}")`},
+  {file:'knn_sklearn.py',label:'Sklearn',code:`from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
+import numpy as np
+
+# Load Iris dataset
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# IMPORTANT: always scale before KNN
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.25, random_state=42, stratify=y)
+
+# Train KNN
+knn = KNeighborsClassifier(
+    n_neighbors=7,
+    metric='euclidean',
+    weights='distance',   # closer neighbours vote more
+    algorithm='kd_tree'   # faster for low-dimensional data
+)
+knn.fit(X_train, y_train)
+
+print("Test accuracy:", knn.score(X_test, y_test))
+print()
+print(classification_report(y_test, knn.predict(X_test),
+      target_names=iris.target_names))
+
+# Cross-validation
+cv_scores = cross_val_score(knn, X_scaled, y, cv=5)
+print(f"5-fold CV: {cv_scores.mean():.3f} +/- {cv_scores.std():.3f}")`},
+  {file:'knn_tune_k.py',label:'Tune K',code:`from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets import make_classification
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+X, y = make_classification(n_samples=500, n_features=10,
+                            n_informative=6, random_state=42)
+scaler = StandardScaler()
+X_s = scaler.fit_transform(X)
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+print(f"{'K':>3}  {'Val acc':>8}  {'Std':>6}")
+print("-" * 25)
+best_k, best_val = 1, 0
+for k in range(1, 22, 2):
+    knn = KNeighborsClassifier(n_neighbors=k)
+    val_scores = cross_val_score(knn, X_s, y, cv=cv)
+    val_mean = val_scores.mean()
+    bar = '█' * int(val_mean * 20)
+    print(f"{k:>3}  {val_mean:.3f}  {val_scores.std():.4f}  {bar}")
+    if val_mean > best_val:
+        best_val = val_mean
+        best_k = k
+
+print(f"\\nBest K = {best_k}  (val accuracy = {best_val:.3f})")`},
+  {file:'knn_regression.py',label:'KNN Regression',code:`from sklearn.neighbors import KNeighborsRegressor
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
+
+# KNN works for regression too - predicts MEAN of K neighbours
+X, y = make_regression(n_samples=400, n_features=5,
+                        noise=20, random_state=42)
+scaler = StandardScaler()
+X_s = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_s, y, test_size=0.2, random_state=42)
+
+print(f"{'K':>3}  {'MSE':>10}  {'R²':>7}")
+print("-" * 26)
+for k in [1, 3, 5, 10, 20]:
+    reg = KNeighborsRegressor(n_neighbors=k, weights='distance')
+    reg.fit(X_train, y_train)
+    y_pred = reg.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2  = r2_score(y_test, y_pred)
+    print(f"{k:>3}  {mse:>10.1f}  {r2:>7.3f}")
+
+print("\\nKNN regression = average of K nearest y values")`}
+];
+
+let currentTab=0, pyodide=null, pyLoading=false, cmEditor=null;
+
+function buildTabs(){
+  const wrap=C('editor-tabs');
+  wrap.innerHTML=SNIPPETS.map((s,i)=>`<button class="editor-tab${i===0?' active':''}" onclick="switchTab(${i})">${s.label}</button>`).join('');
+}
+
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach((b,j)=>b.classList.toggle('active',j===i));
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+function initCodeMirror(){
+  if(typeof CodeMirror==='undefined') return;
+  const mount=C('cm-editor-mount');
+  cmEditor=CodeMirror(mount,{
+    value:SNIPPETS[0].code,
+    mode:'python',
+    theme:'one-dark',
+    lineNumbers:true,
+    indentUnit:4,
+    tabSize:4,
+    indentWithTabs:false,
+    lineWrapping:false,
+    autofocus:false,
+    extraKeys:{
+      Tab:cm=>{
+        if(cm.somethingSelected()){cm.indentSelection('add');}
+        else{cm.replaceSelection('    ','end');}
+      }
+    }
+  });
+  /* make height auto = show all lines */
+  cmEditor.setSize('100%',null);
+}
+
+async function runEditor(){
+  const btn=C('run-btn'),out=C('editor-output');
+  const code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='⟳ Loading Python...';
+  const t0=Date.now();
+  if(!pyodide){
+    const st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        const sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise((r,j)=>{sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(r=>setTimeout(r,100));}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python runtime.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='⟳ Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    const res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch{}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';C('run-time').textContent='';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ══ INIT ══ */
+window.addEventListener('load',()=>{
+  addRandomPoints();drawKNN();regenerateDB();drawMetricViz();
+  KSX.fillStyle=bgCard();KSX.fillRect(0,0,KSC.width,KSC.height);
+  KSX.fillStyle=textColor();KSX.font='13px sans-serif';KSX.textAlign='center';
+  KSX.fillText('Click "Run CV sweep" to find the optimal K',KSC.width/2,KSC.height/2);
+  buildTabs();initCodeMirror();
+  const obs=new MutationObserver(()=>{
+    drawKNN();drawDecisionBoundary();drawMetricViz();
+    if(kSelData)drawKSelChart(kSelData);
+    /* update CM theme on light/dark toggle */
+    if(cmEditor){
+      cmEditor.setOption('theme','one-dark');
+      cmEditor.refresh();
+    }
+  });
+  obs.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>
