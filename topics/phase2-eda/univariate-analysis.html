@@ -1,0 +1,1184 @@
+<!-- univariate-analysis.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Univariate Analysis — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(75,150,255,0.09),rgba(167,139,250,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(75,150,255,0.1) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* dataset switcher */
+    .ds-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+    .ds-tab{padding:6px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:100px;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .ds-tab.active{background:var(--blue-surf);border-color:var(--blue);color:var(--blue);font-weight:700;}
+    /* distribution shape cards */
+    .shape-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+    .shape-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;cursor:pointer;transition:all .18s;text-align:center;}
+    .shape-card:hover,.shape-card.active{border-color:var(--blue);background:var(--blue-surf);}
+    .shape-card-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-top:6px;margin-bottom:3px;}
+    .shape-card-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+    /* stat comparison table */
+    .stat-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+    .stat-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:8px 12px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:left;}
+    .stat-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text-2);font-family:var(--font-mono);font-size:12.5px;}
+    .stat-table tr:hover td{background:var(--bg-hover);}
+    .stat-table tr:last-child td{border-bottom:none;}
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--blue);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    /* outlier zone */
+    .outlier-zone{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:10px;cursor:pointer;transition:all .15s;}
+    .outlier-zone:hover{border-color:var(--blue);}
+    @media(max-width:700px){.shape-grid{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="univariate-analysis">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Univariate Analysis</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">EDA</a><span class="sep">/</span>
+            <span class="current">Univariate Analysis</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-2" style="border-color:rgba(75,150,255,.25);margin-bottom:14px;">Phase 2 &middot; EDA</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Univariate Analysis</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Analyse one variable at a time. Understand its distribution, find the centre, measure spread, spot outliers, and detect skew &mdash; before touching any model.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">20 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">pandas &middot; numpy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: INTERACTIVE HISTOGRAM + BOX PLOT -->
+          <section class="section" id="histogram-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">~</div>
+              Live histogram &amp; box plot explorer
+            </h2>
+            <p>Choose a dataset and distribution shape. Drag the <strong>bin width slider</strong> to see how binning choices affect what you see. Click <strong>Add outlier</strong> to watch statistics shift.</p>
+
+            <!-- Dataset tabs -->
+            <div class="ds-tabs" id="ds-tabs"></div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="hist-title">Histogram &amp; KDE</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Bins:</span>
+                  <input type="range" min="3" max="50" value="15" class="ctrl-slider" id="bin-slider" style="width:100px;" oninput="updateBins(this.value)"/>
+                  <span class="ctrl-value" id="bin-val" style="color:var(--blue);">15</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Show:</span>
+                  <button class="ctrl-btn active" id="tog-hist" onclick="toggleLayer('hist')">Histogram</button>
+                  <button class="ctrl-btn active" id="tog-kde" onclick="toggleLayer('kde')">KDE</button>
+                  <button class="ctrl-btn active" id="tog-box" onclick="toggleLayer('box')">Box plot</button>
+                </div>
+                <button class="ctrl-btn" onclick="addOutlier()">+ Add outlier</button>
+                <button class="ctrl-btn" onclick="resetData()">Reset</button>
+              </div>
+              <canvas id="hist-canvas" width="700" height="360" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="main-stats"></div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Bin width matters.</strong> Too few bins hides the distribution shape. Too many bins creates noise. The Freedman-Diaconis rule (bins = IQR * n^(1/3) * 2 / range) is often the best automatic choice.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: DISTRIBUTION SHAPE EXPLORER -->
+          <section class="section" id="distribution-shapes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">6</div>
+              Distribution shapes &mdash; click to explore
+            </h2>
+            <p>Every distribution shape tells a different story about your data. Click each shape to see it rendered with its key properties and what it means in practice.</p>
+
+            <div class="shape-grid" id="shape-grid"></div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title" id="shape-canvas-title">Normal distribution &mdash; symmetric, bell curve</span>
+                <span id="shape-skew-badge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--blue-surf);color:var(--blue);">Skew &approx; 0</span>
+              </div>
+              <canvas id="shape-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="shape-stats-row"></div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: STATISTICS LIVE CALCULATOR -->
+          <section class="section" id="stats-calculator">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">x</div>
+              Statistics live calculator &mdash; edit the data
+            </h2>
+            <p>Type comma-separated numbers below. Every descriptive statistic updates instantly as you type. Watch how a single outlier shifts mean but not median.</p>
+
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:18px;">
+              <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:13px;font-weight:600;color:var(--text-2);white-space:nowrap;">Data:</span>
+                <input id="data-input" type="text" value="23, 25, 27, 28, 29, 30, 31, 32, 35, 40, 42, 45"
+                  style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:7px 12px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);outline:none;"
+                  oninput="calcStats(this.value)" placeholder="Enter numbers separated by commas"/>
+              </div>
+              <!-- Quick presets -->
+              <div style="padding:10px 18px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <span style="font-size:11px;color:var(--text-3);">Try:</span>
+                <button class="reset-pill" onclick="setData('1,2,2,3,3,3,4,4,4,4,5,5,5,6,6,7')">Normal-ish</button>
+                <button class="reset-pill" onclick="setData('1,1,1,2,2,3,4,5,10,20,50,100')">Right skew</button>
+                <button class="reset-pill" onclick="setData('10,20,30,40,50,60,70,80,90,100')">Uniform</button>
+                <button class="reset-pill" onclick="setData('5,5,5,5,6,6,6,7,7,100')">Outlier effect</button>
+                <button class="reset-pill" onclick="setData('1,1,2,2,2,5,5,5,5,8,8,9,9,9')">Bimodal</button>
+              </div>
+              <!-- Stats grid -->
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0;" id="stats-display">
+                <div style="padding:14px 18px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Central tendency</div>
+                  <div id="ct-stats"></div>
+                </div>
+                <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Spread</div>
+                  <div id="sp-stats"></div>
+                </div>
+                <div style="padding:14px 18px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Shape</div>
+                  <div id="sh-stats"></div>
+                </div>
+                <div style="padding:14px 18px;">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">5-number summary</div>
+                  <div id="fns-stats"></div>
+                </div>
+              </div>
+              <!-- Mini visualisation -->
+              <canvas id="mini-canvas" width="700" height="100" style="width:100%;display:block;border-top:1px solid var(--border);"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 4: OUTLIER DETECTION PLAYGROUND -->
+          <section class="section" id="outlier-detection">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Outlier detection &mdash; 3 methods compared live
+            </h2>
+            <p><strong>Click on the canvas</strong> to add data points. The three outlier detection methods update instantly. See how they flag different points as outliers.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Outlier detection playground</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">IQR factor:</span>
+                  <input type="range" min="10" max="30" value="15" class="ctrl-slider" id="iqr-factor" style="width:80px;" oninput="updateOutlierViz()"/>
+                  <span class="ctrl-value" id="iqr-factor-val" style="color:var(--red);">1.5</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Z threshold:</span>
+                  <input type="range" min="15" max="40" value="25" class="ctrl-slider" id="z-thresh" style="width:80px;" oninput="updateOutlierViz()"/>
+                  <span class="ctrl-value" id="z-thresh-val" style="color:var(--red);">2.5</span>
+                </div>
+                <button class="ctrl-btn" onclick="addOutlierPts()">+ Add cluster</button>
+                <button class="ctrl-btn" onclick="resetOutlierPts()">Reset</button>
+              </div>
+              <canvas id="outlier-canvas" width="700" height="300" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ou-total">0</span><span class="stat-pill-lbl">Total points</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ou-iqr" style="color:var(--red);">0</span><span class="stat-pill-lbl">IQR outliers</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ou-z" style="color:var(--orange);">0</span><span class="stat-pill-lbl">Z-score outliers</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ou-mod-z" style="color:var(--purple);">0</span><span class="stat-pill-lbl">Modified-Z outliers</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ou-iqr-range" style="font-size:12px;">-</span><span class="stat-pill-lbl">IQR bounds</span></div>
+              </div>
+            </div>
+
+            <!-- Method comparison cards -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+              <div style="background:var(--bg-card);border:2px solid rgba(240,96,96,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px;">IQR method</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);margin-bottom:8px;color:var(--text-1);">outlier if x &lt; Q1-1.5*IQR
+          or x &gt; Q3+1.5*IQR</div>
+                <div style="font-size:12px;color:var(--text-3);">Robust to outliers. Best for skewed distributions. Industry standard for box plots.</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(251,140,64,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--orange);margin-bottom:4px;">Z-score method</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);margin-bottom:8px;color:var(--text-1);">z = (x - mean) / std
+          outlier if |z| &gt; 2.5</div>
+                <div style="font-size:12px;color:var(--text-3);">Assumes normal distribution. Sensitive to outliers (mean/std are affected). Use for roughly normal data.</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(167,139,250,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--purple);margin-bottom:4px;">Modified Z-score</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);margin-bottom:8px;color:var(--text-1);">mz = 0.6745*(x-median)/MAD
+          outlier if |mz| &gt; 3.5</div>
+                <div style="font-size:12px;color:var(--text-3);">Uses median and MAD. Most robust method. Works even when many outliers present. Best for contaminated data.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: CATEGORICAL ANALYSIS -->
+          <section class="section" id="categorical-analysis">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">A</div>
+              Categorical variable analysis &mdash; interactive
+            </h2>
+            <p>For categorical variables: count frequencies, measure entropy, spot dominant categories, and check for rare categories that might need grouping.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Frequency analysis</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="cat-dataset" onchange="drawCatViz()">
+                    <option value="balanced">Balanced (good)</option>
+                    <option value="skewed">Skewed (watch out)</option>
+                    <option value="rare">Rare categories (problem)</option>
+                    <option value="highecard">High cardinality (issue)</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Sort:</span>
+                  <button class="ctrl-btn active" id="sort-freq-btn" onclick="setCatSort('freq')">By frequency</button>
+                  <button class="ctrl-btn" id="sort-alpha-btn" onclick="setCatSort('alpha')">Alphabetical</button>
+                </div>
+              </div>
+              <canvas id="cat-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cat-n">-</span><span class="stat-pill-lbl">Categories</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cat-mode">-</span><span class="stat-pill-lbl">Mode</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cat-entropy">-</span><span class="stat-pill-lbl">Entropy (bits)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cat-rare" style="color:var(--red);">-</span><span class="stat-pill-lbl">Rare (&lt;5%)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cat-dom">-</span><span class="stat-pill-lbl">Dominant</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: numerical EDA, categorical EDA, distribution tests, and outlier detection.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">univariate_numerical.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using mean for skewed distributions.</strong> For income, house prices, or any right-skewed data, the mean is pulled by outliers. Report median + IQR instead of mean + std.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Ignoring the bin width effect on histograms.</strong> Changing bin width can make the same data look normal, bimodal, or uniform. Always try multiple bin widths and use KDE alongside.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Removing all outliers automatically.</strong> Outliers are data too. First investigate why they exist. A salary of $10M may be real data for a CEO. Only remove if there is a clear reason (data entry error, measurement fault).</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Forgetting to check for rare categories.</strong> A category with 3 occurrences in 10,000 rows will cause problems in train/test splits and cross-validation. Group rare categories into "Other".</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using a bar chart for continuous data.</strong> Continuous variables need histograms or KDE plots. Bar charts are for categorical counts. Using a bar chart for age is technically wrong.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always start with df.describe() and histogram for numerical, value_counts() for categorical.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For skewed data: use median and IQR, not mean and std. Log-transform before modelling.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use IQR method for outlier detection. Investigate before removing — outliers may be real.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Check skewness and kurtosis numerically: |skew| &gt; 1 means significantly skewed.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For categorical: check cardinality, rare categories (&lt;5%), and dominant categories (&gt;80%).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Look at distribution shape: normal, right-skewed, left-skewed, bimodal, or uniform each imply different actions.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="data-types.html"><span class="pn-dir">Previous</span><span class="pn-title">Data Types</span></a>
+            <a class="pn-card next" id="next-card" href="bivariate-analysis.html"><span class="pn-dir">Next</span><span class="pn-title">Bivariate Analysis</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#histogram-explorer">Histogram explorer</a></li>
+            <li class="toc-item"><a href="#distribution-shapes">Distribution shapes</a></li>
+            <li class="toc-item"><a href="#stats-calculator">Stats calculator</a></li>
+            <li class="toc-item"><a href="#outlier-detection">Outlier detection</a></li>
+            <li class="toc-item"><a href="#categorical-analysis">Categorical analysis</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgInput(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* ═══ DATA GENERATION ═══ */
+function normalRand(mu,sigma){
+  var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return mu+sigma*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function seededRng(seed){return function(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;};}
+
+var DATASETS={
+  'Ages':{gen:function(){var d=[];for(var i=0;i<200;i++)d.push(Math.max(18,Math.min(90,normalRand(38,12))));return d;},color:'#4b96ff',unit:'years'},
+  'Salaries':{gen:function(){var d=[];for(var i=0;i<200;i++)d.push(Math.max(20000,30000*Math.exp(normalRand(0,0.8))));return d;},color:'#3ecf8e',unit:'$'},
+  'Ratings':{gen:function(){var d=[];for(var i=0;i<200;i++){var r=rng=>Math.random();var v=Math.round(normalRand(3.8,0.9));d.push(Math.max(1,Math.min(5,v)));}return d;},color:'#f0a500',unit:'stars'},
+  'Heights':{gen:function(){var d=[];for(var i=0;i<200;i++)d.push(normalRand(170,8));return d;},color:'#a78bfa',unit:'cm'},
+};
+
+var currentDS='Ages', currentData=[], layers={hist:true,kde:true,box:true};
+var bins=15;
+
+function switchDataset(name){
+  currentDS=name;
+  document.querySelectorAll('.ds-tab').forEach(function(t){t.classList.toggle('active',t.dataset.name===name);});
+  resetData();
+}
+
+function resetData(){
+  currentData=DATASETS[currentDS].gen();
+  drawAll();
+}
+
+function addOutlier(){
+  var max=Math.max.apply(null,currentData);
+  currentData.push(max*2.5);
+  drawAll();
+}
+
+function buildDSTabs(){
+  var tabs=C('ds-tabs');
+  tabs.innerHTML=Object.keys(DATASETS).map(function(name){
+    return '<button class="ds-tab'+(name===currentDS?' active':'')+'" data-name="'+name+'" onclick="switchDataset(\''+name+'\')">'+name+'</button>';
+  }).join('');
+}
+
+function toggleLayer(l){
+  layers[l]=!layers[l];
+  C('tog-'+l).classList.toggle('active',layers[l]);
+  drawAll();
+}
+
+function updateBins(v){bins=parseInt(v);C('bin-val').textContent=v;drawAll();}
+
+/* ═══ STATISTICS ═══ */
+function computeStats(data){
+  var n=data.length,sorted=data.slice().sort(function(a,b){return a-b;});
+  var mean=data.reduce(function(s,v){return s+v;},0)/n;
+  var median=n%2===0?(sorted[n/2-1]+sorted[n/2])/2:sorted[Math.floor(n/2)];
+  var variance=data.reduce(function(s,v){return s+(v-mean)**2;},0)/n;
+  var std=Math.sqrt(variance);
+  var q1=sorted[Math.floor(n*0.25)],q3=sorted[Math.floor(n*0.75)],iqr=q3-q1;
+  var skewness=data.reduce(function(s,v){return s+((v-mean)/std)**3;},0)/n;
+  var kurtosis=data.reduce(function(s,v){return s+((v-mean)/std)**4;},0)/n-3;
+  var mode=sorted[0];var maxCount=0;
+  sorted.forEach(function(v){var c=sorted.filter(function(x){return x===v;}).length;if(c>maxCount){maxCount=c;mode=v;}});
+  return{n:n,mean:mean,median:median,std:std,variance:variance,min:sorted[0],max:sorted[n-1],q1:q1,q3:q3,iqr:iqr,skewness:skewness,kurtosis:kurtosis,mode:mode,sorted:sorted};
+}
+
+/* ═══ HISTOGRAM CANVAS ═══ */
+var HC=C('hist-canvas'),HX=HC.getContext('2d');
+
+function drawAll(){
+  if(!currentData.length)return;
+  var s=computeStats(currentData);
+  var col=DATASETS[currentDS].color;
+  var unit=DATASETS[currentDS].unit;
+  drawHistogram(s,col,unit);
+  updateMainStats(s,col,unit);
+}
+
+function drawHistogram(s,col,unit){
+  var W=HC.width,H=HC.height,pad={l:55,r:20,t:20,b:50};
+  HX.clearRect(0,0,W,H);HX.fillStyle=bg();HX.fillRect(0,0,W,H);
+
+  var innerH=H-pad.t-pad.b-60; // leave space for box plot
+  var innerW=W-pad.l-pad.r;
+
+  // Build histogram bins
+  var minV=s.min,maxV=s.max,range=maxV-minV||1;
+  var bw=range/bins,counts=new Array(bins).fill(0);
+  currentData.forEach(function(v){var b=Math.min(Math.floor((v-minV)/bw),bins-1);counts[b]++;});
+  var maxCount=Math.max.apply(null,counts);
+
+  // Draw grid
+  HX.strokeStyle=gc();HX.lineWidth=0.5;
+  for(var i=0;i<=5;i++){
+    var y=pad.t+innerH*(1-i/5);
+    HX.beginPath();HX.moveTo(pad.l,y);HX.lineTo(W-pad.r,y);HX.stroke();
+    var lv=Math.round(maxCount*i/5);
+    HX.fillStyle=tc();HX.font='10px monospace';HX.textAlign='right';HX.fillText(lv,pad.l-3,y+3);
+  }
+
+  // Histogram bars
+  if(layers.hist){
+    counts.forEach(function(c,i){
+      if(c===0)return;
+      var x=pad.l+i*(innerW/bins),bw2=innerW/bins;
+      var bh=(c/maxCount)*innerH;
+      HX.fillStyle=col+'55';
+      HX.fillRect(x+1,pad.t+innerH-bh,bw2-2,bh);
+      HX.strokeStyle=col;HX.lineWidth=1.5;
+      HX.strokeRect(x+1,pad.t+innerH-bh,bw2-2,bh);
+    });
+  }
+
+  // KDE curve
+  if(layers.kde){
+    var h=1.06*s.std*Math.pow(s.n,-0.2); // Silverman's rule
+    HX.beginPath();HX.strokeStyle=col;HX.lineWidth=2.5;
+    for(var px=0;px<=innerW;px+=2){
+      var xv=minV+px/innerW*range;
+      var kde=currentData.reduce(function(sum,xi){var u=(xv-xi)/h;return sum+Math.exp(-0.5*u*u);},0)/(s.n*h*Math.sqrt(2*Math.PI));
+      var scaledKDE=kde*s.n*bw;
+      var py=pad.t+innerH*(1-scaledKDE/maxCount);
+      px===0?HX.moveTo(pad.l+px,py):HX.lineTo(pad.l+px,py);
+    }
+    HX.stroke();
+  }
+
+  // Reference lines
+  var xToCanvas=function(v){return pad.l+(v-minV)/range*innerW;};
+  var drawVLine=function(v,color,label,dash){
+    var x=xToCanvas(v);
+    HX.beginPath();HX.strokeStyle=color;HX.lineWidth=1.8;
+    if(dash)HX.setLineDash([5,4]);else HX.setLineDash([]);
+    HX.moveTo(x,pad.t);HX.lineTo(x,pad.t+innerH);HX.stroke();HX.setLineDash([]);
+    HX.fillStyle=color;HX.font='bold 10px sans-serif';HX.textAlign='center';
+    HX.fillText(label,x,pad.t-3);
+  };
+  drawVLine(s.mean,'#f0a500','mean',false);
+  drawVLine(s.median,'#3ecf8e','median',true);
+
+  // Box plot below histogram
+  if(layers.box){
+    var bpy=pad.t+innerH+20,bph=22;
+    var q1x=xToCanvas(s.q1),q3x=xToCanvas(s.q3),medx=xToCanvas(s.median),meanx=xToCanvas(s.mean);
+    var lower=s.q1-1.5*s.iqr,upper=s.q3+1.5*s.iqr;
+    var lox=xToCanvas(Math.max(minV,lower)),upx=xToCanvas(Math.min(maxV,upper));
+
+    // Whiskers
+    HX.beginPath();HX.strokeStyle=col;HX.lineWidth=1.5;
+    HX.moveTo(lox,bpy+bph/2);HX.lineTo(q1x,bpy+bph/2);HX.stroke();
+    HX.beginPath();HX.moveTo(q3x,bpy+bph/2);HX.lineTo(upx,bpy+bph/2);HX.stroke();
+    HX.beginPath();HX.moveTo(lox,bpy+4);HX.lineTo(lox,bpy+bph-4);HX.stroke();
+    HX.beginPath();HX.moveTo(upx,bpy+4);HX.lineTo(upx,bpy+bph-4);HX.stroke();
+
+    // IQR box
+    HX.fillStyle=col+'30';HX.fillRect(q1x,bpy,q3x-q1x,bph);
+    HX.strokeStyle=col;HX.lineWidth=1.5;HX.strokeRect(q1x,bpy,q3x-q1x,bph);
+
+    // Median line
+    HX.beginPath();HX.strokeStyle='#3ecf8e';HX.lineWidth=2.5;
+    HX.moveTo(medx,bpy);HX.lineTo(medx,bpy+bph);HX.stroke();
+
+    // Outlier dots
+    currentData.forEach(function(v){
+      if(v<lower||v>upper){
+        HX.beginPath();HX.arc(xToCanvas(v),bpy+bph/2,4,0,Math.PI*2);
+        HX.fillStyle='rgba(240,96,96,0.8)';HX.fill();
+        HX.strokeStyle='#f06060';HX.lineWidth=1;HX.stroke();
+      }
+    });
+
+    // Box plot labels
+    HX.fillStyle=tc();HX.font='9px monospace';HX.textAlign='center';
+    HX.fillText('Q1='+s.q1.toFixed(0),q1x,bpy+bph+12);
+    HX.fillText('Q3='+s.q3.toFixed(0),q3x,bpy+bph+12);
+    HX.fillStyle='#3ecf8e';
+    HX.fillText('med='+s.median.toFixed(0),medx,bpy-3);
+
+    // Box plot label
+    HX.fillStyle=tc();HX.font='10px sans-serif';HX.textAlign='left';
+    HX.fillText('Box plot (IQR)',pad.l,bpy+bph+24);
+  }
+
+  // X axis labels
+  HX.fillStyle=tc();HX.font='10px monospace';HX.textAlign='center';
+  for(var i=0;i<=5;i++){
+    var v=minV+i/5*range;
+    HX.fillText(v.toFixed(0),pad.l+i/5*innerW,H-10);
+  }
+  HX.fillStyle=tc();HX.textAlign='left';
+  HX.fillText(unit,pad.l,H-2);
+}
+
+function updateMainStats(s,col,unit){
+  var row=C('main-stats');
+  var items=[
+    {label:'Mean',val:(s.mean).toFixed(2)+' '+unit},
+    {label:'Median',val:(s.median).toFixed(2)+' '+unit},
+    {label:'Std',val:(s.std).toFixed(2)},
+    {label:'Skewness',val:(s.skewness).toFixed(3)},
+    {label:'IQR',val:(s.iqr).toFixed(2)},
+    {label:'n',val:s.n}
+  ];
+  row.innerHTML=items.map(function(it){
+    return '<div class="stat-pill"><span class="stat-pill-val" style="color:'+col+';font-size:14px;">'+it.val+'</span><span class="stat-pill-lbl">'+it.label+'</span></div>';
+  }).join('');
+}
+
+/* ═══ SECTION 2: DISTRIBUTION SHAPES ═══ */
+var SHAPES=[
+  {id:'normal',name:'Normal',desc:'Symmetric, bell curve',skew:'Skew \u2248 0',col:'#4b96ff',
+    gen:function(){var d=[];for(var i=0;i<300;i++)d.push(normalRand(0,1));return d;}},
+  {id:'right-skew',name:'Right skewed',desc:'Long tail to right (income)',skew:'Skew > 0',col:'#3ecf8e',
+    gen:function(){var d=[];for(var i=0;i<300;i++)d.push(Math.max(0,Math.exp(normalRand(0,0.8))));return d;}},
+  {id:'left-skew',name:'Left skewed',desc:'Long tail to left (test scores)',skew:'Skew < 0',col:'#a78bfa',
+    gen:function(){var d=[];for(var i=0;i<300;i++)d.push(Math.min(10,-Math.exp(normalRand(0,0.8))+10));return d;}},
+  {id:'bimodal',name:'Bimodal',desc:'Two peaks (mixed populations)',skew:'Two modes',col:'#f0a500',
+    gen:function(){var d=[];for(var i=0;i<150;i++)d.push(normalRand(-2,0.6));for(var i=0;i<150;i++)d.push(normalRand(2,0.6));return d;}},
+  {id:'uniform',name:'Uniform',desc:'Equal probability everywhere',skew:'Skew \u2248 0',col:'#fb8c40',
+    gen:function(){var d=[];for(var i=0;i<300;i++)d.push(Math.random()*10);return d;}},
+  {id:'leptokurtic',name:'Heavy tails',desc:'More outliers than normal',skew:'Kurt > 0',col:'#f06060',
+    gen:function(){var d=[];for(var i=0;i<300;i++){var u=Math.random();d.push(u<0.9?normalRand(0,0.5):normalRand(0,3));}return d;}}
+];
+
+var currentShape='normal',shapeData={};
+
+function buildShapeGrid(){
+  var grid=C('shape-grid');
+  grid.innerHTML=SHAPES.map(function(s){
+    return '<div class="shape-card'+(s.id===currentShape?' active':'')+'" id="shp-'+s.id+'" onclick="selectShape(\''+s.id+'\')">'+
+      '<canvas id="mini-shp-'+s.id+'" width="100" height="50" style="width:100%;display:block;border-radius:var(--r-sm);background:var(--bg-input);"></canvas>'+
+      '<div class="shape-card-name">'+s.name+'</div>'+
+      '<div class="shape-card-desc">'+s.desc+'</div></div>';
+  }).join('');
+  // Draw mini previews
+  SHAPES.forEach(function(s){
+    shapeData[s.id]=s.gen();
+    drawMiniShape(s.id,shapeData[s.id],s.col);
+  });
+}
+
+function drawMiniShape(id,data,col){
+  var cv=C('mini-shp-'+id);if(!cv)return;
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bgInput();ctx.fillRect(0,0,W,H);
+  var min=Math.min.apply(null,data),max=Math.max.apply(null,data),range=max-min||1;
+  var nb=20,bw=range/nb,counts=new Array(nb).fill(0);
+  data.forEach(function(v){var b=Math.min(Math.floor((v-min)/bw),nb-1);counts[b]++;});
+  var mc=Math.max.apply(null,counts);
+  counts.forEach(function(c,i){
+    var bh=(c/mc)*(H-4);
+    ctx.fillStyle=col+'99';
+    ctx.fillRect(i*(W/nb)+0.5,H-bh-2,W/nb-1,bh);
+  });
+}
+
+function selectShape(id){
+  currentShape=id;
+  document.querySelectorAll('.shape-card').forEach(function(el){el.classList.remove('active');});
+  var el=C('shp-'+id);if(el)el.classList.add('active');
+  var s=SHAPES.find(function(x){return x.id===id;});
+  C('shape-canvas-title').textContent=s.name+' \u2014 '+s.desc;
+  C('shape-skew-badge').textContent=s.skew;
+  drawShapeCanvas(shapeData[id],s.col);
+  updateShapeStats(shapeData[id],s.col);
+}
+
+function drawShapeCanvas(data,col){
+  var cv=C('shape-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad=40;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var s=computeStats(data);
+  var range=s.max-s.min||1,nb=25,bw=range/nb,counts=new Array(nb).fill(0);
+  data.forEach(function(v){var b=Math.min(Math.floor((v-s.min)/bw),nb-1);counts[b]++;});
+  var mc=Math.max.apply(null,counts);
+  counts.forEach(function(c,i){
+    var x=pad+i*(W-2*pad)/nb,bh=(c/mc)*(H-2*pad);
+    ctx.fillStyle=col+'55';ctx.fillRect(x+1,H-pad-bh,(W-2*pad)/nb-2,bh);
+    ctx.strokeStyle=col;ctx.lineWidth=1;ctx.strokeRect(x+1,H-pad-bh,(W-2*pad)/nb-2,bh);
+  });
+  // KDE
+  var h2=1.06*s.std*Math.pow(s.n,-0.2);
+  ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2.5;
+  for(var px=0;px<=W-2*pad;px+=2){
+    var xv=s.min+px/(W-2*pad)*range;
+    var kde=data.reduce(function(sum,xi){var u=(xv-xi)/h2;return sum+Math.exp(-0.5*u*u);},0)/(s.n*h2*Math.sqrt(2*Math.PI));
+    var py=H-pad-(kde*s.n*bw/mc)*(H-2*pad);
+    px===0?ctx.moveTo(pad+px,py):ctx.lineTo(pad+px,py);
+  }
+  ctx.stroke();
+  // Mean/median
+  var xC=function(v){return pad+(v-s.min)/range*(W-2*pad);};
+  ctx.beginPath();ctx.strokeStyle='#f0a500';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+  ctx.moveTo(xC(s.mean),pad);ctx.lineTo(xC(s.mean),H-pad);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.strokeStyle='#3ecf8e';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  ctx.moveTo(xC(s.median),pad);ctx.lineTo(xC(s.median),H-pad);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#f0a500';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('mean',xC(s.mean),pad-3);
+  ctx.fillStyle='#3ecf8e';ctx.fillText('median',xC(s.median),H-pad+14);
+}
+
+function updateShapeStats(data,col){
+  var s=computeStats(data),row=C('shape-stats-row');
+  var items=[
+    {l:'Mean',v:s.mean.toFixed(2)},{l:'Median',v:s.median.toFixed(2)},
+    {l:'Std',v:s.std.toFixed(2)},{l:'Skewness',v:s.skewness.toFixed(3)},
+    {l:'Kurtosis',v:s.kurtosis.toFixed(3)},{l:'n',v:s.n}
+  ];
+  row.innerHTML=items.map(function(it){
+    return '<div class="stat-pill"><span class="stat-pill-val" style="color:'+col+';font-size:14px;">'+it.v+'</span><span class="stat-pill-lbl">'+it.l+'</span></div>';
+  }).join('');
+}
+
+/* ═══ SECTION 3: STATS CALCULATOR ═══ */
+var MC=C('mini-canvas'),MX=MC.getContext('2d');
+
+function statRow(label,val,color){
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">'+
+    '<span style="font-size:12.5px;color:var(--text-2);">'+label+'</span>'+
+    '<span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:'+(color||'var(--text-1)')+';">'+val+'</span></div>';
+}
+
+function setData(v){C('data-input').value=v;calcStats(v);}
+
+function calcStats(raw){
+  var vals=raw.split(',').map(function(v){return parseFloat(v.trim());}).filter(function(v){return !isNaN(v);});
+  if(vals.length<2)return;
+  var s=computeStats(vals);
+  var mad=vals.reduce(function(sum,v){return sum+Math.abs(v-s.median);},0)/vals.length;
+
+  C('ct-stats').innerHTML=
+    statRow('Mean',s.mean.toFixed(4),'var(--blue)')+
+    statRow('Median',s.median.toFixed(4),'var(--green)')+
+    statRow('Mode',s.mode.toFixed(2),'var(--purple)')+
+    statRow('Geometric mean',(Math.exp(vals.reduce(function(s,v){return s+Math.log(Math.abs(v||1));},0)/vals.length)).toFixed(3));
+
+  C('sp-stats').innerHTML=
+    statRow('Std dev',s.std.toFixed(4),'var(--red)')+
+    statRow('Variance',s.variance.toFixed(4))+
+    statRow('IQR',s.iqr.toFixed(4),'var(--orange)')+
+    statRow('MAD (median abs dev)',mad.toFixed(4));
+
+  var skewDesc=Math.abs(s.skewness)<0.5?'Symmetric':s.skewness>0?'Right skewed':'Left skewed';
+  var kurtDesc=s.kurtosis>1?'Heavy tails':s.kurtosis<-1?'Light tails':'Normal-like tails';
+  C('sh-stats').innerHTML=
+    statRow('Skewness',s.skewness.toFixed(4)+(s.skewness>0.5?' (+)':s.skewness<-0.5?' (-)':''),'var(--teal)')+
+    statRow('',skewDesc,'var(--text-3)')+
+    statRow('Excess kurtosis',s.kurtosis.toFixed(4),'var(--purple)')+
+    statRow('',kurtDesc,'var(--text-3)');
+
+  C('fns-stats').innerHTML=
+    statRow('Min',s.min.toFixed(4),'var(--red)')+
+    statRow('Q1 (25%)',s.q1.toFixed(4),'var(--orange)')+
+    statRow('Q2 / Median',s.median.toFixed(4),'var(--green)')+
+    statRow('Q3 (75%)',s.q3.toFixed(4),'var(--blue)')+
+    statRow('Max',s.max.toFixed(4),'var(--purple)');
+
+  drawMiniCalc(vals,s);
+}
+
+function drawMiniCalc(vals,s){
+  var W=MC.width,H=MC.height,pad={l:10,r:10,t:8,b:8};
+  MX.clearRect(0,0,W,H);MX.fillStyle=bgInput();MX.fillRect(0,0,W,H);
+  var range=s.max-s.min||1;
+  var xC=function(v){return pad.l+(v-s.min)/range*(W-pad.l-pad.r);};
+  var bpy=H/2-10,bph=20;
+
+  MX.fillStyle=isDark()?'rgba(75,150,255,0.15)':'rgba(75,150,255,0.1)';
+  MX.fillRect(xC(s.q1),bpy,xC(s.q3)-xC(s.q1),bph);
+  MX.strokeStyle='#4b96ff';MX.lineWidth=1.5;
+  MX.strokeRect(xC(s.q1),bpy,xC(s.q3)-xC(s.q1),bph);
+
+  var lower=s.q1-1.5*s.iqr,upper=s.q3+1.5*s.iqr;
+  MX.beginPath();MX.strokeStyle='#4b96ff';MX.lineWidth=1;
+  MX.moveTo(xC(Math.max(s.min,lower)),bpy+bph/2);MX.lineTo(xC(s.q1),bpy+bph/2);MX.stroke();
+  MX.beginPath();MX.moveTo(xC(s.q3),bpy+bph/2);MX.lineTo(xC(Math.min(s.max,upper)),bpy+bph/2);MX.stroke();
+
+  MX.beginPath();MX.strokeStyle='#3ecf8e';MX.lineWidth=2.5;
+  MX.moveTo(xC(s.median),bpy);MX.lineTo(xC(s.median),bpy+bph);MX.stroke();
+
+  MX.beginPath();MX.strokeStyle='#f0a500';MX.lineWidth=2;MX.setLineDash([4,3]);
+  MX.moveTo(xC(s.mean),bpy);MX.lineTo(xC(s.mean),bpy+bph);MX.stroke();MX.setLineDash([]);
+
+  vals.forEach(function(v){
+    var isOut=v<lower||v>upper;
+    MX.beginPath();MX.arc(xC(v),bpy+bph+6,isOut?5:3,0,Math.PI*2);
+    MX.fillStyle=isOut?'rgba(240,96,96,0.8)':'rgba(75,150,255,0.5)';MX.fill();
+  });
+
+  MX.fillStyle=tc();MX.font='9px sans-serif';MX.textAlign='left';
+  MX.fillText('min='+s.min.toFixed(1),pad.l,H-1);
+  MX.textAlign='right';MX.fillText('max='+s.max.toFixed(1),W-pad.r,H-1);
+  MX.fillStyle='#3ecf8e';MX.textAlign='center';MX.fillText('med',xC(s.median),bpy-1);
+  MX.fillStyle='#f0a500';MX.fillText('mean',xC(s.mean),H-1);
+}
+
+/* ═══ SECTION 4: OUTLIER DETECTION ═══ */
+var OC=C('outlier-canvas'),OX=OC.getContext('2d');
+var outlierPts=[];
+
+function addOutlierPts(){
+  var rng=seededRng(Date.now()&0xffff);
+  for(var i=0;i<20;i++) outlierPts.push(40+rng()*20);
+  for(var i=0;i<3;i++) outlierPts.push(rng()<0.5?5+rng()*5:75+rng()*20);
+  updateOutlierViz();
+}
+
+function resetOutlierPts(){outlierPts=[];updateOutlierViz();}
+
+OC.addEventListener('click',function(e){
+  var r=OC.getBoundingClientRect(),sx=OC.width/r.width;
+  var x=(e.clientX-r.left)*sx;
+  var v=x/OC.width*100;
+  outlierPts.push(Math.max(0,Math.min(100,v)));
+  updateOutlierViz();
+});
+
+function updateOutlierViz(){
+  var iqrFactor=parseInt(C('iqr-factor').value)/10;
+  var zThresh=parseInt(C('z-thresh').value)/10;
+  C('iqr-factor-val').textContent=iqrFactor.toFixed(1);
+  C('z-thresh-val').textContent=zThresh.toFixed(1);
+
+  var W=OC.width,H=OC.height,pad=50;
+  OX.clearRect(0,0,W,H);OX.fillStyle=bg();OX.fillRect(0,0,W,H);
+
+  if(!outlierPts.length){
+    OX.fillStyle=tc();OX.font='14px sans-serif';OX.textAlign='center';
+    OX.fillText('Click to add points, or click + Add cluster',W/2,H/2);
+    C('ou-total').textContent='0';C('ou-iqr').textContent='0';C('ou-z').textContent='0';
+    C('ou-mod-z').textContent='0';C('ou-iqr-range').textContent='-';
+    return;
+  }
+
+  var s=computeStats(outlierPts);
+  var lower=s.q1-iqrFactor*s.iqr,upper=s.q3+iqrFactor*s.iqr;
+  var mad=outlierPts.reduce(function(sum,v){return sum+Math.abs(v-s.median);},0)/outlierPts.length||0.001;
+
+  var iqrOut=[],zOut=[],modZOut=[];
+  outlierPts.forEach(function(v){
+    if(v<lower||v>upper)iqrOut.push(v);
+    if(Math.abs((v-s.mean)/(s.std||1))>zThresh)zOut.push(v);
+    if(Math.abs(0.6745*(v-s.median)/mad)>3.5)modZOut.push(v);
+  });
+
+  // Draw IQR fence lines
+  var xC=function(v){return pad+(v/100)*(W-2*pad);};
+  var drawFence=function(x,col,label){
+    OX.beginPath();OX.strokeStyle=col;OX.lineWidth=1.5;OX.setLineDash([5,4]);
+    OX.moveTo(xC(x),pad/2);OX.lineTo(xC(x),H-pad/2);OX.stroke();OX.setLineDash([]);
+    OX.fillStyle=col;OX.font='10px sans-serif';OX.textAlign='center';
+    OX.fillText(label,xC(x),pad/2-3);
+  };
+  drawFence(Math.max(0,lower),'rgba(240,96,96,0.7)','IQR lo');
+  drawFence(Math.min(100,upper),'rgba(240,96,96,0.7)','IQR hi');
+  drawFence(s.mean-zThresh*(s.std||1),'rgba(251,140,64,0.6)','Z lo');
+  drawFence(s.mean+zThresh*(s.std||1),'rgba(251,140,64,0.6)','Z hi');
+
+  // Draw grid
+  OX.strokeStyle=gc();OX.lineWidth=0.5;
+  for(var i=0;i<=10;i++){
+    var gx=pad+i*(W-2*pad)/10;
+    OX.beginPath();OX.moveTo(gx,pad/2);OX.lineTo(gx,H-pad/2);OX.stroke();
+    OX.fillStyle=tc();OX.font='9px monospace';OX.textAlign='center';
+    OX.fillText(i*10,gx,H-pad/2+10);
+  }
+
+  // Draw points (jittered vertically)
+  var seed2=seededRng(42);
+  outlierPts.forEach(function(v,idx){
+    var isIQR=iqrOut.indexOf(v)>-1,isZ=zOut.indexOf(v)>-1,isMZ=modZOut.indexOf(v)>-1;
+    var jitter=(seed2()-0.5)*40;
+    var y=H/2+jitter;
+    var r2=6+( isIQR||isZ||isMZ?4:0);
+    OX.beginPath();OX.arc(xC(v),y,r2,0,Math.PI*2);
+    if(isIQR){OX.fillStyle='rgba(240,96,96,0.75)';}
+    else if(isZ){OX.fillStyle='rgba(251,140,64,0.75)';}
+    else if(isMZ){OX.fillStyle='rgba(167,139,250,0.75)';}
+    else{OX.fillStyle='rgba(75,150,255,0.6)';}
+    OX.fill();
+    OX.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.1)';OX.lineWidth=1;OX.stroke();
+  });
+
+  // Legend
+  var lx=pad,ly=H-pad/2+16;
+  var lgItems=[
+    {col:'rgba(75,150,255,0.6)',label:'Normal'},
+    {col:'rgba(240,96,96,0.75)',label:'IQR outlier'},
+    {col:'rgba(251,140,64,0.75)',label:'Z-score outlier'},
+    {col:'rgba(167,139,250,0.75)',label:'Mod-Z outlier'}
+  ];
+  lgItems.forEach(function(lg,i){
+    OX.fillStyle=lg.col;OX.beginPath();OX.arc(lx+i*150,ly,5,0,Math.PI*2);OX.fill();
+    OX.fillStyle=tc();OX.font='10px sans-serif';OX.textAlign='left';OX.fillText(lg.label,lx+i*150+10,ly+4);
+  });
+
+  C('ou-total').textContent=outlierPts.length;
+  C('ou-iqr').textContent=iqrOut.length;
+  C('ou-z').textContent=zOut.length;
+  C('ou-mod-z').textContent=modZOut.length;
+  C('ou-iqr-range').textContent=lower.toFixed(1)+' - '+upper.toFixed(1);
+}
+
+/* ═══ SECTION 5: CATEGORICAL ═══ */
+var CC=C('cat-canvas'),CX=CC.getContext('2d');
+var catSort='freq';
+
+var CAT_DATA={
+  balanced:{cats:['Delhi','Mumbai','Bangalore','Chennai','Kolkata','Hyderabad'],counts:[320,280,240,200,180,160]},
+  skewed:{cats:['Delhi','Mumbai','Bangalore','Chennai','Kolkata','Hyderabad'],counts:[820,120,40,15,8,4]},
+  rare:{cats:['Cat A','Cat B','Cat C','Cat D','Cat E','Cat F','Cat G','Cat H'],counts:[400,350,100,80,20,10,5,2]},
+  highecard:{cats:['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'],counts:[200,180,160,140,120,100,80,70,60,50,40,30,20,10,5]}
+};
+
+function setCatSort(s){
+  catSort=s;
+  C('sort-freq-btn').classList.toggle('active',s==='freq');
+  C('sort-alpha-btn').classList.toggle('active',s==='alpha');
+  drawCatViz();
+}
+
+function drawCatViz(){
+  var key=C('cat-dataset').value;
+  var raw=CAT_DATA[key];
+  var total=raw.counts.reduce(function(a,b){return a+b;},0);
+  var pairs=raw.cats.map(function(c,i){return{cat:c,count:raw.counts[i],pct:raw.counts[i]/total};});
+  if(catSort==='freq') pairs.sort(function(a,b){return b.count-a.count;});
+  else pairs.sort(function(a,b){return a.cat.localeCompare(b.cat);});
+
+  var W=CC.width,H=CC.height,pad={l:80,r:20,t:20,b:40};
+  var maxC=Math.max.apply(null,pairs.map(function(p){return p.count;}));
+  CX.clearRect(0,0,W,H);CX.fillStyle=bg();CX.fillRect(0,0,W,H);
+
+  var bw=(H-pad.t-pad.b)/pairs.length*0.7;
+  var gap=(H-pad.t-pad.b)/pairs.length*0.3;
+  var colors=['#4b96ff','#3ecf8e','#f0a500','#a78bfa','#f06060','#2dd4bf','#fb8c40','#60a5fa','#4ade80','#e879f9','#fb923c','#34d399','#818cf8','#f87171','#facc15'];
+  var rareThresh=total*0.05;
+
+  pairs.forEach(function(p,i){
+    var y=pad.t+i*(bw+gap);
+    var bh2=(p.count/maxC)*(W-pad.l-pad.r);
+    var col=colors[i%colors.length];
+    var isRare=p.count<rareThresh;
+    CX.fillStyle=isRare?'rgba(240,96,96,0.6)':col+'bb';
+    CX.fillRect(pad.l,y,bh2,bw);
+    if(isRare){CX.strokeStyle='#f06060';CX.lineWidth=1.5;CX.setLineDash([3,2]);CX.strokeRect(pad.l,y,bh2,bw);CX.setLineDash([]);}
+    CX.fillStyle=tc();CX.font='11px sans-serif';CX.textAlign='right';
+    CX.fillText(p.cat,pad.l-5,y+bw/2+4);
+    CX.fillStyle=isRare?'#f06060':col;CX.font='bold 10px monospace';CX.textAlign='left';
+    CX.fillText(p.count+' ('+(p.pct*100).toFixed(1)+'%)',pad.l+bh2+6,y+bw/2+4);
+    if(isRare){CX.fillStyle='rgba(240,96,96,0.8)';CX.fillText(' RARE',pad.l+bh2+6+50,y+bw/2+4);}
+  });
+
+  // x axis
+  for(var i=0;i<=5;i++){
+    var x=pad.l+(W-pad.l-pad.r)*i/5;
+    CX.strokeStyle=gc();CX.lineWidth=0.5;CX.beginPath();CX.moveTo(x,pad.t);CX.lineTo(x,H-pad.b);CX.stroke();
+    var cv=maxC*i/5;CX.fillStyle=tc();CX.font='9px monospace';CX.textAlign='center';CX.fillText(cv.toFixed(0),x,H-pad.b+12);
+  }
+
+  var mode=pairs[0];
+  var entropy=-pairs.reduce(function(s,p){return s+(p.pct>0?p.pct*Math.log2(p.pct):0);},0);
+  var rareCt=pairs.filter(function(p){return p.count<rareThresh;}).length;
+  C('cat-n').textContent=pairs.length;
+  C('cat-mode').textContent=mode.cat;
+  C('cat-entropy').textContent=entropy.toFixed(3);
+  C('cat-rare').textContent=rareCt;
+  C('cat-dom').textContent=(mode.pct*100).toFixed(1)+'%';
+  C('cat-rare').style.color=rareCt>0?'var(--red)':'var(--green)';
+}
+
+/* ═══ LIVE EDITOR ═══ */
+var SNIPPETS=[
+{file:'univariate_numerical.py',label:'Numerical EDA',code:`import numpy as np
+import pandas as pd
+from scipy import stats
+
+np.random.seed(42)
+df = pd.DataFrame({
+    'age':     np.random.normal(38, 12, 500).clip(18, 90).astype(int),
+    'salary':  np.random.lognormal(10.8, 0.6, 500),
+    'rating':  np.random.choice([1,2,3,4,5], 500, p=[0.05,0.1,0.25,0.4,0.2]),
+    'height':  np.random.normal(170, 8, 500),
+})
+
+print("=" * 55)
+print("NUMERICAL UNIVARIATE ANALYSIS")
+print("=" * 55)
+
+for col in df.columns:
+    s = df[col]
+    print(f"--- {col} ---")
+    print(f"  n={len(s)}  nulls={s.isna().sum()}")
+    print(f"  mean={s.mean():.2f}  median={s.median():.2f}  std={s.std():.2f}")
+    print(f"  min={s.min():.2f}  max={s.max():.2f}  IQR={s.quantile(.75)-s.quantile(.25):.2f}")
+    skew = stats.skew(s)
+    kurt = stats.kurtosis(s)
+    print(f"  skewness={skew:.3f}  kurtosis={kurt:.3f}")
+    print(f"  shape: {'right-skewed' if skew>0.5 else 'left-skewed' if skew<-0.5 else 'symmetric'}")
+
+    # Outliers via IQR
+    q1,q3 = s.quantile(0.25), s.quantile(0.75)
+    iqr = q3 - q1
+    n_out = ((s < q1-1.5*iqr) | (s > q3+1.5*iqr)).sum()
+    print(f"  IQR outliers: {n_out} ({n_out/len(s)*100:.1f}%)")
+    print()`},
+{file:'univariate_categorical.py',label:'Categorical EDA',code:`import pandas as pd
+import numpy as np
+
+np.random.seed(0)
+df = pd.DataFrame({
+    'city':    np.random.choice(['Delhi','Mumbai','Bangalore','Chennai','Kolkata'],
+                500, p=[0.35, 0.28, 0.20, 0.12, 0.05]),
+    'gender':  np.random.choice(['M','F','Other'], 500, p=[0.48, 0.49, 0.03]),
+    'product': np.random.choice(['A','B','C','D','E','F','G','H'],
+                500, p=[0.30,0.25,0.20,0.12,0.07,0.04,0.01,0.01]),
+})
+
+print("=" * 55)
+print("CATEGORICAL UNIVARIATE ANALYSIS")
+print("=" * 55)
+
+for col in df.columns:
+    vc = df[col].value_counts()
+    n  = len(df)
+    print(f"--- {col} ---")
+    print(f"  Unique values: {df[col].nunique()}")
+    print(f"  Mode: {vc.index[0]} ({vc.iloc[0]/n*100:.1f}%)")
+
+    # Entropy
+    probs = vc / n
+    entropy = -(probs * np.log2(probs + 1e-10)).sum()
+    max_entropy = np.log2(len(vc))
+    print(f"  Entropy: {entropy:.3f} bits (max={max_entropy:.3f})")
+    print(f"  Normalised entropy: {entropy/max_entropy:.3f} (1=perfectly balanced)")
+
+    # Rare categories
+    rare = vc[vc/n < 0.05]
+    if len(rare) > 0:
+        print(f"  WARNING: {len(rare)} rare categories (<5%):")
+        for cat, cnt in rare.items():
+            print(f"    '{cat}': {cnt} ({cnt/n*100:.2f}%)")
+    print()`},
+{file:'outlier_detection.py',label:'Outlier detection',code:`import numpy as np
+import pandas as pd
+
+np.random.seed(42)
+data = np.concatenate([
+    np.random.normal(50, 10, 200),
+    [5, 8, 95, 102, 110]   # outliers
+])
+
+def detect_outliers(x):
+    results = {}
+
+    # Method 1: IQR
+    q1, q3 = np.percentile(x, [25, 75])
+    iqr = q3 - q1
+    lo, hi = q1 - 1.5*iqr, q3 + 1.5*iqr
+    results['IQR'] = np.where((x < lo) | (x > hi))[0]
+
+    # Method 2: Z-score
+    z = (x - x.mean()) / x.std()
+    results['Z-score (>2.5)'] = np.where(np.abs(z) > 2.5)[0]
+
+    # Method 3: Modified Z-score (robust)
+    mad = np.median(np.abs(x - np.median(x)))
+    mod_z = 0.6745 * (x - np.median(x)) / (mad + 1e-10)
+    results['Modified Z-score'] = np.where(np.abs(mod_z) > 3.5)[0]
+
+    return results
+
+res = detect_outliers(data)
+print(f"Dataset: n={len(data)}, mean={data.mean():.2f}, median={np.median(data):.2f}")
+print()
+
+for method, idxs in res.items():
+    print(f"{method}: {len(idxs)} outliers")
+    if len(idxs):
+        print(f"  Values: {data[idxs].round(1)}")`},
+{file:'distribution_tests.py',label:'Distribution tests',code:`import numpy as np
+from scipy import stats
+
+np.random.seed(42)
+
+datasets = {
+    'Normal data':      np.random.normal(0, 1, 200),
+    'Right-skewed':     np.random.lognormal(0, 1, 200),
+    'Uniform':          np.random.uniform(0, 1, 200),
+}
+
+print("Normality tests (p > 0.05 = cannot reject normal)")
+print("=" * 60)
+
+for name, data in datasets.items():
+    print(f"--- {name} ---")
+
+    # Shapiro-Wilk (best for n < 5000)
+    stat_sw, p_sw = stats.shapiro(data[:200])
+    print(f"  Shapiro-Wilk : W={stat_sw:.4f}  p={p_sw:.4f}  {'normal' if p_sw>0.05 else 'NOT normal'}")
+
+    # Kolmogorov-Smirnov
+    stat_ks, p_ks = stats.kstest(data, 'norm', args=(data.mean(), data.std()))
+    print(f"  KS test      : D={stat_ks:.4f}  p={p_ks:.4f}  {'normal' if p_ks>0.05 else 'NOT normal'}")
+
+    # Skewness and kurtosis test
+    stat_sk, p_sk = stats.normaltest(data)
+    print(f"  D-Agostino   : s={stat_sk:.4f}  p={p_sk:.4f}  {'normal' if p_sk>0.05 else 'NOT normal'}")
+
+    sk = stats.skew(data)
+    kt = stats.kurtosis(data)
+    print(f"  skewness={sk:.3f}  kurtosis={kt:.3f}")
+    print()`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scipy']);pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  buildDSTabs();
+  resetData();
+  buildShapeGrid();
+  selectShape('normal');
+  calcStats(C('data-input').value);
+  addOutlierPts();
+  drawCatViz();
+  initEditor();
+  new MutationObserver(function(){
+    drawAll();if(currentShape)selectShape(currentShape);
+    if(outlierPts.length)updateOutlierViz();drawCatViz();
+    buildShapeGrid();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

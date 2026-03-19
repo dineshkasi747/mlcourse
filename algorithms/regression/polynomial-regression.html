@@ -1,0 +1,1468 @@
+<!-- polynomial-regression.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Polynomial Regression — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,146,60,0.09),rgba(240,165,0,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(251,146,60,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .3s;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:18px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--orange);font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+    .degree-cards{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+    .degree-card{padding:10px 18px;background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all .18s;text-align:center;min-width:70px;}
+    .degree-card.active{border-color:var(--orange);}
+    .degree-card:hover{border-color:var(--border-hi);}
+    .deg-num{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--text-1);}
+    .deg-label{font-size:10px;color:var(--text-3);margin-top:2px;}
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:rgba(251,146,60,0.1);border:1.5px solid var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--orange);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--orange);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .bv-explainer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
+    .bv-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:16px;text-align:center;}
+    .bv-card.underfit{border-color:rgba(96,165,250,0.4);}
+    .bv-card.optimal{border-color:rgba(62,207,142,0.4);}
+    .bv-card.overfit{border-color:rgba(240,96,96,0.4);}
+    .bv-title{font-family:var(--font-display);font-size:13px;font-weight:700;margin-bottom:6px;}
+    .bv-degree{font-family:var(--font-display);font-size:28px;font-weight:800;margin-bottom:4px;}
+    .bv-desc{font-size:11.5px;color:var(--text-3);line-height:1.5;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(251,146,60,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--orange);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}.bv-explainer{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="polynomial-regression">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Polynomial Regression</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <span class="current">Polynomial Regression</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(251,146,60,.3);background:rgba(251,146,60,0.08);color:var(--orange);margin-bottom:14px;">Regression · Curves · Overfitting</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Polynomial Regression</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Fit <strong>curves instead of lines</strong> by adding powers of x as new features.
+              Degree 1 = straight line. Degree 2 = parabola. Degree 10 = wiggly mess.
+              The perfect playground to <em>see</em> underfitting and overfitting happen live.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 18 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">〜</div>
+              Intuition — turning a line into a curve
+            </h2>
+
+            <p>
+              Imagine you're trying to draw the best line through data that clearly bends like a hill.
+              A straight line will always be wrong — it can't bend. The trick?
+              <strong>Add new features: x², x³, x⁴ ...</strong> and let linear regression do the rest.
+              The model stays "linear" in its parameters (β₀, β₁, β₂...) — just the features become curved.
+            </p>
+            <p>
+              Think of it like this: <em>instead of asking "what's the best y = ax + b line?"</em>,
+              you ask <em>"what's the best y = ax² + bx + c parabola?"</em> — same OLS math, just richer features.
+            </p>
+
+            <div class="callout info">
+              <span class="callout-icon">🧠</span>
+              <p><strong>Mental model for beginners:</strong> A degree-1 polynomial is a ruler — perfectly straight.
+              Degree-2 is a flexible ruler that bends once. Degree-10 is a wet noodle — bends wildly to touch every single point.
+              You want the ruler that's <em>just flexible enough</em> to follow the real pattern without memorising the noise.</p>
+            </div>
+
+            <!-- ANIMATED DEGREE COMPARISON -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Pick a degree — watch the curve change live</span>
+                <button class="ctrl-btn" onclick="toggleAnimation()">⏵ Animate degrees</button>
+                <button class="ctrl-btn" onclick="reshuffleData()">↻ New data</button>
+              </div>
+              <div style="padding:12px 18px 0;display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="degree-card active" id="dc-1" onclick="setDegree(1)"><div class="deg-num">1</div><div class="deg-label">Line</div></div>
+                <div class="degree-card" id="dc-2" onclick="setDegree(2)"><div class="deg-num">2</div><div class="deg-label">Parabola</div></div>
+                <div class="degree-card" id="dc-3" onclick="setDegree(3)"><div class="deg-num">3</div><div class="deg-label">Cubic</div></div>
+                <div class="degree-card" id="dc-4" onclick="setDegree(4)"><div class="deg-num">4</div><div class="deg-label">Quartic</div></div>
+                <div class="degree-card" id="dc-6" onclick="setDegree(6)"><div class="deg-num">6</div><div class="deg-label">Sextic</div></div>
+                <div class="degree-card" id="dc-9" onclick="setDegree(9)"><div class="deg-num">9</div><div class="deg-label">Overfit!</div></div>
+                <div class="degree-card" id="dc-12" onclick="setDegree(12)"><div class="deg-num">12</div><div class="deg-label">Memorised</div></div>
+              </div>
+              <canvas id="main-canvas" width="700" height="380" style="width:100%;display:block;margin-top:10px;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="deg-label" style="color:var(--orange);">1</span><span class="stat-pill-lbl">Degree</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="train-r2">—</span><span class="stat-pill-lbl">Train R²</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="test-r2">—</span><span class="stat-pill-lbl">Test R²</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="fit-status" style="font-size:13px;">—</span><span class="stat-pill-lbl">Status</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="coef-count">2</span><span class="stat-pill-lbl">Parameters</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — BIAS VARIANCE VISUAL ═══ -->
+          <section class="section" id="bias-variance">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">⚖</div>
+              Bias-Variance Tradeoff — the central lesson
+            </h2>
+
+            <p>
+              Every model makes two kinds of error: <strong>bias</strong> (too simple — misses the real pattern)
+              and <strong>variance</strong> (too complex — fits noise instead of pattern).
+              Polynomial degree directly controls this tradeoff.
+            </p>
+
+            <div class="bv-explainer">
+              <div class="bv-card underfit">
+                <div class="bv-title" style="color:var(--blue);">Underfitting</div>
+                <div class="bv-degree" style="color:var(--blue);">d=1</div>
+                <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">High Bias · Low Variance</div>
+                <div class="bv-desc">Line can't follow a curved truth. Wrong on training AND test data. The model is too simple to learn the real pattern.</div>
+              </div>
+              <div class="bv-card optimal">
+                <div class="bv-title" style="color:var(--green);">Just Right ✓</div>
+                <div class="bv-degree" style="color:var(--green);">d=3</div>
+                <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Low Bias · Low Variance</div>
+                <div class="bv-desc">Captures the real curve without chasing noise. Good on both train and test. This is the goal.</div>
+              </div>
+              <div class="bv-card overfit">
+                <div class="bv-title" style="color:var(--red);">Overfitting</div>
+                <div class="bv-degree" style="color:var(--red);">d=12</div>
+                <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Low Bias · High Variance</div>
+                <div class="bv-desc">Memorises training noise perfectly. Train R²≈1 but test R² collapses. Useless on new data.</div>
+              </div>
+            </div>
+
+            <!-- Bias-Variance decomposition plot -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Bias² + Variance = Total Error — animated sweep</span>
+                <button class="ctrl-btn active" onclick="runBVSweep()">▶ Run sweep</button>
+                <span id="bv-status" style="font-size:12px;color:var(--text-3);margin-left:8px;"></span>
+              </div>
+              <canvas id="bv-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                🟠 Train error (bias²) · 🟢 Test error (total) · 🔵 Gap (variance) — optimal degree is where test error is lowest
+              </div>
+            </div>
+
+            <!-- Side-by-side comparison: same data, degree 1 vs 3 vs 12 -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Same data — three degrees side by side</span>
+                <button class="ctrl-btn" onclick="reshuffleSideBySide()">↻ New dataset</button>
+              </div>
+              <canvas id="sbs-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — CLICK TO PLACE DEMO ═══ -->
+          <section class="section" id="interactive-fit">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">✎</div>
+              Click to place points — watch the curve react
+            </h2>
+            <p>
+              Click anywhere on the canvas to place data points.
+              The polynomial curve updates instantly. Try placing points in a clear U-shape and
+              see degree 2 nail it — then crank degree up to 9 and watch it go wild.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Interactive polynomial fitter</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Degree:</span>
+                  <input type="range" min="1" max="10" value="2" step="1" class="ctrl-slider" id="click-degree" oninput="onClickDegreeChange(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="click-deg-val" style="color:var(--orange);">2</span>
+                </div>
+                <button class="ctrl-btn" onclick="clearClickPts()">Clear</button>
+                <button class="ctrl-btn" onclick="addUShape()">+ U-shape</button>
+                <button class="ctrl-btn" onclick="addWave()">+ Wave</button>
+              </div>
+              <canvas id="click-canvas" width="700" height="360" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="click-r2" style="color:var(--orange);">—</span><span class="stat-pill-lbl">R²</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="click-rmse">—</span><span class="stat-pill-lbl">RMSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="click-n">0</span><span class="stat-pill-lbl">Points</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="click-params">—</span><span class="stat-pill-lbl">Parameters</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">⚙</div>
+              Hyperparameter tuning — degree + regularisation
+            </h2>
+            <p>
+              The main hyperparameter is <strong>degree</strong> — but regularisation (Ridge/Lasso penalty)
+              lets you use higher degrees safely by shrinking wild coefficients.
+              Tune both below and see their combined effect on model quality.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="hp-train-r2" style="color:var(--orange);">—</div>
+                <div class="acc-label">Train R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-train-r2-bar" style="background:var(--orange);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-test-r2" style="color:var(--green);">—</div>
+                <div class="acc-label">Test R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-test-r2-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-gap" style="color:var(--red);">—</div>
+                <div class="acc-label">Train−Test Gap</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-gap-bar" style="background:var(--red);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-status" style="font-size:16px;color:var(--green);">—</div>
+                <div class="acc-label">Fit Status</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-status-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">⚙ Controls — every change updates instantly</div>
+              <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">Drag degree up and watch train R² go to 100% — then watch test R² collapse</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Polynomial degree</span><span class="hp-val" id="hp-deg-val">3</span></div>
+                  <input type="range" min="1" max="15" value="3" step="1" class="ctrl-slider" id="hp-deg" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">The single most important choice. Start at 2–4 for most problems.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Noise level (σ)</span><span class="hp-val" id="hp-noise-val">1.0</span></div>
+                  <input type="range" min="0.1" max="4" value="1.0" step="0.1" class="ctrl-slider" id="hp-noise" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More noise = lower best possible R². Overfitting worsens with noisy data.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Sample size (n)</span><span class="hp-val" id="hp-n-val">40</span></div>
+                  <input type="range" min="10" max="200" value="40" step="5" class="ctrl-slider" id="hp-n" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Fewer samples → easier to overfit. More samples → can afford higher degree.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Regularisation (α)</span><span class="hp-val" id="hp-reg-val">0.00</span></div>
+                  <input type="range" min="0" max="10" value="0" step="0.1" class="ctrl-slider" id="hp-reg" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Ridge penalty. Higher α shrinks coefficients → reduces overfitting at high degree.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live fit canvas with train/test split visualised -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Live polynomial fit — train (filled) vs test (ring) points</span>
+              </div>
+              <canvas id="hp-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <!-- Degree sweep -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Degree 1→15 sweep — train vs test R²</span>
+                <button class="ctrl-btn active" onclick="runDegreeSweep()">▶ Run sweep</button>
+                <span id="deg-sweep-status" style="font-size:12px;color:var(--text-3);margin-left:8px;"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="callout success">
+              <span class="callout-icon">✓</span>
+              <p><strong>Rule of thumb:</strong> Use cross-validation to pick degree. Start with degree 2–4.
+              If train R² ≫ test R², you're overfitting — lower degree or increase α.
+              If both are low, underfitting — try higher degree or a non-linear model entirely.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — MATH ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">∑</div>
+              How it works — feature expansion then OLS
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Transform: create polynomial features</div>
+                  <div class="derive-desc">For each original feature x, create new features x², x³, ..., x^d. This is called <strong>feature expansion</strong>. The model is still linear in these new features — that's the trick.</div>
+                  <div class="derive-formula">Original: X = [x₁, x₂, ..., xₙ]
+
+Degree-3 expansion:
+X_poly = [1, x, x², x³]
+            ↑   ↑   ↑    ↑
+         bias  linear quad cubic</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Fit: apply OLS to the expanded features</div>
+                  <div class="derive-desc">Exactly the same Normal Equations as MLR, just with more columns. The loss is still sum of squared residuals.</div>
+                  <div class="derive-formula">ŷ = β₀ + β₁x + β₂x² + β₃x³
+   = X_poly · β
+
+β̂ = (X_poly^T X_poly)^{-1} X_poly^T y</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Why high degree causes overfitting</div>
+                  <div class="derive-desc">With degree d and n training points, you have d+1 parameters. When d+1 ≈ n, the model has enough freedom to pass through every single training point — memorising noise instead of pattern.</div>
+                  <div class="derive-formula">If n = d + 1:  training error = 0  (perfect fit)
+But test error → ∞  (completely useless)
+
+Parameters = d + 1  (intercept + d coefficients)
+Rule: need n >> d+1  for generalisation</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Fix: Ridge regularisation on polynomial features</div>
+                  <div class="derive-desc">Add an L2 penalty to shrink large coefficients. This prevents the model from creating wild oscillations even with high degree. The trade-off: slightly higher train error, much better test error.</div>
+                  <div class="derive-formula">Regularised loss:
+L(β) = ||y - X_poly β||² + α ||β||²
+
+Solution: β̂ = (X_poly^T X_poly + αI)^{-1} X_poly^T y
+              ↑ adds α to diagonal → prevents singularity</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">poly_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not scaling features before polynomial expansion.</strong> x=1000 becomes x²=1,000,000. The huge range causes numerical instability. Always use StandardScaler before PolynomialFeatures.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Choosing degree by looking at training R².</strong> Training R² always goes up with degree. Always use cross-validation or a held-out test set to pick degree.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using degree &gt; 5 without regularisation.</strong> High-degree polynomials with no penalty always overfit on real data. Use Ridge (alpha &gt; 0) when using degree &gt; 4.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Trusting polynomial fits at the edges of your data.</strong> Polynomial curves go to ±∞ outside the training range. Never extrapolate beyond your data range with polynomial models.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Forgetting that polynomial features explode with multiple features.</strong> 2 features at degree 3 = 9 features. 5 features at degree 4 = 70 features. Use interact_only=True or consider tree-based models instead.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Polynomial regression <strong>is still linear regression</strong> — just with engineered features (x, x², x³...). Same math, same OLS solver.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Degree is the key hyperparameter.</strong> Low degree = underfitting (high bias). High degree = overfitting (high variance). Pick with cross-validation.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always plot <strong>train R² vs test R²</strong> across degrees. The gap between them is the overfitting signal.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always scale before expanding features.</strong> StandardScaler → PolynomialFeatures → LinearRegression (or Ridge).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Ridge regularisation lets you use higher degrees safely. <strong>RidgeCV</strong> auto-tunes α.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For multiple features, polynomial expansion causes a <strong>feature explosion</strong>. Consider tree-based models (Random Forest, XGBoost) as alternatives.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="multiple-linear-regression.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Multiple Linear Regression</span>
+            </a>
+            <a class="pn-card next" href="ridge-regression.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Ridge Regression</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Intuition</a></li>
+            <li class="toc-item"><a href="#bias-variance">Bias-Variance Tradeoff</a></li>
+            <li class="toc-item"><a href="#interactive-fit">Click to place points</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#math">How it works</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ── helpers ── */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* seeded random */
+var seed=1234;
+function srnd(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;}
+function rseed(s){seed=s||1234;}
+
+/* ── Polynomial solver (Vandermonde + least squares via normal eq) ── */
+function polyFit(xs,ys,degree,alpha){
+  alpha=alpha||0;
+  var n=xs.length,d=degree+1;
+  if(n<2) return null;
+  // Build Vandermonde matrix
+  var X=[];
+  for(var i=0;i<n;i++){
+    var row=[];
+    for(var j=0;j<d;j++) row.push(Math.pow(xs[i],j));
+    X.push(row);
+  }
+  // XtX + alpha*I
+  var XtX=[];
+  for(var a=0;a<d;a++){XtX.push([]);for(var b=0;b<d;b++){var s=0;for(var i=0;i<n;i++) s+=X[i][a]*X[i][b];XtX[a].push(s+(a===b?alpha:0));}}
+  var Xty=[];
+  for(var a=0;a<d;a++){var s=0;for(var i=0;i<n;i++) s+=X[i][a]*ys[i];Xty.push(s);}
+  // Gaussian elimination
+  var mat=XtX.map(function(r,i){return r.concat([Xty[i]]);});
+  for(var col=0;col<d;col++){
+    var maxR=col;
+    for(var r=col+1;r<d;r++) if(Math.abs(mat[r][col])>Math.abs(mat[maxR][col])) maxR=r;
+    var tmp=mat[col];mat[col]=mat[maxR];mat[maxR]=tmp;
+    if(Math.abs(mat[col][col])<1e-12) return null;
+    var piv=mat[col][col];
+    for(var c=col;c<=d;c++) mat[col][c]/=piv;
+    for(var r=0;r<d;r++){if(r===col) continue;var f=mat[r][col];for(var c=col;c<=d;c++) mat[r][c]-=f*mat[col][c];}
+  }
+  var coeffs=mat.map(function(r){return r[d];});
+  return coeffs;
+}
+
+function polyPredict(coeffs,x){
+  var y=0;for(var j=0;j<coeffs.length;j++) y+=coeffs[j]*Math.pow(x,j);return y;
+}
+
+function computeR2(ys,yhats){
+  var mean=ys.reduce(function(a,b){return a+b;},0)/ys.length;
+  var sst=ys.reduce(function(a,y){return a+(y-mean)*(y-mean);},0);
+  var sse=ys.reduce(function(a,y,i){return a+(y-yhats[i])*(y-yhats[i]);},0);
+  return sst>0?1-sse/sst:1;
+}
+
+function computeRMSE(ys,yhats){
+  var sse=ys.reduce(function(a,y,i){return a+(y-yhats[i])*(y-yhats[i]);},0);
+  return Math.sqrt(sse/ys.length);
+}
+
+/* ── TRUE CURVE + NOISE DATA GENERATOR ── */
+function makeData(n,noise,seed_){
+  rseed(seed_||42);
+  var xs=[],ys=[],ytrues=[];
+  for(var i=0;i<n;i++){
+    var x=-3+i*(6/(n-1));
+    var ytrue=0.5*x*x*x-2*x+1;  // cubic truth
+    var y=ytrue+(srnd()-0.5)*2*noise;
+    xs.push(x);ys.push(y);ytrues.push(ytrue);
+  }
+  return{xs:xs,ys:ys,ytrues:ytrues};
+}
+
+/* ── CANVAS DRAWING HELPERS ── */
+function drawAxes(ctx,W,H,pad,xMin,xMax,yMin,yMax){
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-(v-yMin)/(yMax-yMin)*(H-pad.t-pad.b);};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  for(var i=0;i<=5;i++){
+    var gx=pad.l+i/5*(W-pad.l-pad.r);
+    ctx.beginPath();ctx.moveTo(gx,pad.t);ctx.lineTo(gx,H-pad.b);ctx.stroke();
+    var gy=pad.t+i/5*(H-pad.t-pad.b);
+    ctx.beginPath();ctx.moveTo(pad.l,gy);ctx.lineTo(W-pad.r,gy);ctx.stroke();
+  }
+  return{toX:toX,toY:toY};
+}
+
+/* ════ SECTION 1 — MAIN DEMO ════ */
+var mainData=null;
+var mainDegree=1;
+var animTimer=null;
+var degOptions=[1,2,3,4,6,9,12];
+
+function reshuffleData(){
+  rseed(Date.now()&0xffff);
+  mainData=makeData(18,1.8,seed);
+  drawMainCanvas();
+}
+
+function setDegree(d){
+  mainDegree=d;
+  [1,2,3,4,6,9,12].forEach(function(k){
+    var el=C('dc-'+k);if(el) el.classList.toggle('active',k===d);
+  });
+  drawMainCanvas();
+}
+
+function toggleAnimation(){
+  if(animTimer){clearInterval(animTimer);animTimer=null;return;}
+  var idx=0;
+  animTimer=setInterval(function(){
+    setDegree(degOptions[idx]);
+    idx=(idx+1)%degOptions.length;
+  },900);
+}
+
+function drawMainCanvas(){
+  if(!mainData) return;
+  var cv=C('main-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:40,r:20,t:20,b:30};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var d=mainData;
+  var n=d.xs.length;
+  // Split 80/20
+  var trainN=Math.floor(n*0.8);
+  var trainXs=d.xs.slice(0,trainN),trainYs=d.ys.slice(0,trainN);
+  var testXs=d.xs.slice(trainN),testYs=d.ys.slice(trainN);
+
+  var allY=d.ys.concat(d.ytrues);
+  var yMin=Math.min.apply(null,allY)-1,yMax=Math.max.apply(null,allY)+1;
+  var xMin=Math.min.apply(null,d.xs)-0.2,xMax=Math.max.apply(null,d.xs)+0.2;
+
+  var sc=drawAxes(ctx,W,H,pad,xMin,xMax,yMin,yMax);
+
+  // True curve (dashed)
+  ctx.beginPath();
+  for(var i=0;i<200;i++){
+    var x=xMin+i/199*(xMax-xMin);
+    var y=0.5*x*x*x-2*x+1;
+    var px=sc.toX(x),py=sc.toY(y);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';
+  ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+
+  // Fit polynomial
+  var coeffs=polyFit(trainXs,trainYs,mainDegree,0);
+  if(coeffs){
+    var fitted=[];
+    for(var i=0;i<200;i++){
+      var x=xMin+i/199*(xMax-xMin);
+      var y=polyPredict(coeffs,x);
+      fitted.push({x:x,y:Math.max(yMin-5,Math.min(yMax+5,y))});
+    }
+    // Gradient colour: green=good, red=overfit
+    var degColor=mainDegree<=2?'#60a5fa':mainDegree<=5?'#3ecf8e':mainDegree<=8?'#f0a500':'#f06060';
+    ctx.beginPath();
+    fitted.forEach(function(p,i){
+      var px=sc.toX(p.x),py=sc.toY(p.y);
+      if(py<pad.t-2||py>H-pad.b+2){ctx.stroke();ctx.beginPath();return;}
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.strokeStyle=degColor;ctx.lineWidth=2.8;ctx.stroke();
+
+    // Compute metrics
+    var trainPreds=trainXs.map(function(x){return polyPredict(coeffs,x);});
+    var testPreds=testXs.map(function(x){return polyPredict(coeffs,x);});
+    var trainR2=computeR2(trainYs,trainPreds);
+    var testR2=computeR2(testYs,testPreds);
+    var gap=trainR2-testR2;
+    var status=gap>0.3?'Overfitting':gap>0.1?'Slight overfit':testR2<0.5?'Underfitting':'Good fit';
+    var statusColor=gap>0.3?'var(--red)':gap>0.1?'var(--accent)':testR2<0.5?'var(--blue)':'var(--green)';
+
+    C('train-r2').textContent=Math.max(0,trainR2).toFixed(3);
+    C('test-r2').textContent=Math.max(-1,testR2).toFixed(3);
+    C('test-r2').style.color=testR2>0.7?'var(--green)':testR2>0.4?'var(--accent)':'var(--red)';
+    C('fit-status').textContent=status;
+    C('fit-status').style.color=statusColor;
+    C('deg-label').textContent=mainDegree;
+    C('coef-count').textContent=mainDegree+1;
+  }
+
+  // Train points (filled)
+  trainXs.forEach(function(x,i){
+    ctx.beginPath();ctx.arc(sc.toX(x),sc.toY(trainYs[i]),6,0,Math.PI*2);
+    ctx.fillStyle='rgba(251,146,60,0.85)';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();
+  });
+  // Test points (rings)
+  testXs.forEach(function(x,i){
+    ctx.beginPath();ctx.arc(sc.toX(x),sc.toY(testYs[i]),6,0,Math.PI*2);
+    ctx.strokeStyle='rgba(62,207,142,0.9)';ctx.lineWidth=2;ctx.stroke();
+  });
+
+  // Legend
+  ctx.font='11px sans-serif';ctx.textAlign='left';
+  ctx.fillStyle='rgba(251,146,60,0.9)';
+  ctx.beginPath();ctx.arc(pad.l+6,pad.t+8,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=tc();ctx.fillText('Train',pad.l+14,pad.t+12);
+  ctx.strokeStyle='rgba(62,207,142,0.9)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(pad.l+65,pad.t+8,5,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle=tc();ctx.fillText('Test',pad.l+73,pad.t+12);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(pad.l+110,pad.t+8);ctx.lineTo(pad.l+132,pad.t+8);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=tc();ctx.fillText('True curve',pad.l+136,pad.t+12);
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 2 — BIAS VARIANCE SWEEP ════ */
+var bvData=null;
+async function runBVSweep(){
+  C('bv-status').textContent='Running...';
+  bvData=null;
+  rseed(99);
+  var n=30;
+  var allTrain=[],allTest=[];
+
+  // Run 20 bootstrap rounds
+  var rounds=20;
+  var degs=[1,2,3,4,5,6,7,8,9,10,11,12];
+  var trainErr=degs.map(function(){return [];});
+  var testErr=degs.map(function(){return [];});
+
+  for(var r=0;r<rounds;r++){
+    var d=makeData(n,1.5,seed+(r*7));
+    var trainN=Math.floor(n*0.75);
+    var txs=d.xs.slice(0,trainN),tys=d.ys.slice(0,trainN);
+    var exs=d.xs.slice(trainN),eys=d.ys.slice(trainN);
+
+    degs.forEach(function(deg,di){
+      var c=polyFit(txs,tys,deg,0);
+      if(!c){trainErr[di].push(1);testErr[di].push(5);return;}
+      var tp=txs.map(function(x){return polyPredict(c,x);});
+      var ep=exs.map(function(x){return polyPredict(c,x);});
+      var tr=Math.max(0,1-computeR2(tys,tp));
+      var te=Math.max(0,1-computeR2(eys,ep));
+      trainErr[di].push(Math.min(tr,2));
+      testErr[di].push(Math.min(te,5));
+    });
+  }
+
+  bvData={degs:degs,train:trainErr.map(function(a){return a.reduce(function(s,v){return s+v;},0)/a.length;}),
+    test:testErr.map(function(a){return a.reduce(function(s,v){return s+v;},0)/a.length;})};
+  drawBVCanvas();
+  C('bv-status').textContent='Done — optimal degree is where green curve is lowest';
+}
+
+function drawBVCanvas(){
+  var cv=C('bv-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:20,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!bvData) return;
+  var d=bvData;
+  var maxE=Math.max.apply(null,d.test.concat(d.train));
+  var toX=function(i){return pad.l+i/(d.degs.length-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-(v/Math.min(maxE*1.1,3))*(H-pad.t-pad.b);};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,0.5,1,1.5,2].forEach(function(v){
+    if(v>maxE*1.1) return;
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(1),pad.l-3,toY(v)+4);
+  });
+  d.degs.forEach(function(deg,i){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(deg,toX(i),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Degree',W/2,H-2);
+
+  // Train error
+  ctx.beginPath();
+  d.degs.forEach(function(deg,i){i===0?ctx.moveTo(toX(i),toY(d.train[i])):ctx.lineTo(toX(i),toY(d.train[i]));});
+  ctx.strokeStyle='#fb923c';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Test error
+  ctx.beginPath();
+  d.degs.forEach(function(deg,i){i===0?ctx.moveTo(toX(i),toY(d.test[i])):ctx.lineTo(toX(i),toY(d.test[i]));});
+  ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Fill variance gap
+  ctx.beginPath();
+  d.degs.forEach(function(deg,i){i===0?ctx.moveTo(toX(i),toY(d.train[i])):ctx.lineTo(toX(i),toY(d.train[i]));});
+  d.degs.slice().reverse().forEach(function(deg,ri){var i=d.degs.length-1-ri;ctx.lineTo(toX(i),toY(d.test[i]));});
+  ctx.closePath();ctx.fillStyle='rgba(96,165,250,0.1)';ctx.fill();
+
+  // Dots + best
+  var bestI=d.test.indexOf(Math.min.apply(null,d.test));
+  d.degs.forEach(function(deg,i){
+    ctx.beginPath();ctx.arc(toX(i),toY(d.train[i]),4,0,Math.PI*2);ctx.fillStyle='#fb923c';ctx.fill();
+    ctx.beginPath();ctx.arc(toX(i),toY(d.test[i]),4,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();
+  });
+  ctx.beginPath();ctx.arc(toX(bestI),toY(d.test[bestI]),9,0,Math.PI*2);
+  ctx.fillStyle='#f0a500';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#f0a500';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Best d='+d.degs[bestI],toX(bestI),toY(d.test[bestI])-14);
+  ctx.textAlign='start';
+}
+
+/* Side-by-side canvas */
+var sbsData=null;
+function reshuffleSideBySide(){rseed(Date.now()&0xffff);sbsData=null;drawSideBySide();}
+function drawSideBySide(){
+  var cv=C('sbs-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!sbsData){
+    rseed(777);
+    sbsData=makeData(16,1.6,777);
+  }
+  var d=sbsData;
+  var panelW=W/3;
+  var degs=[1,3,12];
+  var labels=['Degree 1 — Underfit','Degree 3 — Just Right','Degree 12 — Overfit'];
+  var colors=['#60a5fa','#3ecf8e','#f06060'];
+  var xMin=Math.min.apply(null,d.xs)-0.2,xMax=Math.max.apply(null,d.xs)+0.2;
+  var yMin=Math.min.apply(null,d.ys)-1,yMax=Math.max.apply(null,d.ys)+1;
+
+  degs.forEach(function(deg,pi){
+    var x0=pi*panelW;
+    var pad={l:24,r:8,t:24,b:16};
+    var toX=function(v){return x0+pad.l+(v-xMin)/(xMax-xMin)*(panelW-pad.l-pad.r);};
+    var toY=function(v){return H-pad.b-(v-yMin)/(yMax-yMin)*(H-pad.t-pad.b);};
+
+    // Panel bg
+    if(pi>0){ctx.strokeStyle=isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,0);ctx.lineTo(x0,H);ctx.stroke();}
+
+    // Title
+    ctx.fillStyle=colors[pi];ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(labels[pi],x0+panelW/2,16);
+
+    // True curve
+    ctx.beginPath();
+    for(var i=0;i<100;i++){
+      var x=xMin+i/99*(xMax-xMin);
+      var y=0.5*x*x*x-2*x+1;
+      var px=toX(x),py=toY(y);
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+
+    // Fit
+    var coeffs=polyFit(d.xs,d.ys,deg,0);
+    if(coeffs){
+      ctx.beginPath();
+      for(var i=0;i<150;i++){
+        var x=xMin+i/149*(xMax-xMin);
+        var y=polyPredict(coeffs,x);
+        y=Math.max(yMin-3,Math.min(yMax+3,y));
+        var px=toX(x),py=toY(y);
+        if(py<0||py>H){ctx.stroke();ctx.beginPath();continue;}
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.strokeStyle=colors[pi];ctx.lineWidth=2.5;ctx.stroke();
+    }
+
+    // Points
+    d.xs.forEach(function(x,i){
+      ctx.beginPath();ctx.arc(toX(x),toY(d.ys[i]),5,0,Math.PI*2);
+      ctx.fillStyle=isDark()?'rgba(255,255,255,0.7)':'rgba(0,0,0,0.6)';ctx.fill();
+    });
+  });
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 3 — CLICK CANVAS ════ */
+var clickPts=[];
+var clickDeg=2;
+function onClickDegreeChange(v){clickDeg=parseInt(v);C('click-deg-val').textContent=v;drawClickCanvas();}
+
+C('click-canvas').addEventListener('click',function(e){
+  var r=this.getBoundingClientRect();
+  var sx=this.width/r.width,sy=this.height/r.height;
+  clickPts.push({x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy});
+  drawClickCanvas();
+});
+
+function clearClickPts(){clickPts=[];drawClickCanvas();}
+function addUShape(){
+  var W=700,H=360;
+  clickPts=[];
+  var cx=W/2,cy=H/2+50,rx=280,ry=180;
+  for(var i=0;i<=12;i++){
+    var t=i/12;
+    var x=cx-rx+t*2*rx;
+    var y=cy-ry*4*t*(1-t)*0.7+(Math.random()-0.5)*20;
+    clickPts.push({x:x,y:y});
+  }
+  drawClickCanvas();
+}
+function addWave(){
+  var W=700,H=360;
+  clickPts=[];
+  for(var i=0;i<=14;i++){
+    var t=i/14;
+    var x=40+t*(W-80);
+    var y=H/2-Math.sin(t*Math.PI*2.5)*100+(Math.random()-0.5)*25;
+    clickPts.push({x:x,y:y});
+  }
+  drawClickCanvas();
+}
+
+function drawClickCanvas(){
+  var cv=C('click-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  C('click-n').textContent=clickPts.length;
+  C('click-params').textContent=clickDeg+1;
+
+  if(clickPts.length<3){
+    ctx.fillStyle=tc();ctx.font='14px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Click to place points (need at least 3)',W/2,H/2-10);
+    ctx.fillText('Or click: + U-shape / + Wave to load examples',W/2,H/2+14);
+    ctx.textAlign='start';return;
+  }
+
+  var xs=clickPts.map(function(p){return p.x;});
+  var ys=clickPts.map(function(p){return p.y;});
+  var xMin=Math.min.apply(null,xs)-20,xMax=Math.max.apply(null,xs)+20;
+  var yMin=Math.min.apply(null,ys)-30,yMax=Math.max.apply(null,ys)+30;
+
+  // Normalise to [-1,1] for numerical stability
+  var xMid=(xMin+xMax)/2,xRange=(xMax-xMin)/2;
+  var normXs=xs.map(function(x){return (x-xMid)/xRange;});
+
+  var coeffs=polyFit(normXs,ys,clickDeg,0);
+
+  if(coeffs){
+    // Draw fitted curve
+    var degCol=clickDeg<=2?'#3ecf8e':clickDeg<=5?'#fb923c':'#f06060';
+    ctx.beginPath();
+    for(var i=0;i<300;i++){
+      var px=xMin+i/299*(xMax-xMin);
+      var normX=(px-xMid)/xRange;
+      var py=polyPredict(coeffs,normX);
+      var canX=(px-xMin)/(xMax-xMin)*W;
+      var canY=H-(py-yMin)/(yMax-yMin)*H;
+      if(canY<-50||canY>H+50){ctx.stroke();ctx.beginPath();continue;}
+      i===0?ctx.moveTo(canX,canY):ctx.lineTo(canX,canY);
+    }
+    ctx.strokeStyle=degCol;ctx.lineWidth=3;ctx.stroke();
+
+    // Metrics
+    var preds=normXs.map(function(x){return polyPredict(coeffs,x);});
+    var r2=computeR2(ys,preds);
+    var rmse=computeRMSE(ys,preds);
+    C('click-r2').textContent=Math.max(0,r2).toFixed(3);
+    C('click-r2').style.color=r2>0.9?'var(--green)':r2>0.6?'var(--accent)':'var(--red)';
+    C('click-rmse').textContent=rmse.toFixed(1)+'px';
+
+    // Residual lines
+    clickPts.forEach(function(p,i){
+      var normX=(p.x-xMid)/xRange;
+      var pred=polyPredict(coeffs,normX);
+      var predCanY=H-(pred-yMin)/(yMax-yMin)*H;
+      var ptCanX=(p.x-xMin)/(xMax-xMin)*W;
+      ctx.beginPath();ctx.moveTo(ptCanX,p.y);ctx.lineTo(ptCanX,predCanY);
+      ctx.strokeStyle=p.y>predCanY?'rgba(240,96,96,0.4)':'rgba(62,207,142,0.4)';
+      ctx.lineWidth=1;ctx.stroke();
+    });
+  }
+
+  // Points
+  clickPts.forEach(function(p){
+    var canX=(p.x-xMin)/(xMax-xMin)*W;
+    ctx.beginPath();ctx.arc(canX,p.y,7,0,Math.PI*2);
+    ctx.fillStyle='rgba(251,146,60,0.9)';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  // Degree label in corner
+  ctx.fillStyle=isDark()?'rgba(251,146,60,0.8)':'rgba(200,80,0,0.8)';
+  ctx.font='bold 13px var(--font-display,sans-serif)';ctx.textAlign='right';
+  ctx.fillText('degree='+clickDeg+'  params='+(clickDeg+1),W-12,20);
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 4 — HYPERPARAMETER TUNING ════ */
+var hpData=null;
+function generateHPData(){
+  var n=parseInt(C('hp-n').value);
+  var noise=parseFloat(C('hp-noise').value);
+  rseed(42);
+  hpData=makeData(n,noise,42);
+}
+
+function onHPChange(){
+  var deg=parseInt(C('hp-deg').value);
+  var noise=parseFloat(C('hp-noise').value);
+  var n=parseInt(C('hp-n').value);
+  var alpha=parseFloat(C('hp-reg').value);
+  C('hp-deg-val').textContent=deg;
+  C('hp-noise-val').textContent=noise.toFixed(1);
+  C('hp-n-val').textContent=n;
+  C('hp-reg-val').textContent=alpha.toFixed(2);
+
+  rseed(42);
+  hpData=makeData(n,noise,42);
+  var d=hpData;
+  var trainN=Math.floor(n*0.75);
+  var txs=d.xs.slice(0,trainN),tys=d.ys.slice(0,trainN);
+  var exs=d.xs.slice(trainN),eys=d.ys.slice(trainN);
+
+  // Normalise
+  var xArr=d.xs;
+  var xMid=(Math.min.apply(null,xArr)+Math.max.apply(null,xArr))/2;
+  var xRng=(Math.max.apply(null,xArr)-Math.min.apply(null,xArr))/2||1;
+  var normT=txs.map(function(x){return (x-xMid)/xRng;});
+  var normE=exs.map(function(x){return (x-xMid)/xRng;});
+
+  var coeffs=polyFit(normT,tys,deg,alpha*0.01);
+  var trainR2=0,testR2=0;
+  if(coeffs){
+    var tp=normT.map(function(x){return polyPredict(coeffs,x);});
+    var ep=normE.map(function(x){return polyPredict(coeffs,x);});
+    trainR2=Math.max(0,Math.min(1,computeR2(tys,tp)));
+    testR2=Math.max(-1,Math.min(1,computeR2(eys,ep)));
+  }
+  var gap=trainR2-testR2;
+  var status=gap>0.25?'Overfitting':gap>0.1?'Slight overfit':testR2<0.4?'Underfitting':'Good fit';
+  var statusColor=gap>0.25?'var(--red)':gap>0.1?'var(--accent)':testR2<0.4?'var(--blue)':'var(--green)';
+
+  C('hp-train-r2').textContent=trainR2.toFixed(3);
+  C('hp-test-r2').textContent=testR2.toFixed(3);
+  C('hp-gap').textContent=gap.toFixed(3);
+  C('hp-status').textContent=status;
+  C('hp-status').style.color=statusColor;
+  C('hp-train-r2-bar').style.width=(trainR2*100)+'%';
+  C('hp-test-r2-bar').style.width=(Math.max(0,testR2)*100)+'%';
+  C('hp-gap-bar').style.width=(Math.min(gap,1)*100)+'%';
+  C('hp-status-bar').style.width='100%';
+
+  drawHPCanvas(d,txs,tys,exs,eys,coeffs,xMid,xRng,trainR2,testR2);
+}
+
+function drawHPCanvas(d,txs,tys,exs,eys,coeffs,xMid,xRng,trainR2,testR2){
+  var cv=C('hp-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:40,r:20,t:20,b:30};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var allY=d.ys.concat(d.ytrues);
+  var yMin=Math.min.apply(null,allY)-1.5,yMax=Math.max.apply(null,allY)+1.5;
+  var xMin=Math.min.apply(null,d.xs)-0.2,xMax=Math.max.apply(null,d.xs)+0.2;
+
+  drawAxes(ctx,W,H,pad,xMin,xMax,yMin,yMax);
+  var toX=function(x){return pad.l+(x-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var toY=function(y){return H-pad.b-(y-yMin)/(yMax-yMin)*(H-pad.t-pad.b);};
+
+  // True curve
+  ctx.beginPath();
+  for(var i=0;i<100;i++){var x=xMin+i/99*(xMax-xMin);var y=0.5*x*x*x-2*x+1;i===0?ctx.moveTo(toX(x),toY(y)):ctx.lineTo(toX(x),toY(y));}
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+
+  if(coeffs){
+    var gapVal=trainR2-testR2;
+    var fitCol=gapVal>0.25?'#f06060':gapVal>0.1?'#f0a500':'#3ecf8e';
+    ctx.beginPath();
+    for(var i=0;i<200;i++){
+      var x=xMin+i/199*(xMax-xMin);
+      var nx=(x-xMid)/xRng;
+      var y=polyPredict(coeffs,nx);
+      y=Math.max(yMin-5,Math.min(yMax+5,y));
+      var px=toX(x),py=toY(y);
+      if(py<pad.t-5||py>H-pad.b+5){ctx.stroke();ctx.beginPath();continue;}
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.strokeStyle=fitCol;ctx.lineWidth=2.5;ctx.stroke();
+  }
+
+  // Train points
+  txs.forEach(function(x,i){
+    ctx.beginPath();ctx.arc(toX(x),toY(tys[i]),6,0,Math.PI*2);
+    ctx.fillStyle='rgba(251,146,60,0.85)';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();
+  });
+  // Test points
+  exs.forEach(function(x,i){
+    ctx.beginPath();ctx.arc(toX(x),toY(eys[i]),6,0,Math.PI*2);
+    ctx.strokeStyle='rgba(62,207,142,0.9)';ctx.lineWidth=2.5;ctx.stroke();
+  });
+
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';
+  ctx.fillText('Train R\u00B2='+trainR2.toFixed(3)+'   Test R\u00B2='+testR2.toFixed(3),pad.l,pad.t+14);
+  ctx.textAlign='start';
+}
+
+var sweepDone=false;
+async function runDegreeSweep(){
+  C('deg-sweep-status').textContent='Running...';
+  var n=parseInt(C('hp-n').value),noise=parseFloat(C('hp-noise').value);
+  rseed(42);
+  var d=makeData(n,noise,42);
+  var trainN=Math.floor(n*0.75);
+  var txs=d.xs.slice(0,trainN),tys=d.ys.slice(0,trainN);
+  var exs=d.xs.slice(trainN),eys=d.ys.slice(trainN);
+  var xMid=(Math.min.apply(null,d.xs)+Math.max.apply(null,d.xs))/2;
+  var xRng=(Math.max.apply(null,d.xs)-Math.min.apply(null,d.xs))/2||1;
+  var normT=txs.map(function(x){return (x-xMid)/xRng;});
+  var normE=exs.map(function(x){return (x-xMid)/xRng;});
+  var alpha=parseFloat(C('hp-reg').value)*0.01;
+
+  var results=[];
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:15,b:35};
+
+  for(var deg=1;deg<=15;deg++){
+    var coeffs=polyFit(normT,tys,deg,alpha);
+    var trainR2=0,testR2=0;
+    if(coeffs){
+      var tp=normT.map(function(x){return polyPredict(coeffs,x);});
+      var ep=normE.map(function(x){return polyPredict(coeffs,x);});
+      trainR2=Math.max(0,Math.min(1,computeR2(tys,tp)));
+      testR2=Math.max(-0.5,Math.min(1,computeR2(eys,ep)));
+    }
+    results.push({deg:deg,train:trainR2,test:testR2});
+
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+    var toX=function(d){return pad.l+(d-1)/14*(W-pad.l-pad.r);};
+    var toY=function(v){return H-pad.b-((v+0.5)/1.5)*(H-pad.t-pad.b);};
+
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+    [-0.5,0,0.25,0.5,0.75,1.0].forEach(function(v){
+      ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-3,toY(v)+4);
+    });
+    for(var d2=1;d2<=15;d2++){
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(d2,toX(d2),H-pad.b+14);
+    }
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Degree',W/2,H-2);
+
+    // Zero line
+    ctx.beginPath();ctx.moveTo(pad.l,toY(0));ctx.lineTo(W-pad.r,toY(0));
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+
+    if(results.length>1){
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(r.deg),toY(r.train)):ctx.lineTo(toX(r.deg),toY(r.train));});
+      ctx.strokeStyle='#fb923c';ctx.lineWidth=2.5;ctx.stroke();
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(r.deg),toY(r.test)):ctx.lineTo(toX(r.deg),toY(r.test));});
+      ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+      results.forEach(function(r){
+        ctx.beginPath();ctx.arc(toX(r.deg),toY(r.train),4,0,Math.PI*2);ctx.fillStyle='#fb923c';ctx.fill();
+        ctx.beginPath();ctx.arc(toX(r.deg),toY(r.test),4,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();
+      });
+    }
+    // Current degree marker
+    ctx.beginPath();ctx.moveTo(toX(deg),pad.t);ctx.lineTo(toX(deg),H-pad.b);
+    ctx.strokeStyle='rgba(240,165,0,0.4)';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.textAlign='start';
+    await delay(70);
+  }
+  var best=results.reduce(function(m,r){return r.test>m.test?r:m;},results[0]);
+  C('deg-sweep-status').textContent='Done! Best degree='+best.deg+' (test R\u00B2='+best.test.toFixed(3)+')';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'poly_scratch.py',label:'From scratch',code:`import numpy as np
+
+def poly_features(X, degree):
+    """Create polynomial feature matrix [1, x, x^2, ..., x^d]"""
+    return np.column_stack([X**d for d in range(degree + 1)])
+
+def poly_fit(X, y, degree, alpha=0.0):
+    """Fit polynomial via ridge-regularised normal equations"""
+    Xp = poly_features(X, degree)
+    n, d = Xp.shape
+    # (X'X + alpha*I) beta = X'y
+    A = Xp.T @ Xp + alpha * np.eye(d)
+    b = Xp.T @ y
+    return np.linalg.solve(A, b)
+
+def poly_predict(X, coeffs):
+    degree = len(coeffs) - 1
+    Xp = poly_features(X, degree)
+    return Xp @ coeffs
+
+def r2_score(y_true, y_pred):
+    ss_res = np.sum((y_true - y_pred)**2)
+    ss_tot = np.sum((y_true - y_true.mean())**2)
+    return 1 - ss_res / ss_tot
+
+# Generate non-linear data (true curve: y = 0.5x^3 - 2x + noise)
+np.random.seed(42)
+n = 40
+X = np.linspace(-3, 3, n)
+y_true = 0.5 * X**3 - 2 * X + 1
+y = y_true + np.random.randn(n) * 1.2
+
+# Normalise X to [-1, 1] for numerical stability
+X_norm = (X - X.mean()) / X.std()
+
+# Train/test split
+split = int(n * 0.8)
+X_train, X_test = X_norm[:split], X_norm[split:]
+y_train, y_test = y[:split], y[split:]
+
+print(f"{'Degree':>8}  {'Train R²':>9}  {'Test R²':>9}  {'Params':>7}  {'Status'}")
+print("-" * 55)
+
+for degree in [1, 2, 3, 4, 5, 7, 10]:
+    coeffs = poly_fit(X_train, y_train, degree, alpha=0.0)
+    train_r2 = r2_score(y_train, poly_predict(X_train, coeffs))
+    test_r2  = r2_score(y_test,  poly_predict(X_test,  coeffs))
+    gap = train_r2 - test_r2
+    status = ("OVERFIT" if gap > 0.2 else
+              "underfit" if test_r2 < 0.5 else "OK")
+    print(f"{degree:>8}  {train_r2:>9.4f}  {test_r2:>9.4f}  "
+          f"{degree+1:>7}  {status}")
+
+print()
+print("Tip: degree 3 matches the true cubic curve best")
+print("     degree 10: train R2 near 1, test collapses -> overfitting")
+`},
+{file:'poly_sklearn.py',label:'sklearn pipeline',code:`from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.linear_model import LinearRegression, Ridge, RidgeCV
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.metrics import r2_score
+import numpy as np
+
+# Data
+np.random.seed(42)
+X = np.linspace(-3, 3, 60).reshape(-1, 1)
+y = 0.5 * X.ravel()**3 - 2 * X.ravel() + 1 + np.random.randn(60) * 1.2
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+print("Degree sweep — sklearn pipeline:")
+print(f"{'degree':>8}  {'train R²':>9}  {'test R²':>9}  {'cv mean':>9}")
+print("-" * 45)
+
+for degree in [1, 2, 3, 4, 5, 8]:
+    pipe = Pipeline([
+        ('scale', StandardScaler()),       # always scale first!
+        ('poly',  PolynomialFeatures(degree=degree, include_bias=False)),
+        ('model', LinearRegression())
+    ])
+    pipe.fit(X_train, y_train)
+    train_r2 = pipe.score(X_train, y_train)
+    test_r2  = pipe.score(X_test, y_test)
+    cv = cross_val_score(pipe, X, y, cv=5, scoring='r2').mean()
+    print(f"{degree:>8}  {train_r2:>9.4f}  {test_r2:>9.4f}  {cv:>9.4f}")
+
+# Best: use RidgeCV at degree=4 to regularise
+print()
+print("Ridge regularised (degree=5, alpha auto-tuned):")
+best_pipe = Pipeline([
+    ('scale', StandardScaler()),
+    ('poly',  PolynomialFeatures(degree=5, include_bias=False)),
+    ('model', RidgeCV(alphas=[0.001, 0.01, 0.1, 1, 10, 100]))
+])
+best_pipe.fit(X_train, y_train)
+print(f"  Best alpha:  {best_pipe.named_steps['model'].alpha_:.4f}")
+print(f"  Train R²:    {best_pipe.score(X_train, y_train):.4f}")
+print(f"  Test  R²:    {best_pipe.score(X_test,  y_test):.4f}")
+`},
+{file:'overfit_demo.py',label:'Overfitting demo',code:`import numpy as np
+
+# Dramatically show overfitting with a tiny dataset
+np.random.seed(7)
+n = 12  # very few points!
+X = np.linspace(-2, 2, n)
+y = X**2 + np.random.randn(n) * 0.5  # true: parabola
+
+X_norm = (X - X.mean()) / X.std()
+
+# Fit multiple degrees
+def poly_fit(X, y, d, alpha=0):
+    Xp = np.column_stack([X**i for i in range(d+1)])
+    A = Xp.T @ Xp + alpha*np.eye(d+1)
+    return np.linalg.solve(A, Xp.T @ y)
+
+def r2(y,yh): return 1 - np.sum((y-yh)**2)/np.sum((y-y.mean())**2)
+
+print("n=12 points, true curve = x^2")
+print()
+print(f"{'d':>4}  {'train R²':>9}  {'test R²':>9}  {'train RMSE':>11}  Note")
+print("-"*60)
+
+X_test_norm = np.linspace(-2, 2, 50)
+X_test_norm = (X_test_norm - X.mean()) / X.std()
+y_test_true = (X_test_norm * X.std() + X.mean())**2  # on original scale
+
+for d in [1, 2, 3, 5, 7, 10, 11]:
+    c = poly_fit(X_norm, y, d)
+    Xp = np.column_stack([X_norm**i for i in range(d+1)])
+    yh_train = Xp @ c
+    yh_test = np.column_stack([X_test_norm**i for i in range(d+1)]) @ c
+
+    tr = r2(y, yh_train)
+    te = r2(y_test_true, yh_test)
+    rmse = np.sqrt(np.mean((y - yh_train)**2))
+
+    note = ("perfect fit!" if tr > 0.999 else
+            "great" if tr > 0.95 else
+            "underfit" if tr < 0.7 else "ok")
+    print(f"{d:>4}  {tr:>9.4f}  {te:>9.4f}  {rmse:>11.4f}  {note}")
+
+print()
+print("d=11 has 12 params = 12 data points = interpolation!")
+print("train R2 = 1.0 but completely useless on new data")
+print()
+print("Fix 1: reduce degree to 2")
+print("Fix 2: add Ridge regularisation (alpha > 0)")
+c_ridge = poly_fit(X_norm, y, 10, alpha=1.0)
+Xp = np.column_stack([X_norm**i for i in range(11)])
+yh = Xp @ c_ridge
+print(f"Ridge(d=10,alpha=1): train R2={r2(y,yh):.4f}  (much more stable)")
+`},
+{file:'cv_degree_select.py',label:'Cross-val degree selection',code:`import numpy as np
+
+# Select best degree using k-fold cross-validation (no sklearn)
+np.random.seed(42)
+n = 60
+X = np.linspace(-3, 3, n)
+y = 0.5*X**3 - 2*X + 1 + np.random.randn(n)*1.3
+X_norm = (X - X.mean()) / X.std()
+
+def poly_fit(X, y, d, alpha=0.001):
+    Xp = np.column_stack([X**i for i in range(d+1)])
+    A = Xp.T @ Xp + alpha * np.eye(d+1)
+    return np.linalg.solve(A, Xp.T @ y)
+
+def poly_pred(X, c):
+    Xp = np.column_stack([X**i for i in range(len(c))])
+    return Xp @ c
+
+def r2(y, yh):
+    return 1 - np.sum((y-yh)**2) / np.sum((y-y.mean())**2)
+
+k = 5  # folds
+indices = np.arange(n)
+np.random.shuffle(indices)
+folds = np.array_split(indices, k)
+
+print(f"{'Degree':>8}  {'Mean CV R²':>12}  {'Std':>8}  {'Winner?'}")
+print("-" * 44)
+
+best_deg, best_cv = 0, -999
+for degree in range(1, 13):
+    cv_scores = []
+    for fold_i in range(k):
+        val_idx = folds[fold_i]
+        train_idx = np.concatenate([folds[j] for j in range(k) if j != fold_i])
+        X_tr, y_tr = X_norm[train_idx], y[train_idx]
+        X_val, y_val = X_norm[val_idx], y[val_idx]
+        try:
+            c = poly_fit(X_tr, y_tr, degree, alpha=0.01)
+            yh = poly_pred(X_val, c)
+            cv_scores.append(r2(y_val, yh))
+        except:
+            cv_scores.append(-999)
+    mean_cv = np.mean(cv_scores)
+    std_cv = np.std(cv_scores)
+    winner = "<-- BEST" if mean_cv > best_cv else ""
+    if mean_cv > best_cv:
+        best_cv = mean_cv
+        best_deg = degree
+    print(f"{degree:>8}  {mean_cv:>12.4f}  {std_cv:>8.4f}  {winner}")
+
+print(f"\\nBest degree = {best_deg}  (CV R² = {best_cv:.4f})")
+print("The true curve is cubic (degree 3) - did CV find it?")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click \u25b6 Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='\u25cf Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='\u25b6 Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ignored){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='\u25b6 Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  rseed(42);mainData=makeData(18,1.8,42);
+  drawMainCanvas();
+  sbsData=makeData(16,1.6,777);
+  drawSideBySide();
+  drawClickCanvas();
+  onHPChange();
+
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawMainCanvas();drawSideBySide();drawClickCanvas();drawBVCanvas();onHPChange();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

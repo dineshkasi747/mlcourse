@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Missing Values Types — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,96,96,.09),rgba(251,140,64,.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(240,96,96,.12) 0%,transparent 70%);pointer-events:none;}
+
+    /* type cards */
+    .type-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+    .type-card{border:2px solid var(--border);border-radius:var(--r-lg);padding:18px;cursor:pointer;transition:all .2s;}
+    .type-card:hover{transform:translateY(-2px);}
+    .type-card.active{transform:translateY(-2px);}
+    .type-card.mcar{border-color:var(--green);}.type-card.mcar.active{background:var(--green-surf);}
+    .type-card.mar{border-color:var(--orange);}.type-card.mar.active{background:var(--orange-surf);}
+    .type-card.mnar{border-color:var(--red);}.type-card.mnar.active{background:var(--red-surf);}
+    .tc-abbr{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1;margin-bottom:5px;}
+    .tc-full{font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px;}
+    .tc-short{font-size:12.5px;color:var(--text-3);line-height:1.55;}
+    .tc-badge{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;margin-top:8px;}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 14px;background:var(--bg-input);border-radius:var(--r-md);min-width:78px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* heatmap / matrix */
+    .miss-matrix{overflow-x:auto;margin-bottom:16px;}
+    .mm-table{border-collapse:collapse;font-size:12.5px;min-width:100%;}
+    .mm-table th{background:var(--bg-input);padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);border-bottom:1px solid var(--border-md);text-align:center;white-space:nowrap;}
+    .mm-table td{padding:7px 12px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap;transition:background .3s;}
+    .mm-table .row-label{text-align:left;color:var(--text-3);font-size:11px;font-weight:600;}
+    .cell-present{background:rgba(62,207,142,.15);color:var(--green);}
+    .cell-missing{background:rgba(240,96,96,.18);color:var(--red);font-weight:700;}
+
+    /* pattern diagram cards */
+    .pattern-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .pattern-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;}
+    .pc-title{font-family:var(--font-display);font-size:13px;font-weight:700;margin-bottom:6px;}
+    .pc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:8px;}
+    .pc-cell{height:20px;border-radius:3px;}
+    .pc-present{background:rgba(62,207,142,.3);border:1px solid rgba(62,207,142,.4);}
+    .pc-missing{background:rgba(240,96,96,.3);border:1px solid rgba(240,96,96,.4);}
+    .pc-desc{font-size:12px;color:var(--text-3);line-height:1.5;}
+
+    /* detection tool */
+    .detect-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .detect-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:14px;}
+    .detect-result{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);line-height:1.8;min-height:60px;white-space:pre;}
+
+    /* strategy table */
+    .strat-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;}
+    .strat-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:9px 14px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:left;}
+    .strat-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);line-height:1.5;vertical-align:top;}
+    .strat-table tr:last-child td{border-bottom:none;}
+    .strat-table tr:hover td{background:var(--bg-hover);}
+    .badge-g{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--green-surf);color:var(--green);}
+    .badge-y{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--accent-surface);color:var(--accent);}
+    .badge-r{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--red-surf);color:var(--red);}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}.cm-s-one-dark .cm-operator{color:#94a3b8;}.cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(240,96,96,.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--red);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.type-cards{grid-template-columns:1fr;}.pattern-cards{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="missing-values-types">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">Missing Values Types</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <span class="current">Missing Values Types</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(240,96,96,.3);background:var(--red-surf);color:var(--red);margin-bottom:14px;">Data Cleaning · Missing Data</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Types of Missing Values</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Not all missing values are equal. <strong>Why</strong> a value is missing
+              determines what you can safely do about it.
+              There are three distinct mechanisms — MCAR, MAR, and MNAR —
+              and confusing them leads to biased models and wrong conclusions.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 18 min</span>
+              <span class="topic-meta-item">◆ Beginner–Intermediate</span>
+              <span class="topic-meta-item">pandas · missingno</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — THREE TYPES -->
+          <section class="section" id="three-types">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">?</div>
+              Three mechanisms — MCAR, MAR, MNAR
+            </h2>
+            <p>Before choosing a strategy to handle missing data, you must understand <em>why</em> the data is missing. The mechanism determines whether simple imputation is safe or whether you need a more careful approach.</p>
+
+            <div class="type-cards">
+              <div class="type-card mcar active" id="tc-mcar" onclick="selectType('mcar')">
+                <div class="tc-abbr" style="color:var(--green);">MCAR</div>
+                <div class="tc-full">Missing Completely At Random</div>
+                <div class="tc-short">The probability of being missing has nothing to do with any variable — observed or unobserved.</div>
+                <div class="tc-badge" style="background:var(--green-surf);color:var(--green);">Safest — any imputation OK</div>
+              </div>
+              <div class="type-card mar" id="tc-mar" onclick="selectType('mar')">
+                <div class="tc-abbr" style="color:var(--orange);">MAR</div>
+                <div class="tc-full">Missing At Random</div>
+                <div class="tc-short">Probability of being missing depends on <em>other observed variables</em> — but not on the missing value itself.</div>
+                <div class="tc-badge" style="background:var(--orange-surf);color:var(--orange);">Manageable with care</div>
+              </div>
+              <div class="type-card mnar" id="tc-mnar" onclick="selectType('mnar')">
+                <div class="tc-abbr" style="color:var(--red);">MNAR</div>
+                <div class="tc-full">Missing Not At Random</div>
+                <div class="tc-short">Probability of being missing depends on the missing value itself — the data that is missing is the data you most need.</div>
+                <div class="tc-badge" style="background:var(--red-surf);color:var(--red);">Hardest — needs domain knowledge</div>
+              </div>
+            </div>
+
+            <!-- Type detail panel -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="type-canvas-title">MCAR — random dropout, no pattern</span>
+                <button class="ctrl-btn" onclick="regenerateData()">New sample</button>
+              </div>
+              <canvas id="type-canvas" width="700" height="300" style="width:100%;display:block;cursor:pointer;"></canvas>
+              <div style="padding:12px 18px;font-size:13.5px;color:var(--text-2);line-height:1.7;" id="type-desc">
+                <strong style="color:var(--green);">MCAR example:</strong> A survey respondent accidentally skips a question. A sensor randomly glitches. A blood pressure cuff randomly fails. There is no pattern — the missingness is truly random. Safe to use simple imputation or complete-case analysis without introducing bias.
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ts-total" style="color:var(--text-1);">—</span><span class="stat-pill-lbl">Total rows</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ts-missing" style="color:var(--red);">—</span><span class="stat-pill-lbl">Missing</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ts-pct" style="color:var(--orange);">—</span><span class="stat-pill-lbl">Missing %</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ts-pattern" style="font-size:12px;color:var(--accent);">—</span><span class="stat-pill-lbl">Pattern</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — REAL-WORLD EXAMPLES -->
+          <section class="section" id="real-world">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">🌍</div>
+              Real-world examples — recognise the type in practice
+            </h2>
+            <p>The hardest skill is diagnosing <em>which type</em> you have. These examples from common ML domains show how the same feature can have different mechanisms depending on context.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Diagnosis examples — spot the missing data mechanism</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Domain:</span>
+                  <select class="ctrl-select" id="domain-select" onchange="drawDomainCanvas()">
+                    <option value="medical">Medical survey</option>
+                    <option value="ecommerce">E-commerce</option>
+                    <option value="sensor">IoT sensors</option>
+                    <option value="hr">HR / salary data</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="domain-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — MISSING VALUE HEATMAP -->
+          <section class="section" id="heatmap">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">⊞</div>
+              Missing value matrix — visualise the pattern
+            </h2>
+            <p>
+              Before deciding how to handle missing data, visualise it. A <strong>missing value matrix</strong>
+              (like the one from the <code>missingno</code> library) shows which rows and columns have gaps —
+              and whether there is a pattern. Random gaps = MCAR. Systematic bands = MAR or MNAR.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Missing value heatmap — interactive dataset</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Pattern:</span>
+                  <select class="ctrl-select" id="pattern-select" onchange="drawHeatmap()">
+                    <option value="mcar">MCAR (random scatter)</option>
+                    <option value="mar">MAR (low-income rows miss salary)</option>
+                    <option value="mnar">MNAR (high earners hide salary)</option>
+                    <option value="mixed">Mixed (multiple mechanisms)</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Missing %:</span>
+                  <input type="range" min="5" max="50" value="20" step="5" class="ctrl-slider"
+                    id="miss-pct" oninput="drawHeatmap()" style="width:90px;"/>
+                  <span class="ctrl-value" id="miss-pct-val" style="color:var(--red);">20%</span>
+                </div>
+              </div>
+              <canvas id="heatmap-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-rows" style="color:var(--text-1);">—</span><span class="stat-pill-lbl">Rows</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-cols" style="color:var(--blue);">—</span><span class="stat-pill-lbl">Columns</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-missing" style="color:var(--red);">—</span><span class="stat-pill-lbl">Missing cells</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-complete" style="color:var(--green);">—</span><span class="stat-pill-lbl">Complete rows</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-diag" style="font-size:11px;color:var(--accent);">—</span><span class="stat-pill-lbl">Diagnosis</span></div>
+              </div>
+            </div>
+
+            <!-- Visual pattern guide -->
+            <div class="pattern-cards">
+              <div class="pattern-card">
+                <div class="pc-title" style="color:var(--green);">MCAR pattern</div>
+                <div class="pc-grid" id="pg-mcar"></div>
+                <div class="pc-desc">Random scatter with no structure. Missing values appear throughout all rows and columns without grouping.</div>
+              </div>
+              <div class="pattern-card">
+                <div class="pc-title" style="color:var(--orange);">MAR pattern</div>
+                <div class="pc-grid" id="pg-mar"></div>
+                <div class="pc-desc">Column B is always missing when column A has a certain value. Visible band or block structure in the matrix.</div>
+              </div>
+              <div class="pattern-card">
+                <div class="pc-title" style="color:var(--red);">MNAR pattern</div>
+                <div class="pc-grid" id="pg-mnar"></div>
+                <div class="pc-desc">The missing values cluster at the extremes. High earners skip salary. Very sick patients miss health scores.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — DETECTION TOOL -->
+          <section class="section" id="detection">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">🔍</div>
+              How to detect the type — statistical tests
+            </h2>
+            <p>
+              You can never be 100% certain about the missing data mechanism without domain knowledge.
+              But statistical tests can give strong evidence. The most useful: compare the distribution
+              of observed variables between rows where a column is missing vs present.
+            </p>
+
+            <div class="detect-wrap">
+              <div class="detect-title">Detection checklist — run through these steps</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:12px;border-left:3px solid var(--green);">
+                  <div style="font-size:12.5px;font-weight:700;color:var(--green);margin-bottom:5px;">Step 1 — How much is missing?</div>
+                  <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;">Run <code>df.isnull().sum()</code>. Less than 5% can often be dropped. 5-40% needs imputation. Over 40% — consider if the column is useful at all.</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:12px;border-left:3px solid var(--orange);">
+                  <div style="font-size:12.5px;font-weight:700;color:var(--orange);margin-bottom:5px;">Step 2 — Is there a pattern?</div>
+                  <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;">Compare means of other columns between missing and non-missing groups. If they differ significantly — MAR. Use t-test or Little's MCAR test.</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:12px;border-left:3px solid var(--red);">
+                  <div style="font-size:12.5px;font-weight:700;color:var(--red);margin-bottom:5px;">Step 3 — Domain knowledge</div>
+                  <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;">Ask: <em>Why would this value be missing?</em> If the answer is "because of its own value" (e.g., rich people hide income) — MNAR. This cannot be detected statistically alone.</div>
+                </div>
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:12px;border-left:3px solid var(--purple);">
+                  <div style="font-size:12.5px;font-weight:700;color:var(--purple);margin-bottom:5px;">Step 4 — Visualise</div>
+                  <div style="font-size:12.5px;color:var(--text-2);line-height:1.6;">Plot histograms of other features split by whether target feature is missing. Use <code>msno.matrix(df)</code> or <code>msno.heatmap(df)</code> from the missingno library.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive comparison canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">MCAR vs MAR vs MNAR — distribution comparison test</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Mechanism:</span>
+                  <select class="ctrl-select" id="comp-mech" onchange="drawComparisonCanvas()">
+                    <option value="mcar">MCAR</option>
+                    <option value="mar">MAR</option>
+                    <option value="mnar">MNAR</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="drawComparisonCanvas()">Regenerate</button>
+              </div>
+              <canvas id="comp-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:13px;color:var(--text-2);line-height:1.6;" id="comp-desc">
+                Select a mechanism to see how distributions differ between rows where "income" is observed vs missing.
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — STRATEGY TABLE -->
+          <section class="section" id="strategies">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">🔧</div>
+              Which strategy to use — decision table
+            </h2>
+            <table class="strat-table">
+              <thead>
+                <tr><th>Mechanism</th><th>Safe strategies</th><th>Risky strategies</th><th>Bias risk</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong style="color:var(--green);">MCAR</strong></td>
+                  <td>Delete rows · Mean/median imputation · KNN imputation · Model-based imputation</td>
+                  <td>None — all work if missingness is truly random</td>
+                  <td><span class="badge-g">Low</span> — reduces sample size but no bias</td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--orange);">MAR</strong></td>
+                  <td>Multiple imputation · KNN imputation · Model-based (use observed predictors)</td>
+                  <td>Complete-case deletion (loses information) · Simple mean (ignores predictors)</td>
+                  <td><span class="badge-y">Medium</span> — bias if predictors not used</td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--red);">MNAR</strong></td>
+                  <td>Missing indicator feature · Domain-specific model · Sensitivity analysis</td>
+                  <td>Any single imputation strategy (all introduce bias)</td>
+                  <td><span class="badge-r">High</span> — no statistical fix; needs domain knowledge</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>The MNAR problem:</strong> When data is MNAR, there is no purely statistical solution. The missing values are systematically different from observed values in ways you cannot measure. The best approach: create a binary "was_missing" indicator column, use domain knowledge to reason about the bias, and report uncertainty in your model's conclusions.</p>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor — detect and diagnose missing data
+            </h2>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">detect_missing.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Assuming all missing data is MCAR.</strong> Most real-world missing data is MAR or MNAR. Blindly using mean imputation or dropping rows without checking for patterns leads to biased models that fail in production.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Dropping all rows with any missing value.</strong> Complete-case analysis is only unbiased for MCAR. For MAR/MNAR it removes a non-random subset of your data, making your training set unrepresentative.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Imputing before the train/test split.</strong> If you compute the mean on the whole dataset before splitting, test data "leaks" information into training. Always fit the imputer on training data only, then transform both train and test.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Ignoring the missingness signal itself.</strong> For MNAR data, the fact that a value is missing IS information. Create a binary <code>feature_was_missing</code> column before imputing — this often improves model performance significantly.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>Key takeaways</h2>
+            <div class="takeaways"><div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>MCAR</strong> = truly random dropout. Any imputation strategy works. Safe to delete rows too.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>MAR</strong> = missing depends on other observed columns. Use model-based or KNN imputation that exploits those relationships.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>MNAR</strong> = missing depends on the value itself. No statistical fix — use domain knowledge + missing indicator feature.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always <strong>visualise</strong> the missingness pattern before choosing a strategy. Random scatter = MCAR. Systematic bands = MAR or MNAR.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always <strong>fit imputers on training data only</strong> — never on the full dataset before splitting.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="../eda/pandas-profiling.html"><span class="pn-dir">← Previous</span><span class="pn-title">Pandas Profiling</span></a>
+            <a class="pn-card next" href="complete-case-analysis.html"><span class="pn-dir">Next →</span><span class="pn-title">Complete Case Analysis</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#three-types">MCAR · MAR · MNAR</a></li>
+            <li class="toc-item"><a href="#real-world">Real-world examples</a></li>
+            <li class="toc-item"><a href="#heatmap">Missing value matrix</a></li>
+            <li class="toc-item"><a href="#detection">How to detect</a></li>
+            <li class="toc-item"><a href="#strategies">Strategy table</a></li>
+            <li class="toc-item"><a href="#live-editor">Code editor</a></li>
+            <li class="toc-item"><a href="#mistakes">Mistakes</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ════ HELPERS ════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function rng(seed){var s=seed;return function(){s=(s*16807)%2147483647;return(s-1)/2147483646;};}
+
+/* ════ SECTION 1 — TYPE CANVAS ════ */
+var currentType='mcar';
+var typeData=[];
+
+var TYPE_CONFIG={
+  mcar:{
+    title:'MCAR — random dropout, no pattern',
+    desc:'<strong style="color:var(--green);">MCAR example:</strong> A survey respondent accidentally skips a question. A sensor randomly glitches. There is no pattern — the missingness is truly random. <em>Safe to use simple imputation or complete-case analysis without introducing bias.</em>',
+    pattern:'Random scatter',
+    color:'var(--green)'
+  },
+  mar:{
+    title:'MAR — missing depends on other observed columns',
+    desc:'<strong style="color:var(--orange);">MAR example:</strong> Older patients are less likely to report their blood pressure. The missingness in "blood pressure" depends on "age" — which is observed. Once you account for age, the remaining missingness is random. <em>Use model-based or KNN imputation using age as a predictor.</em>',
+    pattern:'Systematic bands',
+    color:'var(--orange)'
+  },
+  mnar:{
+    title:'MNAR — missing depends on the value itself',
+    desc:'<strong style="color:var(--red);">MNAR example:</strong> High earners are less likely to report their income. The missing income values are <em>the high incomes</em>. Imputing with the mean drastically underestimates average income. <em>No statistical fix — create a missing indicator column and use domain knowledge.</em>',
+    pattern:'Extreme clustering',
+    color:'var(--red)'
+  }
+};
+
+function generateTypeData(type){
+  var rand=rng(42+Math.floor(Math.random()*100));
+  var n=80;
+  var pts=[];
+  for(var i=0;i<n;i++){
+    var x=rand()*6-3;
+    var y=Math.sin(x)*50+100+(rand()-0.5)*30;
+    var missing=false;
+    if(type==='mcar') missing=rand()<0.22;
+    else if(type==='mar') missing=(x<-1)&&rand()<0.65;   // low x => more missing
+    else if(type==='mnar') missing=(y>120)&&rand()<0.7;  // high y => more missing
+    pts.push({x:x,y:y,missing:missing,idx:i});
+  }
+  return pts;
+}
+
+function selectType(t){
+  currentType=t;
+  ['mcar','mar','mnar'].forEach(function(k){C('tc-'+k).classList.toggle('active',k===t);});
+  typeData=generateTypeData(t);
+  var cfg=TYPE_CONFIG[t];
+  C('type-canvas-title').textContent=cfg.title;
+  C('type-desc').innerHTML=cfg.desc;
+  var missing=typeData.filter(function(p){return p.missing;}).length;
+  C('ts-total').textContent=typeData.length;
+  C('ts-missing').textContent=missing;
+  C('ts-pct').textContent=(missing/typeData.length*100).toFixed(0)+'%';
+  C('ts-pattern').textContent=cfg.pattern;
+  C('ts-pattern').style.color=cfg.color;
+  drawTypeCanvas();
+}
+
+function regenerateData(){selectType(currentType);}
+
+function drawTypeCanvas(){
+  var cv=C('type-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  var pad={l:50,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var allY=typeData.map(function(p){return p.y;});
+  var minY=Math.min.apply(null,allY)-10,maxY=Math.max.apply(null,allY)+10;
+  function toX(x){return (x+3)/6*(W-pad.l-pad.r)+pad.l;}
+  function toY(y){return H-pad.b-(y-minY)/(maxY-minY)*(H-pad.t-pad.b);}
+
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [-3,-2,-1,0,1,2,3].forEach(function(x){ctx.beginPath();ctx.moveTo(toX(x),pad.t);ctx.lineTo(toX(x),H-pad.b);ctx.stroke();ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(x,toX(x),H-pad.b+14);});
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Feature X',W/2,H-4);
+  ctx.textAlign='left';ctx.fillText('Feature Y',4,pad.t+12);
+
+  // True line
+  ctx.beginPath();
+  for(var x=-3;x<=3;x+=0.05){
+    var py=Math.sin(x)*50+100;
+    x===-3?ctx.moveTo(toX(x),toY(py)):ctx.lineTo(toX(x),toY(py));
+  }
+  ctx.strokeStyle='rgba(45,212,191,0.3)';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+
+  // If MAR, shade the region where missingness occurs
+  if(currentType==='mar'){
+    ctx.fillStyle='rgba(251,140,64,0.06)';
+    ctx.fillRect(pad.l,pad.t,toX(-1)-pad.l,H-pad.t-pad.b);
+    ctx.fillStyle='rgba(251,140,64,0.5)';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Missing more likely here (x < -1)',toX(-2),pad.t+14);
+  }
+  if(currentType==='mnar'){
+    ctx.fillStyle='rgba(240,96,96,0.06)';
+    ctx.fillRect(pad.l,pad.t,W-pad.r-pad.l,toY(120)-pad.t);
+    ctx.fillStyle='rgba(240,96,96,0.5)';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Missing more likely here (y > 120 — high values hide)',W/2,pad.t+14);
+  }
+
+  // Points — observed (filled) vs missing (X)
+  typeData.forEach(function(p){
+    if(!p.missing){
+      ctx.beginPath();ctx.arc(toX(p.x),toY(p.y),6,0,Math.PI*2);
+      ctx.fillStyle='rgba(62,207,142,0.7)';ctx.fill();
+      ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();
+    } else {
+      // Draw X for missing
+      var cx=toX(p.x),cy=toY(p.y),r=6;
+      ctx.beginPath();ctx.moveTo(cx-r,cy-r);ctx.lineTo(cx+r,cy+r);
+      ctx.moveTo(cx+r,cy-r);ctx.lineTo(cx-r,cy+r);
+      ctx.strokeStyle='rgba(240,96,96,0.8)';ctx.lineWidth=2;ctx.stroke();
+    }
+  });
+
+  // Legend
+  ctx.beginPath();ctx.arc(pad.l+8,H-pad.b+24,5,0,Math.PI*2);ctx.fillStyle='rgba(62,207,142,0.7)';ctx.fill();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Observed',pad.l+18,H-pad.b+28);
+  var lx=pad.l+90;
+  ctx.beginPath();ctx.moveTo(lx,H-pad.b+20);ctx.lineTo(lx+10,H-pad.b+28);ctx.moveTo(lx+10,H-pad.b+20);ctx.lineTo(lx,H-pad.b+28);
+  ctx.strokeStyle='rgba(240,96,96,0.8)';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=tc();ctx.fillText('Missing',lx+14,H-pad.b+28);
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 2 — DOMAIN CANVAS ════ */
+var DOMAIN_DATA={
+  medical:{
+    cols:['age','gender','bmi','blood_pressure','diagnosis'],
+    mechanisms:{age:'MCAR (form glitch)',gender:'MCAR',bmi:'MAR (elderly skip)',blood_pressure:'MAR (elderly skip)',diagnosis:'MNAR (healthy opt out)'},
+    colors:{MCAR:'#3ecf8e',MAR:'#fb8c40',MNAR:'#f06060'}
+  },
+  ecommerce:{
+    cols:['user_id','price','rating','review_text','return_reason'],
+    mechanisms:{user_id:'MCAR',price:'MCAR',rating:'MNAR (unhappy users avoid)',review_text:'MAR (mobile users skip)',return_reason:'MNAR (embarrassing reasons)'},
+    colors:{MCAR:'#3ecf8e',MAR:'#fb8c40',MNAR:'#f06060'}
+  },
+  sensor:{
+    cols:['timestamp','temperature','humidity','pressure','battery'],
+    mechanisms:{timestamp:'MCAR',temperature:'MCAR (random glitch)',humidity:'MAR (cold temps freeze)',pressure:'MCAR',battery:'MNAR (low battery dies)'},
+    colors:{MCAR:'#3ecf8e',MAR:'#fb8c40',MNAR:'#f06060'}
+  },
+  hr:{
+    cols:['emp_id','salary','bonus','performance','exit_reason'],
+    mechanisms:{emp_id:'MCAR',salary:'MNAR (high earners hide)',bonus:'MAR (low performers skip)',performance:'MCAR',exit_reason:'MNAR (voluntary leavers hide)'},
+    colors:{MCAR:'#3ecf8e',MAR:'#fb8c40',MNAR:'#f06060'}
+  }
+};
+
+function drawDomainCanvas(){
+  var domain=C('domain-select').value;
+  var dd=DOMAIN_DATA[domain];
+  var cv=C('domain-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var nCols=dd.cols.length;
+  var colW=(W-20)/nCols,rowH=45,startY=50,startX=10;
+  var nRows=10;
+
+  // Column headers
+  dd.cols.forEach(function(col,ci){
+    var mech=dd.mechanisms[col];
+    var mechType=mech.split(' ')[0];
+    var col_color=dd.colors[mechType]||tc();
+    var cx=startX+ci*colW+colW/2;
+    // header bg
+    ctx.fillStyle=col_color+'20';
+    if(ctx.roundRect)ctx.roundRect(startX+ci*colW+2,4,colW-4,34,5);else ctx.rect(startX+ci*colW+2,4,colW-4,34);
+    ctx.fill();
+    ctx.strokeStyle=col_color+'60';ctx.lineWidth=1;
+    if(ctx.roundRect)ctx.roundRect(startX+ci*colW+2,4,colW-4,34,5);else ctx.rect(startX+ci*colW+2,4,colW-4,34);
+    ctx.stroke();
+    ctx.fillStyle=col_color;ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(col,cx,20);
+    ctx.fillStyle=tc();ctx.font='10px sans-serif';
+    ctx.fillText(mech,cx,34);
+  });
+
+  // Rows of data
+  var rand=rng(99);
+  for(var ri=0;ri<nRows;ri++){
+    var y=startY+ri*rowH;
+    dd.cols.forEach(function(col,ci){
+      var mech=dd.mechanisms[col];
+      var mechType=mech.split(' ')[0];
+      var x=startX+ci*colW+2;
+      var missing=false;
+      if(mechType==='MCAR') missing=rand()<0.12;
+      else if(mechType==='MAR') missing=(ri>5)&&rand()<0.6;
+      else if(mechType==='MNAR') missing=(ri<3||ri>7)&&rand()<0.7;
+
+      ctx.fillStyle=missing?'rgba(240,96,96,0.2)':'rgba(62,207,142,0.12)';
+      if(ctx.roundRect)ctx.roundRect(x,y+2,colW-4,rowH-4,3);else ctx.rect(x,y+2,colW-4,rowH-4);
+      ctx.fill();
+      ctx.strokeStyle=missing?'rgba(240,96,96,0.3)':'rgba(62,207,142,0.2)';ctx.lineWidth=1;
+      if(ctx.roundRect)ctx.roundRect(x,y+2,colW-4,rowH-4,3);else ctx.rect(x,y+2,colW-4,rowH-4);
+      ctx.stroke();
+
+      if(missing){
+        ctx.fillStyle='rgba(240,96,96,0.8)';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+        ctx.fillText('NaN',startX+ci*colW+colW/2,y+rowH/2+5);
+      }else{
+        ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+        ctx.fillText('value',startX+ci*colW+colW/2,y+rowH/2+5);
+      }
+    });
+  }
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 3 — HEATMAP ════ */
+function drawHeatmap(){
+  var pattern=C('pattern-select').value;
+  var missPct=parseInt(C('miss-pct').value)/100;
+  C('miss-pct-val').textContent=parseInt(C('miss-pct').value)+'%';
+
+  var cv=C('heatmap-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var nRows=30,nCols=8;
+  var cols=['age','income','bmi','edu','job','health','score','label'];
+  var pad={l:50,r:10,t:30,b:20};
+  var cellW=(W-pad.l-pad.r)/nCols,cellH=(H-pad.t-pad.b)/nRows;
+  var rand=rng(77);
+
+  var totalMiss=0,completeCnt=0;
+
+  // Column labels
+  cols.forEach(function(col,ci){
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(col,pad.l+ci*cellW+cellW/2,20);
+  });
+
+  // Row index labels (every 5)
+  for(var ri=0;ri<nRows;ri+=5){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';
+    ctx.fillText(ri,pad.l-4,pad.t+ri*cellH+cellH/2+4);
+  }
+
+  var rowMissing=[];
+  for(var ri=0;ri<nRows;ri++){
+    var rowMiss=0;
+    for(var ci=0;ci<nCols;ci++){
+      var missing=false;
+      if(pattern==='mcar'){
+        missing=rand()<missPct;
+      }else if(pattern==='mar'){
+        // income more likely missing for rows 0-15 (simulate low-income group)
+        if(ci===1) missing=(ri<nRows*0.5)&&rand()<missPct*2;
+        else missing=rand()<missPct*0.3;
+      }else if(pattern==='mnar'){
+        // high earners (rows 20-30) hide income
+        if(ci===1) missing=(ri>nRows*0.6)&&rand()<missPct*2.5;
+        else missing=rand()<missPct*0.2;
+      }else{ // mixed
+        if(ci===1) missing=(ri>nRows*0.6)&&rand()<0.7;
+        else if(ci===2) missing=(ri<nRows*0.4)&&rand()<0.5;
+        else missing=rand()<missPct*0.5;
+      }
+
+      var x=pad.l+ci*cellW,y=pad.t+ri*cellH;
+      ctx.fillStyle=missing?'rgba(240,96,96,0.75)':'rgba(62,207,142,0.35)';
+      ctx.fillRect(x+0.5,y+0.5,cellW-1,cellH-1);
+      if(missing){ctx.fillStyle='rgba(240,96,96,0.9)';ctx.font='bold 9px mono';ctx.textAlign='center';ctx.fillText('NaN',x+cellW/2,y+cellH/2+3);totalMiss++;rowMiss++;}
+    }
+    rowMissing.push(rowMiss);
+    if(rowMiss===0) completeCnt++;
+  }
+
+  // Grid lines
+  ctx.strokeStyle=isDark()?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.4)';ctx.lineWidth=0.5;
+  for(var ri2=0;ri2<=nRows;ri2++){ctx.beginPath();ctx.moveTo(pad.l,pad.t+ri2*cellH);ctx.lineTo(W-pad.r,pad.t+ri2*cellH);ctx.stroke();}
+  for(var ci2=0;ci2<=nCols;ci2++){ctx.beginPath();ctx.moveTo(pad.l+ci2*cellW,pad.t);ctx.lineTo(pad.l+ci2*cellW,H-pad.b);ctx.stroke();}
+
+  var diagText={mcar:'MCAR — random scatter',mar:'MAR — systematic pattern (income~age)',mnar:'MNAR — extreme clustering',mixed:'Mixed mechanisms'};
+  C('hm-rows').textContent=nRows;C('hm-cols').textContent=nCols;
+  C('hm-missing').textContent=totalMiss;C('hm-complete').textContent=completeCnt;
+  C('hm-diag').textContent=diagText[pattern];
+  ctx.textAlign='start';
+}
+
+/* Pattern guide cells */
+function buildPatternCells(){
+  var rand=rng(11);
+  function fillGrid(id,genFn){
+    var el=C(id);el.innerHTML='';
+    for(var r=0;r<5;r++) for(var c=0;c<5;c++){
+      var d=document.createElement('div');
+      d.className='pc-cell '+(genFn(r,c,rand)?'pc-missing':'pc-present');
+      el.appendChild(d);
+    }
+  }
+  fillGrid('pg-mcar',function(r,c,rnd){return rnd()<0.25;});
+  fillGrid('pg-mar',function(r,c,rnd){return c===2&&r>2;});
+  fillGrid('pg-mnar',function(r,c,rnd){return c===2&&(r===0||r===4);});
+}
+
+/* ════ SECTION 4 — COMPARISON CANVAS ════ */
+function drawComparisonCanvas(){
+  var mech=C('comp-mech').value;
+  var cv=C('comp-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  var pad={l:50,r:20,t:30,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var rand=rng(55);
+  // Generate income data
+  var incomeObs=[],incomeMiss=[];
+  var n=80;
+  for(var i=0;i<n;i++){
+    var income=20+rand()*80;
+    var missing=false;
+    if(mech==='mcar') missing=rand()<0.25;
+    else if(mech==='mar') missing=(income<40)&&rand()<0.7;
+    else missing=(income>70)&&rand()<0.7;
+    if(missing) incomeMiss.push(income); else incomeObs.push(income);
+  }
+
+  var minI=0,maxI=100;
+  var bins=10;
+  function histogram(data){
+    var h=new Array(bins).fill(0);
+    data.forEach(function(v){var b=Math.min(bins-1,Math.floor((v-minI)/(maxI-minI)*bins));h[b]++;});
+    return h;
+  }
+  var hObs=histogram(incomeObs);
+  var hMiss=histogram(incomeMiss);
+  var maxH=Math.max.apply(null,hObs.concat(hMiss))+1;
+
+  var halfW=(W-pad.l-pad.r)/2-10;
+  function drawHist(hist,startX,title,color){
+    ctx.fillStyle=isDark()?'#f2f0ec':'#1a1916';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+    ctx.fillText(title,startX+halfW/2,pad.t);
+    var bw=halfW/bins;
+    hist.forEach(function(v,i){
+      var bh=(v/maxH)*(H-pad.t-pad.b-20);
+      var x=startX+i*bw,y=H-pad.b-bh;
+      ctx.fillStyle=color+'80';ctx.fillRect(x+1,y,bw-2,bh);
+      ctx.strokeStyle=color;ctx.lineWidth=1;ctx.strokeRect(x+1,y,bw-2,bh);
+    });
+    // x axis
+    [0,25,50,75,100].forEach(function(v){
+      var x=startX+(v/100)*halfW;
+      ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(v,x,H-pad.b+14);
+    });
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Income',startX+halfW/2,H-4);
+    // mean line
+    var meanV=0;
+    if(hist.reduce(function(s,v){return s+v;},0)>0){
+      var vals=[];
+      hist.forEach(function(v,i){for(var j=0;j<v;j++)vals.push(i*10+5);});
+      meanV=vals.reduce(function(s,v){return s+v;},0)/vals.length;
+      var mx=startX+(meanV/100)*halfW;
+      ctx.beginPath();ctx.moveTo(mx,pad.t+10);ctx.lineTo(mx,H-pad.b);
+      ctx.strokeStyle=color;ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=color;ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+      ctx.fillText('mean='+meanV.toFixed(0),mx,pad.t+22);
+    }
+  }
+
+  drawHist(hObs,pad.l,'Observed ('+incomeObs.length+' pts)','#3ecf8e');
+  drawHist(hMiss,pad.l+halfW+20,'Missing ('+incomeMiss.length+' pts)','#f06060');
+
+  var descs={
+    mcar:'MCAR: Both distributions look similar — means are close. The missing values are a random sample of the whole. Simple imputation with the observed mean introduces minimal bias.',
+    mar:'MAR: Missing income values cluster among low earners (missingness driven by the "income group" column). The means differ. Using the overall mean to impute would overestimate missing incomes.',
+    mnar:'MNAR: Missing income values cluster among HIGH earners. You cannot detect this from other variables. Mean imputation drastically underestimates the true mean income of the full population.'
+  };
+  C('comp-desc').textContent=descs[mech];
+  ctx.textAlign='start';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'detect_missing.py',label:'Detect missing',code:`# Detecting and profiling missing values in pandas
+import pandas as pd
+import numpy as np
+import random
+
+random.seed(42)
+
+# Create a dataset with different missing value mechanisms
+n = 100
+
+# 'age' and 'gender' are always present (no missing)
+age    = [random.randint(20, 70) for _ in range(n)]
+gender = [random.choice(['M','F']) for _ in range(n)]
+
+# 'bmi' — MCAR: randomly missing regardless of anything
+bmi = []
+for i in range(n):
+    val = round(18 + random.random() * 20, 1)
+    bmi.append(None if random.random() < 0.15 else val)
+
+# 'blood_pressure' — MAR: older people more likely to skip
+blood_pressure = []
+for i in range(n):
+    val = round(100 + random.random() * 60, 1)
+    # Missing probability increases with age
+    miss_prob = 0.05 if age[i] < 40 else 0.45
+    blood_pressure.append(None if random.random() < miss_prob else val)
+
+# 'income' — MNAR: high earners less likely to report
+income = []
+for i in range(n):
+    val = round(20000 + random.random() * 180000, 0)
+    # High earners are more likely to hide income
+    miss_prob = 0.05 if val < 80000 else 0.6
+    income.append(None if random.random() < miss_prob else val)
+
+df = pd.DataFrame({
+    'age': age,
+    'gender': gender,
+    'bmi': bmi,
+    'blood_pressure': blood_pressure,
+    'income': income
+})
+
+# ── Step 1: How much is missing? ──────────────────────────
+print("=== Missing value counts ===")
+missing = df.isnull().sum()
+missing_pct = df.isnull().mean() * 100
+for col in df.columns:
+    bar = '#' * int(missing_pct[col] / 2)
+    print(f"  {col:<18} {missing[col]:>4} missing  ({missing_pct[col]:>5.1f}%)  {bar}")
+
+print()
+print(f"Total cells:    {df.size}")
+print(f"Missing cells:  {df.isnull().sum().sum()}")
+print(f"Complete rows:  {df.dropna().shape[0]} / {len(df)}")
+
+# ── Step 2: Look for patterns ──────────────────────────────
+print()
+print("=== MAR test: compare age when blood_pressure is missing ===")
+# If blood_pressure is MAR by age, mean age should differ
+bp_present = df[df['blood_pressure'].notna()]['age']
+bp_missing  = df[df['blood_pressure'].isna()]['age']
+print(f"  Mean age (BP present): {bp_present.mean():.1f}")
+print(f"  Mean age (BP missing):  {bp_missing.mean():.1f}")
+print(f"  Difference: {bp_missing.mean() - bp_present.mean():.1f} years")
+print("  Interpretation: Big difference = likely MAR by age")
+
+# ── Step 3: MNAR test for income ──────────────────────────
+print()
+print("=== MNAR test: income observed vs missing comparison ===")
+# We can't directly compare missing income values to present ones
+# But we can look at whether OTHER variables correlate with income missingness
+df['income_missing'] = df['income'].isna().astype(int)
+corr = df[['age','income_missing']].corr().iloc[0,1]
+print(f"  Correlation(age, income_missing): {corr:.3f}")
+# The correlation between age and income missing tells us little about MNAR
+# because MNAR depends on income itself, not age
+# MNAR must be diagnosed with DOMAIN KNOWLEDGE
+print("  Note: MNAR cannot be fully diagnosed statistically.")
+print("  Domain knowledge required: do high earners hide income?")
+`},
+{file:'missing_indicator.py',label:'Missing indicator',code:`# Creating missing indicator features — the MNAR solution
+# When data is MNAR, the fact that it is missing IS information
+# Create a binary feature: 1 = was missing, 0 = was present
+
+import pandas as pd
+import numpy as np
+
+# Simulate MNAR: high earners hide income
+n = 12
+data = {
+    'name':   ['Alice','Bob','Carol','Dave','Eve','Frank',
+               'Grace','Hank','Iris','Jack','Kate','Leo'],
+    'age':    [30, 25, 35, 45, 28, 52, 41, 33, 29, 47, 38, 55],
+    'income': [42000, 38000, None, None, 35000, None,
+               None, 51000, 44000, None, 48000, None]
+    # None = refused to report (MNAR: these are the high earners)
+}
+
+df = pd.DataFrame(data)
+print("=== Original data ===")
+print(df.to_string())
+print()
+
+# Step 1: Create the missing indicator BEFORE imputing
+# This preserves the signal that income was hidden
+df['income_was_missing'] = df['income'].isna().astype(int)
+
+# Step 2: Impute with the mean of observed values
+# (We know this is biased for MNAR, but it is better than nothing)
+observed_mean = df['income'].mean()
+df['income_imputed'] = df['income'].fillna(observed_mean)
+
+print("=== After adding missing indicator and imputing ===")
+cols_show = ['name', 'age', 'income', 'income_was_missing', 'income_imputed']
+print(df[cols_show].to_string())
+print()
+
+# The 'income_was_missing' column lets the model learn:
+# "this person refused to report income — they are likely high earners"
+# Without this column, all imputed rows look like average earners
+
+print("Observed mean (imputed value):", round(observed_mean, 0))
+print()
+print("Key insight:")
+print("  Rows with income_was_missing=1 are likely HIGH earners.")
+print("  A model can learn this pattern from the indicator column.")
+print("  Without the indicator, all missing rows look like average earners.")
+print("  With the indicator, the model knows something is different about them.")
+`},
+{file:'little_mcar_test.py',label:'MCAR test',code:`# Little's MCAR test — statistical test for MCAR vs MAR
+# A significant p-value (p < 0.05) means data is NOT MCAR
+# We implement a simplified version here using group comparison
+
+import pandas as pd
+import random, math
+
+random.seed(42)
+
+def group_mean_test(df, target_col, group_col):
+    """
+    Simple t-test: compare group_col means between rows where
+    target_col is present vs missing.
+    Returns the difference and a rough significance flag.
+    """
+    present = df[df[target_col].notna()][group_col].dropna()
+    missing  = df[df[target_col].isna()][group_col].dropna()
+
+    if len(present) < 2 or len(missing) < 2:
+        return None, None
+
+    mean_p = sum(present) / len(present)
+    mean_m = sum(missing)  / len(missing)
+    diff = abs(mean_p - mean_m)
+
+    # Pooled standard deviation
+    var_p = sum((x - mean_p)**2 for x in present) / (len(present)-1)
+    var_m = sum((x - mean_m)**2 for x in missing)  / (len(missing)-1)
+    se = math.sqrt(var_p/len(present) + var_m/len(missing))
+    t_stat = diff / se if se > 0 else 0
+
+    # Rough threshold: |t| > 2 is roughly p < 0.05
+    significant = abs(t_stat) > 2
+    return round(diff, 2), significant
+
+n = 200
+age    = [random.randint(20, 70) for _ in range(n)]
+income = [round(20000 + random.random() * 80000) for _ in range(n)]
+
+# Three columns with different mechanisms
+bmi_mcar = [round(18 + random.random()*15, 1) if random.random() > 0.2 else None for _ in range(n)]
+bp_mar   = [round(100 + random.random()*60, 1)
+            if not (age[i] > 50 and random.random() < 0.6) else None
+            for i in range(n)]
+inc_mnar = [income[i] if not (income[i] > 70000 and random.random() < 0.65) else None
+            for i in range(n)]
+
+df = pd.DataFrame({'age': age, 'income': income,
+                   'bmi': bmi_mcar, 'blood_pressure': bp_mar, 'reported_income': inc_mnar})
+
+print("=== Group mean comparison test (simplified MCAR test) ===")
+print()
+print(f"  {'Column':<18}  {'Age diff (present vs missing)':>30}  {'Significant?':>14}  {'Likely type'}")
+print("-" * 80)
+for col in ['bmi', 'blood_pressure', 'reported_income']:
+    diff, sig = group_mean_test(df, col, 'age')
+    if diff is not None:
+        likely = 'MAR (age predicts)' if sig else 'MCAR (no age pattern)'
+        print(f"  {col:<18}  {str(diff):>30}  {'YES ***' if sig else 'no':>14}  {likely}")
+
+print()
+print("Caution: MNAR cannot be detected by this test alone.")
+print("MNAR requires domain knowledge about why values are hidden.")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click ▶ Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';var t0=Date.now();
+  if(!pyodide){var st=C('py-status');st.textContent='Loading...';
+    try{if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','pandas']);pyLoading=false;}
+    else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+    st.textContent='● Python ready';st.className='py-status ready';}
+    catch(e){out.textContent='Failed.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}}
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    await pyodide.runPythonAsync(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  selectType('mcar');
+  drawDomainCanvas();
+  drawHeatmap();
+  buildPatternCells();
+  drawComparisonCanvas();
+
+  (function poll(){if(typeof CodeMirror==='undefined'){setTimeout(poll,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawTypeCanvas();drawDomainCanvas();drawHeatmap();drawComparisonCanvas();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

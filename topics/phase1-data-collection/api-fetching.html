@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Fetching — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(45,212,191,.1),rgba(62,207,142,.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(45,212,191,.13) 0%,transparent 70%);pointer-events:none;}
+
+    /* flow diagram */
+    .flow-steps{display:flex;align-items:center;gap:0;margin-bottom:24px;flex-wrap:wrap;}
+    .flow-step{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 16px;text-align:center;min-width:100px;}
+    .flow-arrow{color:var(--teal);font-size:20px;padding:0 8px;flex-shrink:0;}
+    .fs-icon{font-size:22px;margin-bottom:4px;}
+    .fs-title{font-size:12px;font-weight:700;color:var(--text-1);}
+    .fs-sub{font-size:10.5px;color:var(--text-3);margin-top:2px;}
+
+    /* method cards */
+    .method-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .method-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:all .2s;}
+    .method-card:hover{border-color:var(--border-hi);}
+    .method-card.active{border-color:var(--teal);background:var(--teal-surf);}
+    .mc-verb{font-family:var(--font-mono);font-size:14px;font-weight:700;margin-bottom:4px;}
+    .mc-title{font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:4px;}
+    .mc-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+
+    /* live API demo */
+    .api-demo{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .api-url-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .api-method-badge{font-family:var(--font-mono);font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--r-xs);background:var(--teal-surf);color:var(--teal);flex-shrink:0;}
+    .api-url-input{flex:1;background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:7px 12px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);}
+    .api-url-input:focus{outline:none;border-color:var(--teal);}
+    .api-send-btn{padding:7px 20px;background:var(--teal);color:#fff;border:none;border-radius:var(--r-sm);font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;flex-shrink:0;}
+    .api-send-btn:hover{filter:brightness(1.1);}
+    .api-send-btn:disabled{opacity:.4;cursor:not-allowed;}
+    .api-response{padding:16px;font-family:var(--font-mono);font-size:12.5px;line-height:1.7;max-height:320px;overflow-y:auto;white-space:pre-wrap;color:var(--text-2);background:var(--bg-elevated);}
+    .api-response.loading{color:var(--text-3);}
+    .api-response.error{color:#f06060;}
+    .api-status{display:flex;gap:14px;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg-input);}
+    .api-status-item{font-size:12px;color:var(--text-3);}
+    .api-status-item strong{color:var(--text-1);}
+
+    /* headers panel */
+    .headers-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;margin-bottom:16px;}
+    .header-row{display:flex;gap:8px;margin-bottom:6px;align-items:center;}
+    .header-key{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-xs);padding:5px 10px;font-family:var(--font-mono);font-size:12px;color:var(--text-1);}
+    .header-key:focus{outline:none;border-color:var(--teal);}
+    .header-val{flex:2;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-xs);padding:5px 10px;font-family:var(--font-mono);font-size:12px;color:var(--text-1);}
+    .header-val:focus{outline:none;border-color:var(--teal);}
+    .header-del{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:0 4px;}
+    .header-del:hover{color:var(--red);}
+
+    /* rate limit viz */
+    .rl-viz{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .rl-bar-wrap{height:20px;background:var(--bg-input);border-radius:var(--r-sm);overflow:hidden;margin:10px 0;}
+    .rl-bar{height:100%;background:var(--teal);border-radius:var(--r-sm);transition:width .4s ease;}
+    .rl-bar.warn{background:var(--orange);}
+    .rl-bar.danger{background:var(--red);}
+
+    /* canvas */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}.cm-s-one-dark .cm-operator{color:#94a3b8;}.cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(45,212,191,.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--teal);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.method-cards{grid-template-columns:1fr;}.flow-steps{flex-direction:column;}}
+  </style>
+</head>
+<body data-topic-id="api-fetching">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">API Fetching</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Data Collection</a><span class="sep">/</span>
+            <span class="current">API Fetching</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(45,212,191,.25);background:var(--teal-surf);color:var(--teal);margin-bottom:14px;">Data Collection · REST APIs</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">API Fetching</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Most real-world ML datasets come from <strong>APIs</strong> — weather data, stock prices,
+              social media feeds, government datasets, sensor readings. An API (Application Programming
+              Interface) is a structured way to request data from a server. You send a request,
+              the server sends back data, usually in <strong>JSON format</strong>.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 18 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <span class="topic-meta-item">requests · urllib · pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — HOW APIS WORK -->
+          <section class="section" id="how-apis-work">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">🌐</div>
+              How APIs work — request and response
+            </h2>
+            <p>Every API interaction follows the same simple pattern: you send a <strong>request</strong> (what data you want), the server sends back a <strong>response</strong> (the data, in JSON format). Think of it like ordering at a restaurant — you specify what you want, the kitchen sends it back.</p>
+
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div class="fs-icon">🖥</div>
+                <div class="fs-title">Your Python script</div>
+                <div class="fs-sub">Build the request</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="fs-icon">📤</div>
+                <div class="fs-title">HTTP Request</div>
+                <div class="fs-sub">GET / POST + headers</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="fs-icon">🌐</div>
+                <div class="fs-title">API Server</div>
+                <div class="fs-sub">Processes request</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="fs-icon">📥</div>
+                <div class="fs-title">JSON Response</div>
+                <div class="fs-sub">Status code + data</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="fs-icon">🐼</div>
+                <div class="fs-title">DataFrame</div>
+                <div class="fs-sub">Ready for ML</div>
+              </div>
+            </div>
+
+            <!-- HTTP methods -->
+            <div class="method-cards">
+              <div class="method-card active" id="mc-get" onclick="selectMethod('get')">
+                <div class="mc-verb" style="color:var(--green);">GET</div>
+                <div class="mc-title">Fetch data</div>
+                <div class="mc-desc">Most common for ML data collection. Ask the server for data without changing anything. All parameters go in the URL.</div>
+              </div>
+              <div class="method-card" id="mc-post" onclick="selectMethod('post')">
+                <div class="mc-verb" style="color:var(--orange);">POST</div>
+                <div class="mc-title">Send data</div>
+                <div class="mc-desc">Send a body of data to the server — used for search queries, filtering, or uploading data. Parameters in the request body as JSON.</div>
+              </div>
+              <div class="method-card" id="mc-auth" onclick="selectMethod('auth')">
+                <div class="mc-verb" style="color:var(--purple);">AUTH</div>
+                <div class="mc-title">Authenticated requests</div>
+                <div class="mc-desc">Most APIs require a key or token. Pass it as a header: Authorization: Bearer YOUR_KEY. Never hardcode keys in your code.</div>
+              </div>
+            </div>
+
+            <div id="method-detail" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 18px;margin-bottom:20px;font-size:13.5px;color:var(--text-2);line-height:1.7;">
+              GET is the simplest method — just build a URL with your parameters and the API returns data. Example: <code style="background:var(--bg-input);padding:2px 6px;border-radius:4px;">https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&hourly=temperature_2m</code>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — LIVE API TESTER -->
+          <section class="section" id="live-tester">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">▶</div>
+              Live API tester — send real requests
+            </h2>
+            <p>
+              Try real public APIs below — no API key needed. These are free, open APIs used
+              for ML data collection practice. Click a preset or type your own URL.
+            </p>
+
+            <!-- Quick presets -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+              <button class="ctrl-btn active" onclick="setPreset('weather')">Weather data</button>
+              <button class="ctrl-btn" onclick="setPreset('pokemon')">Pokemon API</button>
+              <button class="ctrl-btn" onclick="setPreset('github')">GitHub users</button>
+              <button class="ctrl-btn" onclick="setPreset('jokes')">Random joke</button>
+              <button class="ctrl-btn" onclick="setPreset('countries')">Countries data</button>
+            </div>
+
+            <div class="api-demo">
+              <div class="api-url-bar">
+                <span class="api-method-badge">GET</span>
+                <input class="api-url-input" id="api-url" type="text"
+                  value="https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&current=temperature_2m,wind_speed_10m"
+                  placeholder="Enter API URL..."/>
+                <button class="api-send-btn" id="api-send-btn" onclick="sendRequest()">Send →</button>
+              </div>
+              <div class="api-response loading" id="api-response">Click "Send →" to make a real API request...</div>
+              <div class="api-status" id="api-status">
+                <span class="api-status-item" id="ast-status">Status: —</span>
+                <span class="api-status-item" id="ast-time">Time: —</span>
+                <span class="api-status-item" id="ast-size">Size: —</span>
+                <span class="api-status-item" id="ast-type">Type: —</span>
+              </div>
+            </div>
+
+            <!-- Parsed data view -->
+            <div id="parsed-section" style="display:none;">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:10px;">Parsed response — key fields found:</div>
+              <div id="parsed-fields" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);line-height:1.8;"></div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — STATUS CODES -->
+          <section class="section" id="status-codes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">200</div>
+              HTTP status codes — what the server is telling you
+            </h2>
+            <p>Every API response includes a <strong>status code</strong>. Your code must check this before using the data — a 200 means success, everything else is a problem to handle.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar"><span class="canvas-title">Status code reference — click to see what to do</span></div>
+              <canvas id="status-canvas" width="700" height="260" style="width:100%;display:block;cursor:pointer;" onclick="onStatusClick(event)"></canvas>
+            </div>
+
+            <div id="status-detail" style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:0 var(--r-md) var(--r-md) 0;padding:14px 18px;font-size:13.5px;color:var(--text-2);line-height:1.7;margin-bottom:16px;">
+              Click any status code above to see what it means and how to handle it in Python.
+            </div>
+          </section>
+
+          <!-- SECTION 4 — RATE LIMITING -->
+          <section class="section" id="rate-limiting">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">⏱</div>
+              Rate limiting — don't get banned
+            </h2>
+            <p>
+              APIs limit how many requests you can make per minute/hour/day. Exceed the limit
+              and you get a <strong>429 Too Many Requests</strong> error and possibly a temporary ban.
+              Good ML data collection always includes rate limiting and retry logic.
+            </p>
+
+            <div class="rl-viz">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;font-weight:600;color:var(--text-1);">API rate limit usage</span>
+                <span style="font-family:var(--font-mono);font-size:13px;color:var(--teal);" id="rl-count">0 / 60 requests</span>
+              </div>
+              <div class="rl-bar-wrap"><div class="rl-bar" id="rl-bar" style="width:0%;"></div></div>
+              <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+                <button class="ctrl-btn" onclick="simRequest()">Simulate request</button>
+                <button class="ctrl-btn" onclick="sim10()">+10 requests</button>
+                <button class="ctrl-btn" onclick="resetRL()">Reset</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:auto;align-self:center;" id="rl-status">Within limit</span>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Retry with backoff — how to handle 429 errors safely</span>
+              </div>
+              <canvas id="retry-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>Golden rules for API data collection:</strong> Always add <code>time.sleep()</code> between requests. Use exponential backoff on errors (wait 1s, then 2s, then 4s, then 8s). Store data as you go — don't fetch everything then save. Respect the API's terms of service.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — PAGINATION -->
+          <section class="section" id="pagination">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">📄</div>
+              Pagination — fetching large datasets page by page
+            </h2>
+            <p>
+              APIs rarely return all data at once. They paginate — giving you 100 records at a time with a link to the next page.
+              Your ML pipeline must loop through all pages to get the complete dataset.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Pagination patterns — how different APIs structure their pages</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Pattern:</span>
+                  <select class="ctrl-select" id="page-pattern" onchange="drawPagination()">
+                    <option value="offset">Offset / limit</option>
+                    <option value="cursor">Cursor-based</option>
+                    <option value="page">Page number</option>
+                    <option value="link">Link header</option>
+                  </select>
+                </div>
+              </div>
+              <div id="pagination-canvas" style="padding:18px 20px;font-size:13px;line-height:1.7;min-height:180px;"></div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor — beginner-friendly examples
+            </h2>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">api_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not checking the status code.</strong> Always check <code>response.status_code == 200</code> before using data. A 404 or 500 response still returns something — but it is an error message, not your data.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Hardcoding API keys in your code.</strong> Never put API keys directly in your script. Use environment variables: <code>import os; key = os.getenv("API_KEY")</code>. Keys in code end up on GitHub and get stolen.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">No retry logic for failures.</strong> Networks fail. APIs have timeouts. Wrap your requests in try/except and retry with exponential backoff. Otherwise one flaky request kills your entire data pipeline.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Fetching all data then saving.</strong> If your script crashes halfway through 10,000 API calls, you lose everything. Save data incrementally — write to a file or database after every page.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>Key takeaways</h2>
+            <div class="takeaways"><div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>APIs send data in JSON format. Use <code>requests.get(url)</code> → <code>response.json()</code> → <code>pd.DataFrame()</code> to get a DataFrame.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always check <code>response.status_code</code>. 200 = OK, 401 = bad key, 404 = not found, 429 = rate limited, 500 = server error.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <code>time.sleep()</code> between requests and exponential backoff for retries. Never hammer an API.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Loop through all pages using <code>while True</code> + a next-page token or offset counter. Save data after every page.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Store API keys in environment variables, never in code.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="csv-loading.html"><span class="pn-dir">← Previous</span><span class="pn-title">CSV Loading</span></a>
+            <a class="pn-card next" href="json-loading.html"><span class="pn-dir">Next →</span><span class="pn-title">JSON Loading</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#how-apis-work">How APIs work</a></li>
+            <li class="toc-item"><a href="#live-tester">Live API tester</a></li>
+            <li class="toc-item"><a href="#status-codes">Status codes</a></li>
+            <li class="toc-item"><a href="#rate-limiting">Rate limiting</a></li>
+            <li class="toc-item"><a href="#pagination">Pagination</a></li>
+            <li class="toc-item"><a href="#live-editor">Code editor</a></li>
+            <li class="toc-item"><a href="#mistakes">Mistakes</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+
+/* ── SECTION 1: METHOD CARDS ── */
+var methodDetails={
+  get:'GET is the simplest method — just build a URL with your parameters and the API returns data. Example: https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&current=temperature_2m',
+  post:'POST sends a request body to the server — used for search queries, authentication, or sending data. Body is usually JSON. In Python: requests.post(url, json={"query": "London"}, headers={"Content-Type": "application/json"})',
+  auth:'Most real APIs need authentication. Pass your key as a header: requests.get(url, headers={"Authorization": "Bearer YOUR_KEY"}). Store keys in environment variables, never in code: os.getenv("MY_API_KEY")'
+};
+function selectMethod(m){
+  ['get','post','auth'].forEach(function(k){C('mc-'+k).classList.toggle('active',k===m);});
+  C('method-detail').textContent=methodDetails[m];
+}
+
+/* ── SECTION 2: LIVE API TESTER ── */
+var presets={
+  weather:{url:'https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&current=temperature_2m,wind_speed_10m'},
+  pokemon:{url:'https://pokeapi.co/api/v2/pokemon/pikachu'},
+  github:{url:'https://api.github.com/users/torvalds'},
+  jokes:{url:'https://official-joke-api.appspot.com/random_joke'},
+  countries:{url:'https://restcountries.com/v3.1/name/japan'}
+};
+
+function setPreset(key){
+  C('api-url').value=presets[key].url;
+  ['weather','pokemon','github','jokes','countries'].forEach(function(k){
+    var btns=document.querySelectorAll('.ctrl-btn');
+    btns.forEach(function(b){if(b.textContent.toLowerCase().replace(' ','').includes(k))b.classList.remove('active');});
+  });
+}
+
+async function sendRequest(){
+  var url=C('api-url').value.trim();
+  if(!url){return;}
+  var btn=C('api-send-btn'),resp=C('api-response');
+  btn.disabled=true;btn.textContent='Sending...';
+  resp.className='api-response loading';resp.textContent='Fetching data...';
+  C('api-status').innerHTML='<span class="api-status-item" id="ast-status">Status: —</span><span class="api-status-item" id="ast-time">Time: —</span><span class="api-status-item" id="ast-size">Size: —</span><span class="api-status-item" id="ast-type">Type: —</span>';
+  C('parsed-section').style.display='none';
+
+  var t0=Date.now();
+  try{
+    var r=await fetch(url,{headers:{'Accept':'application/json'}});
+    var elapsed=Date.now()-t0;
+    var text=await r.text();
+    var size=text.length;
+
+    C('ast-status').innerHTML='Status: <strong style="color:'+(r.ok?'var(--green)':'var(--red)')+'">'+r.status+' '+r.statusText+'</strong>';
+    C('ast-time').innerHTML='Time: <strong>'+elapsed+'ms</strong>';
+    C('ast-size').innerHTML='Size: <strong>'+(size>1024?(size/1024).toFixed(1)+'KB':size+'B')+'</strong>';
+    C('ast-type').innerHTML='Type: <strong>'+(r.headers.get('content-type')||'unknown').split(';')[0]+'</strong>';
+
+    resp.className='api-response';
+    try{
+      var parsed=JSON.parse(text);
+      resp.textContent=JSON.stringify(parsed,null,2);
+      // Show parsed fields
+      showParsedFields(parsed);
+    }catch(e){resp.textContent=text;}
+  }catch(e){
+    resp.className='api-response error';
+    resp.textContent='Error: '+e.message+'\n\nThis might be a CORS restriction. Try the Python code editor below to fetch from a real environment.';
+    C('ast-status').innerHTML='Status: <strong style="color:var(--red)">CORS / Network Error</strong>';
+  }
+  btn.disabled=false;btn.textContent='Send →';
+}
+
+function showParsedFields(data){
+  var lines=[];
+  function walk(obj,prefix,depth){
+    if(depth>2) return;
+    if(typeof obj!=='object'||!obj) return;
+    var keys=Array.isArray(obj)?obj.slice(0,3).map(function(_,i){return i;}):Object.keys(obj).slice(0,8);
+    keys.forEach(function(k){
+      var v=obj[k];
+      var display=typeof v==='object'&&v!==null?'{'+(Array.isArray(v)?'array '+v.length+' items':'object '+Object.keys(v).length+' keys')+'}':JSON.stringify(v);
+      if(display.length>60) display=display.substring(0,60)+'...';
+      lines.push(prefix+(Array.isArray(obj)?'['+k+']':k)+': '+display);
+      if(typeof v==='object'&&v&&depth<2) walk(v,prefix+'  ',depth+1);
+    });
+  }
+  walk(data,'',0);
+  C('parsed-fields').textContent=lines.slice(0,20).join('\n')+(lines.length>20?'\n...':'');
+  C('parsed-section').style.display='';
+}
+
+/* ── SECTION 3: STATUS CODES ── */
+var statusCodes=[
+  {code:200,label:'OK',color:'#3ecf8e',desc:'Success. Data is in the response body. Call response.json() to parse it.'},
+  {code:201,label:'Created',color:'#3ecf8e',desc:'Resource was created successfully. Common response to POST requests.'},
+  {code:400,label:'Bad Request',color:'#fb8c40',desc:'Your request had an error — wrong parameters, missing fields. Check your URL and params.'},
+  {code:401,label:'Unauthorized',color:'#f06060',desc:'Missing or invalid API key. Check your Authorization header and key value.'},
+  {code:403,label:'Forbidden',color:'#f06060',desc:'Your key does not have permission for this endpoint. Check API plan limits.'},
+  {code:404,label:'Not Found',color:'#fb8c40',desc:'The endpoint or resource does not exist. Check the URL spelling and API documentation.'},
+  {code:429,label:'Too Many Req',color:'#f06060',desc:'You exceeded the rate limit. Add time.sleep() between requests and implement exponential backoff.'},
+  {code:500,label:'Server Error',color:'#f06060',desc:'The API server has a problem — not your fault. Wait and retry with backoff. If persistent, contact the API provider.'},
+  {code:503,label:'Unavailable',color:'#a78bfa',desc:'Server is temporarily down for maintenance. Retry later. Do not hammer with requests.'}
+];
+
+function drawStatusCanvas(){
+  var cv=C('status-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var cols=3,rows=3,pad=12;
+  var cellW=(W-pad*2)/cols,cellH=(H-pad*2)/rows;
+  statusCodes.forEach(function(sc,i){
+    var col=i%cols,row=Math.floor(i/cols);
+    var x=pad+col*cellW,y=pad+row*cellH;
+    var cx=x+cellW/2,cy=y+cellH/2;
+    // bg
+    ctx.fillStyle=sc.color+'18';
+    if(ctx.roundRect)ctx.roundRect(x+2,y+2,cellW-4,cellH-4,8);else ctx.rect(x+2,y+2,cellW-4,cellH-4);
+    ctx.fill();
+    ctx.strokeStyle=sc.color+'60';ctx.lineWidth=1.5;
+    if(ctx.roundRect)ctx.roundRect(x+2,y+2,cellW-4,cellH-4,8);else ctx.rect(x+2,y+2,cellW-4,cellH-4);
+    ctx.stroke();
+    // code
+    ctx.fillStyle=sc.color;ctx.font='bold 20px sans-serif';ctx.textAlign='center';
+    ctx.fillText(sc.code,cx,cy-2);
+    // label
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';
+    ctx.fillText(sc.label,cx,cy+14);
+  });
+  ctx.textAlign='start';
+}
+
+function onStatusClick(e){
+  var cv=C('status-canvas');
+  var r=cv.getBoundingClientRect();
+  var sx=(e.clientX-r.left)*cv.width/r.width;
+  var sy=(e.clientY-r.top)*cv.height/r.height;
+  var cols=3,rows=3,pad=12;
+  var cellW=(cv.width-pad*2)/cols,cellH=(cv.height-pad*2)/rows;
+  var col=Math.floor((sx-pad)/cellW),row=Math.floor((sy-pad)/cellH);
+  var idx=row*cols+col;
+  if(idx>=0&&idx<statusCodes.length){
+    var sc=statusCodes[idx];
+    C('status-detail').style.borderLeftColor=sc.color;
+    C('status-detail').innerHTML='<strong style="color:'+sc.color+'">'+sc.code+' '+sc.label+'</strong> — '+sc.desc
+      +'<br/><br/>Python: <code style="background:var(--bg-input);padding:2px 8px;border-radius:4px;">'
+      +(sc.code===200?'data = response.json()':sc.code===429?'time.sleep(retry_delay); retry_delay *= 2':sc.code===401?'# Check your API key in environment variables':'# Log the error and decide whether to retry or skip')+'</code>';
+  }
+}
+
+/* ── SECTION 4: RATE LIMITING ── */
+var rlCount=0,rlMax=60;
+function simRequest(){
+  rlCount=Math.min(rlMax,rlCount+1);updateRL();
+}
+function sim10(){rlCount=Math.min(rlMax,rlCount+10);updateRL();}
+function resetRL(){rlCount=0;updateRL();}
+function updateRL(){
+  var pct=rlCount/rlMax*100;
+  var bar=C('rl-bar');
+  bar.style.width=pct+'%';
+  bar.className='rl-bar'+(pct>=90?' danger':pct>=70?' warn':'');
+  C('rl-count').textContent=rlCount+' / '+rlMax+' requests';
+  C('rl-count').style.color=pct>=90?'var(--red)':pct>=70?'var(--orange)':'var(--teal)';
+  if(rlCount>=rlMax){C('rl-status').textContent='RATE LIMITED (429)';C('rl-status').style.color='var(--red)';}
+  else if(rlCount>=42){C('rl-status').textContent='Approaching limit — slow down';C('rl-status').style.color='var(--orange)';}
+  else{C('rl-status').textContent='Within limit';C('rl-status').style.color='var(--green)';}
+}
+
+function drawRetryCanvas(){
+  var cv=C('retry-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  var pad={l:30,r:30,t:15,b:38};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  // Attempts — spread over 0..12s
+  // above=true: label goes above the line; above=false: label goes below
+  var attempts=[
+    {t:0,  status:'success', wait:0, above:true,  line1:'Request 1',   line2:'200 OK'},
+    {t:1.5,status:'success', wait:0, above:false, line1:'Request 2',   line2:'200 OK'},
+    {t:3,  status:'fail',    wait:1, above:true,  line1:'Request 3',   line2:'429 ✕'},
+    {t:5.5,status:'fail',    wait:2, above:false, line1:'Retry',       line2:'429 ✕'},
+    {t:9,  status:'fail',    wait:4, above:true,  line1:'Retry',       line2:'429 ✕'},
+    {t:15, status:'success', wait:0, above:false, line1:'Retry',       line2:'200 OK ✓'}
+  ];
+
+  var maxT=16;
+  var lineY=Math.round(H/2)+4; // shift timeline slightly below centre to give more room above
+  function toX(t){return pad.l+(t/maxT)*(W-pad.l-pad.r);}
+
+  // Timeline line
+  ctx.beginPath();ctx.moveTo(pad.l,lineY);ctx.lineTo(W-pad.r,lineY);
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';ctx.lineWidth=2;ctx.stroke();
+
+  // Time axis labels
+  for(var t=0;t<=maxT;t+=3){
+    var tx=toX(t);
+    ctx.beginPath();ctx.moveTo(tx,lineY-4);ctx.lineTo(tx,lineY+4);
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText(t+'s',tx,lineY+16);
+  }
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Time (seconds)',W/2,H-4);
+
+  // Wait bars (drawn first so circles sit on top)
+  attempts.forEach(function(a){
+    if(a.wait===0) return;
+    var x1=toX(a.t)+10;
+    var barW=toX(a.t+a.wait)-toX(a.t)-10;
+    var color=a.status==='fail'?'#f06060':'#3ecf8e';
+    ctx.fillStyle=color+'25';
+    ctx.fillRect(x1,lineY-6,barW,12);
+    // "wait Xs" centred over the bar
+    ctx.fillStyle=color+'cc';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('wait '+a.wait+'s',x1+barW/2,lineY-10);
+  });
+
+  // Circles + labels
+  attempts.forEach(function(a,idx){
+    var x=toX(a.t);
+    var color=a.status==='success'?'#3ecf8e':'#f06060';
+    var labelOffset=a.above?-1:1; // -1 = above line, +1 = below line
+    var labelBaseY=a.above?(lineY-28):(lineY+28);
+
+    // Connector tick from circle to label
+    ctx.beginPath();
+    ctx.moveTo(x, a.above?lineY-10:lineY+10);
+    ctx.lineTo(x, a.above?lineY-20:lineY+20);
+    ctx.strokeStyle=color+'80';ctx.lineWidth=1;ctx.stroke();
+
+    // Label box background
+    ctx.fillStyle=color+'14';
+    var lw=80,lh=30,lx=x-lw/2,ly=a.above?lineY-52:lineY+22;
+    // Keep label within canvas bounds
+    lx=Math.max(2,Math.min(W-lw-2,lx));
+    if(ctx.roundRect)ctx.roundRect(lx,ly,lw,lh,4);else ctx.rect(lx,ly,lw,lh);
+    ctx.fill();
+    ctx.strokeStyle=color+'40';ctx.lineWidth=1;
+    if(ctx.roundRect)ctx.roundRect(lx,ly,lw,lh,4);else ctx.rect(lx,ly,lw,lh);
+    ctx.stroke();
+
+    // Two-line label
+    var cx2=lx+lw/2;
+    ctx.fillStyle=color;ctx.textAlign='center';
+    ctx.font='bold 11px sans-serif';ctx.fillText(a.line1,cx2,ly+13);
+    ctx.font='10px monospace';ctx.fillText(a.line2,cx2,ly+26);
+
+    // Circle (drawn last so it's on top of wait bar)
+    ctx.beginPath();ctx.arc(x,lineY,7,0,Math.PI*2);
+    ctx.fillStyle=color;ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.35)':'rgba(0,0,0,0.2)';
+    ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  ctx.textAlign='start';
+}
+
+/* ── SECTION 5: PAGINATION ── */
+var paginationExamples={
+  offset:{
+    title:'Offset / Limit pattern',
+    url:'GET /posts?limit=100&offset=0',
+    code:'offset = 0\nwhile True:\n    r = requests.get(url, params={"limit": 100, "offset": offset})\n    data = r.json()\n    if not data:\n        break          # no more pages\n    all_data.extend(data)\n    offset += 100  # jump to next page',
+    note:'Simple but can miss or duplicate records if data changes during pagination.'
+  },
+  cursor:{
+    title:'Cursor-based pattern (Twitter, Slack)',
+    url:'GET /posts?limit=100&cursor=eyJpZCI6MTAwfQ==',
+    code:'cursor = None\nwhile True:\n    params = {"limit": 100}\n    if cursor:\n        params["cursor"] = cursor\n    r = requests.get(url, params=params)\n    data = r.json()\n    all_data.extend(data["results"])\n    cursor = data.get("next_cursor")\n    if not cursor:\n        break  # last page reached',
+    note:'More reliable — cursor is a stable position marker, not affected by inserts/deletes.'
+  },
+  page:{
+    title:'Page number pattern',
+    url:'GET /posts?page=1&per_page=100',
+    code:'page = 1\nwhile True:\n    r = requests.get(url, params={"page": page, "per_page": 100})\n    data = r.json()\n    all_data.extend(data["results"])\n    if page >= data["total_pages"]:\n        break\n    page += 1',
+    note:'Simple but slow on very large datasets — later pages require scanning from the start.'
+  },
+  link:{
+    title:'Link header pattern (GitHub API)',
+    url:'GET /repos/torvalds/linux/commits',
+    code:'url = "https://api.github.com/repos/.../commits"\nwhile url:\n    r = requests.get(url, headers=headers)\n    all_data.extend(r.json())\n    # GitHub puts the next page URL in the Link response header\n    url = r.links.get("next", {}).get("url")',
+    note:'The API tells you the next URL directly — no manual offset calculation needed.'
+  }
+};
+
+function drawPagination(){
+  var pattern=C('page-pattern').value;
+  var ex=paginationExamples[pattern];
+
+  var dark=isDark();
+  var codeBg=dark?'#0f0f14':'#e8e6e0';
+  var codeColor=dark?'#7ec8a0':'#1a5e2a';
+  var titleColor=dark?'#f2f0ec':'#1a1916';
+  var noteColor=dark?'#a09e98':'#5c5a54';
+
+  var safeCode=ex.code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var lines=safeCode.split('\n').map(function(l){
+    return '<div style="white-space:pre;min-height:1.7em;">'+l+'</div>';
+  }).join('');
+
+  C('pagination-canvas').innerHTML=
+    '<div style="font-weight:700;font-size:14px;color:'+titleColor+';margin-bottom:6px;">'+ex.title+'</div>'+
+    '<div style="font-family:var(--font-mono,monospace);font-size:12.5px;color:#2dd4bf;margin-bottom:10px;">'+ex.url+'</div>'+
+    '<div style="background:'+codeBg+';border-radius:6px;padding:12px 16px;margin-bottom:10px;overflow-x:auto;">'+
+      '<div style="font-family:var(--font-mono,monospace);font-size:12.5px;color:'+codeColor+';">'+lines+'</div>'+
+    '</div>'+
+    '<div style="font-size:12.5px;color:'+noteColor+';font-style:italic;">'+ex.note+'</div>';
+}
+
+/* ── EDITOR ── */
+var SNIPPETS=[
+{file:'api_basics.py',label:'API basics',code:`# Fetching data from a REST API — step by step
+# We use urllib (built into Python) so no extra install needed
+
+# Fetching data from a REST API — step by step
+# In this browser environment we use pyodide.http to make HTTP requests
+
+import json
+import pyodide.http   # pyodide's built-in async HTTP module
+
+# Step 1: Build the URL with parameters
+base_url = "https://api.open-meteo.com/v1/forecast"
+params = {
+    "latitude":  51.5,     # London latitude
+    "longitude": -0.1,     # London longitude
+    "current": "temperature_2m,wind_speed_10m,weathercode",
+    "forecast_days": 1
+}
+
+# Build query string manually (simple version)
+query = "&".join(str(k) + "=" + str(v) for k, v in params.items())
+full_url = base_url + "?" + query
+print("Requesting:", full_url[:80] + "...")
+print()
+
+# Step 2: Send the GET request (async in Pyodide)
+try:
+    response = await pyodide.http.pyfetch(full_url)
+
+    # Step 3: Check the status code
+    status = response.status
+    print(f"Status code: {status}")
+
+    if status == 200:
+        # Step 4: Parse the JSON response
+        data = await response.json()
+
+        # Step 5: Extract what we need
+        current = data.get("current", {})
+        units   = data.get("current_units", {})
+
+        print("Current weather in London:")
+        print(f"  Temperature: {current.get('temperature_2m')} {units.get('temperature_2m')}")
+        print(f"  Wind speed:  {current.get('wind_speed_10m')} {units.get('wind_speed_10m')}")
+        print(f"  Weather code: {current.get('weathercode')}")
+        print()
+        print("Raw response keys:", list(data.keys()))
+    else:
+        print(f"Error status {status} — check the URL or params")
+
+except Exception as e:
+    print(f"Request failed: {e}")
+    print("Note: this runs inside a browser sandbox — external APIs may be blocked by CORS")
+`},
+{file:'api_with_requests.py',label:'requests library',code:`# Using the 'requests' library — cleaner and more powerful than urllib
+# Install: pip install requests
+# requests is already available in this Python environment
+
+# Using pyodide.http — the browser-compatible way to fetch APIs
+import json, pyodide.http
+
+async def fetch_with_retry(url, params=None, max_retries=3):
+    """
+    Fetch from an API with automatic retry on failure.
+    Uses exponential backoff: waits 1s, then 2s, then 4s between retries.
+    """
+    if params:
+        url = url + "?" + urllib.parse.urlencode(params)
+
+    wait_time = 1  # start with 1 second wait
+
+    for attempt in range(1, max_retries + 1):
+        print(f"  Attempt {attempt}/{max_retries}: fetching...")
+
+        try:
+            response = await pyodide.http.pyfetch(url)
+            status = response.status
+
+            if status == 200:
+                data = await response.json()
+                print(f"  Success on attempt {attempt}")
+                return data
+            elif status == 429:
+                print(f"  Rate limited (429). In real code: wait {wait_time}s before retry.")
+                wait_time = wait_time * 2
+            else:
+                print(f"  Error status {status}. Stopping.")
+                return None
+
+        except Exception as e:
+            print(f"  Request failed: {e}")
+            if attempt < max_retries:
+                print(f"  In real code: wait {wait_time}s then retry.")
+                wait_time = wait_time * 2
+
+    print("  All retries exhausted.")
+    return None
+
+
+# Fetch weather data for multiple cities
+cities = [
+    {"name": "London",   "lat": 51.5,  "lon": -0.1},
+    {"name": "New York", "lat": 40.7,  "lon": -74.0},
+    {"name": "Tokyo",    "lat": 35.7,  "lon": 139.7},
+]
+
+results = []
+for city in cities:
+    print(f"Fetching weather for {city['name']}...")
+    data = fetch_with_retry(
+        "https://api.open-meteo.com/v1/forecast",
+        params={
+            "latitude": city["lat"],
+            "longitude": city["lon"],
+            "current": "temperature_2m,wind_speed_10m"
+        }
+    )
+    if data:
+        current = data.get("current", {})
+        results.append({
+            "city": city["name"],
+            "temperature_C": current.get("temperature_2m"),
+            "wind_kmh": current.get("wind_speed_10m")
+        })
+    # (time.sleep not used in browser sandbox — in real scripts add time.sleep(0.2))
+
+print()
+print("Results:")
+print(f"  {'City':<12}  {'Temp (C)':>10}  {'Wind (km/h)':>12}")
+print("-" * 40)
+for row in results:
+    print(f"  {row['city']:<12}  {str(row['temperature_C']):>10}  {str(row['wind_kmh']):>12}")
+`},
+{file:'api_pagination.py',label:'Pagination',code:`# Fetching ALL data when it comes in multiple pages
+# This pattern works for any paginated API
+
+import json, pyodide.http
+
+async def fetch_all_pages(base_url, params=None, max_pages=5):
+    """
+    Fetch all pages from a paginated API.
+    Stops when empty page received or max_pages reached.
+    """
+    all_records = []
+    page = 1
+    params = params or {}
+
+    while page <= max_pages:
+        # Add page number to params
+        current_params = dict(params)
+        current_params["page"] = page
+        current_params["per_page"] = 5  # small for demo
+
+        url = base_url + "?" + urllib.parse.urlencode(current_params)
+        print(f"Fetching page {page}...")
+
+        try:
+            r = await pyodide.http.pyfetch(url)
+            data = await r.json()
+            if not isinstance(data, (list, dict)):
+                data = {}
+
+                # This API returns a list directly
+                if isinstance(data, list):
+                    if not data:
+                        print(f"  Page {page} is empty — done!")
+                        break
+                    all_records.extend(data)
+                    print(f"  Got {len(data)} records. Total so far: {len(all_records)}")
+                else:
+                    # Some APIs wrap results in a dict
+                    items = data.get("results") or data.get("data") or data.get("items") or []
+                    if not items:
+                        break
+                    all_records.extend(items)
+
+        except Exception as e:
+            print(f"  Error on page {page}: {e}")
+            break
+
+        page += 1
+        # time.sleep(0.1) — add this in real scripts to be polite
+
+    return all_records
+
+
+# Example: GitHub public users (no auth needed for basic access)
+print("Fetching paginated data from GitHub...")
+users = await fetch_all_pages(
+    "https://api.github.com/users",
+    params={"since": 0},
+    max_pages=3
+)
+
+print()
+print(f"Total records fetched: {len(users)}")
+if users:
+    print()
+    print("Sample records:")
+    for user in users[:5]:
+        print(f"  ID={user.get('id'):>5}  Login={user.get('login')}")
+`},
+{file:'api_to_dataframe.py',label:'API to DataFrame',code:`# Full pipeline: API -> clean data -> pandas DataFrame
+# This is what you do before feeding data to an ML model
+
+import json, pyodide.http
+
+async def api_to_dict_list(url, params):
+    """Fetch API and return a list of dicts ready for pandas."""
+    query = "&".join(str(k) + "=" + str(v) for k, v in params.items())
+    full_url = url + "?" + query
+    r = await pyodide.http.pyfetch(full_url)
+    return await r.json()
+
+# Fetch weather forecast for the next 7 days
+print("Fetching 7-day weather forecast for London...")
+
+data = await api_to_dict_list(
+    "https://api.open-meteo.com/v1/forecast",
+    {
+        "latitude": 51.5,
+        "longitude": -0.1,
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
+        "forecast_days": 7,
+        "timezone": "Europe/London"
+    }
+)
+
+# The API returns parallel arrays — we need to zip them into rows
+daily = data.get("daily", {})
+dates = daily.get("time", [])
+temp_max = daily.get("temperature_2m_max", [])
+temp_min = daily.get("temperature_2m_min", [])
+rain = daily.get("precipitation_sum", [])
+wind = daily.get("wind_speed_10m_max", [])
+
+# Build a list of dicts (one per day)
+rows = []
+for i in range(len(dates)):
+    rows.append({
+        "date":       dates[i],
+        "temp_max_c": temp_max[i],
+        "temp_min_c": temp_min[i],
+        "temp_range": round((temp_max[i] or 0) - (temp_min[i] or 0), 1),
+        "rain_mm":    rain[i],
+        "wind_kmh":   wind[i]
+    })
+
+# Print as a table (without pandas for portability)
+print()
+print(f"{'Date':<12} {'MaxC':>6} {'MinC':>6} {'Range':>7} {'Rain':>7} {'Wind':>7}")
+print("-" * 55)
+for row in rows:
+    print(f"  {row['date']:<10} {str(row['temp_max_c']):>6} {str(row['temp_min_c']):>6} {str(row['temp_range']):>7} {str(row['rain_mm']):>7} {str(row['wind_kmh']):>7}")
+
+print()
+print(f"Total rows: {len(rows)}")
+print(f"Columns: {list(rows[0].keys())}")
+print()
+print("Next step: pass this list of dicts to pd.DataFrame(rows)")
+print("Then clean, engineer features, and train your ML model!")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click ▶ Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';var t0=Date.now();
+  if(!pyodide){var st=C('py-status');st.textContent='Loading...';
+    try{if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','pandas']);pyLoading=false;}
+    else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+    st.textContent='● Python ready';st.className='py-status ready';}
+    catch(e){out.textContent='Failed.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}}
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    await pyodide.runPythonAsync(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+window.addEventListener('load',function(){
+  drawStatusCanvas();drawRetryCanvas();drawPagination();
+  (function poll(){if(typeof CodeMirror==='undefined'){setTimeout(poll,60);return;}buildTabs();var mount=C('cm-editor-mount');if(!mount)return;cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});cmEditor.setSize('100%',null);setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);})();
+  new MutationObserver(function(){drawStatusCanvas();drawRetryCanvas();drawPagination();if(cmEditor)cmEditor.refresh();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

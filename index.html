@@ -1,0 +1,407 @@
+<!-- index.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ML-Learn — Master Machine Learning Visually</title>
+  <meta name="description" content="Learn every machine learning concept with clear explanations, interactive visualisations, live code execution and end-to-end projects." />
+  <link rel="stylesheet" href="css/main.css" />
+  <!-- KaTeX for math -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+</head>
+<body data-page="home">
+
+<div id="app">
+
+  <!-- ══════════════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════════════ -->
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" title="Toggle sidebar" style="width:26px;height:26px;font-size:13px;">✕</button>
+    </div>
+
+    <div class="sb-progress">
+      <div class="sb-progress-label">
+        Progress
+        <span id="sb-progress-label">0 / 76</span>
+      </div>
+      <div class="sb-bar">
+        <div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN
+  ══════════════════════════════════════════ -->
+  <div id="main">
+
+    <!-- Topbar -->
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle" title="Toggle sidebar">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+        </svg>
+      </button>
+
+      <span class="tb-title" id="tb-title">ML-Learn — Machine Learning Curriculum</span>
+
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics… ( / )" autocomplete="off" />
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+
+      <button class="tb-theme" id="theme-toggle" title="Toggle theme">☀</button>
+    </header>
+
+    <!-- Content -->
+    <main id="content">
+
+      <!-- ── Hero ──────────────────────────────── -->
+      <section class="home-hero">
+        <div class="home-eyebrow">✦ Full ML Curriculum</div>
+
+        <h1 class="home-h1">
+          Learn Machine Learning<br />
+          <em>visually.</em>
+        </h1>
+
+        <p class="home-tagline">
+          Every concept explained in plain English — with interactive visualisations,
+          live Python execution in the browser, math derivations, and 5 end-to-end projects.
+        </p>
+
+        <div class="home-actions">
+          <a class="btn btn-primary" href="topics/phase1-data-collection/csv-loading.html">
+            Start Learning →
+          </a>
+          <a class="btn btn-secondary" href="#roadmap">
+            View Roadmap
+          </a>
+          <div class="home-progress-row">
+            <div class="home-progress-bar">
+              <div class="home-progress-fill" id="home-progress-fill" style="width:0%"></div>
+            </div>
+            <span id="home-progress-label" style="font-size:13px;color:var(--text-3)">0 of 76 topics completed</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Stats ─────────────────────────────── -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-completed">0</div>
+          <div class="stat-label">Topics completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">76</div>
+          <div class="stat-label">Total topics</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">11</div>
+          <div class="stat-label">Interactive visualisations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">5</div>
+          <div class="stat-label">End-to-end projects</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">7</div>
+          <div class="stat-label">Learning phases</div>
+        </div>
+      </div>
+
+      <!-- ── What you'll learn ──────────────────── -->
+      <section style="margin-bottom:48px;">
+        <h2 class="roadmap-title">What every topic includes</h2>
+        <p class="roadmap-sub">Every single page follows the same battle-tested structure.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">
+
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+            <div style="width:32px;height:32px;border-radius:var(--r-sm);background:var(--blue-surf);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">✦</div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:3px;">Plain-English intuition</div>
+              <div style="font-size:12px;color:var(--text-3);line-height:1.5;">What it is and why it matters, no jargon</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+            <div style="width:32px;height:32px;border-radius:var(--r-sm);background:var(--purple-surf);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">∑</div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:3px;">Math derivation</div>
+              <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Step-by-step formulas rendered with KaTeX</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+            <div style="width:32px;height:32px;border-radius:var(--r-sm);background:var(--accent-surface);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">◈</div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:3px;">Interactive visualisation</div>
+              <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Sliders, live charts, animated demos</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+            <div style="width:32px;height:32px;border-radius:var(--r-sm);background:var(--green-surf);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">▶</div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:3px;">Run code in browser</div>
+              <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Pyodide — real Python, zero setup</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+            <div style="width:32px;height:32px;border-radius:var(--r-sm);background:var(--teal-surf);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">⚠</div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:3px;">Common mistakes</div>
+              <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Pitfalls and how to avoid them</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+            <div style="width:32px;height:32px;border-radius:var(--r-sm);background:var(--orange-surf);color:var(--orange);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">◆</div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:3px;">Key takeaways</div>
+              <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Bullet summary to lock in the concept</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Roadmap ────────────────────────────── -->
+      <section id="roadmap">
+        <h2 class="roadmap-title">Full learning roadmap</h2>
+        <p class="roadmap-sub">Click any phase to expand and jump directly to a topic.</p>
+
+        <div class="roadmap-phases">
+
+          <!-- Phase 1 -->
+          <div class="roadmap-phase open" id="rp-1">
+            <div class="rp-header">
+              <div class="rp-num phase-1">1</div>
+              <div class="rp-info">
+                <div class="rp-name">Data Collection</div>
+                <div class="rp-meta">CSV · JSON · SQL · APIs · Web Scraping</div>
+              </div>
+              <span class="rp-count">5 topics</span>
+              <span class="rp-chevron">▶</span>
+            </div>
+            <div class="rp-topics">
+              <div class="rp-topic" data-id="csv-loading"           onclick="location.href='topics/phase1-data-collection/csv-loading.html'">CSV Loading</div>
+              <div class="rp-topic" data-id="json-loading"          onclick="location.href='topics/phase1-data-collection/json-loading.html'">JSON Loading</div>
+              <div class="rp-topic" data-id="sql-loading"           onclick="location.href='topics/phase1-data-collection/sql-loading.html'">SQL Loading</div>
+              <div class="rp-topic" data-id="api-fetching"          onclick="location.href='topics/phase1-data-collection/api-fetching.html'">API Fetching</div>
+              <div class="rp-topic" data-id="web-scraping"          onclick="location.href='topics/phase1-data-collection/web-scraping.html'">Web Scraping</div>
+            </div>
+          </div>
+
+          <!-- Phase 2 -->
+          <div class="roadmap-phase" id="rp-2">
+            <div class="rp-header">
+              <div class="rp-num phase-2">2</div>
+              <div class="rp-info">
+                <div class="rp-name">Exploratory Data Analysis</div>
+                <div class="rp-meta">Data types · Univariate · Bivariate · Multivariate</div>
+              </div>
+              <span class="rp-count">5 topics</span>
+              <span class="rp-chevron">▶</span>
+            </div>
+            <div class="rp-topics">
+              <div class="rp-topic" data-id="data-types"            onclick="location.href='topics/phase2-eda/data-types.html'">Data Types</div>
+              <div class="rp-topic" data-id="univariate-analysis"   onclick="location.href='topics/phase2-eda/univariate-analysis.html'">Univariate Analysis</div>
+              <div class="rp-topic" data-id="bivariate-analysis"    onclick="location.href='topics/phase2-eda/bivariate-analysis.html'">Bivariate Analysis</div>
+              <div class="rp-topic" data-id="multivariate-analysis" onclick="location.href='topics/phase2-eda/multivariate-analysis.html'">Multivariate Analysis</div>
+              <div class="rp-topic" data-id="pandas-profiling"      onclick="location.href='topics/phase2-eda/pandas-profiling.html'">Pandas Profiling</div>
+            </div>
+          </div>
+
+          <!-- Phase 3 -->
+          <div class="roadmap-phase" id="rp-3">
+            <div class="rp-header">
+              <div class="rp-num phase-3">3</div>
+              <div class="rp-info">
+                <div class="rp-name">Data Cleaning</div>
+                <div class="rp-meta">Missing values · Imputation · Outliers · Winsorization</div>
+              </div>
+              <span class="rp-count">9 topics</span>
+              <span class="rp-chevron">▶</span>
+            </div>
+            <div class="rp-topics">
+              <div class="rp-topic" data-id="missing-values-types"   onclick="location.href='topics/phase3-data-cleaning/missing-values-types.html'">Missing Value Types</div>
+              <div class="rp-topic" data-id="complete-case-analysis" onclick="location.href='topics/phase3-data-cleaning/complete-case-analysis.html'">Complete Case Analysis</div>
+              <div class="rp-topic" data-id="simple-imputation"      onclick="location.href='topics/phase3-data-cleaning/simple-imputation.html'">Simple Imputation</div>
+              <div class="rp-topic" data-id="knn-imputer"            onclick="location.href='topics/phase3-data-cleaning/knn-imputer.html'">KNN Imputer</div>
+              <div class="rp-topic" data-id="mice-iterative-imputer" onclick="location.href='topics/phase3-data-cleaning/mice-iterative-imputer.html'">MICE Imputer</div>
+              <div class="rp-topic" data-id="missing-indicator"      onclick="location.href='topics/phase3-data-cleaning/missing-indicator.html'">Missing Indicator</div>
+              <div class="rp-topic" data-id="outliers-zscore"        onclick="location.href='topics/phase3-data-cleaning/outliers-zscore.html'">Outliers — Z-Score</div>
+              <div class="rp-topic" data-id="outliers-iqr"           onclick="location.href='topics/phase3-data-cleaning/outliers-iqr.html'">Outliers — IQR</div>
+              <div class="rp-topic" data-id="winsorization"          onclick="location.href='topics/phase3-data-cleaning/winsorization.html'">Winsorization</div>
+            </div>
+          </div>
+
+          <!-- Phase 4 -->
+          <div class="roadmap-phase" id="rp-4">
+            <div class="rp-header">
+              <div class="rp-num phase-4">4</div>
+              <div class="rp-info">
+                <div class="rp-name">Feature Engineering</div>
+                <div class="rp-meta">Scaling · Encoding · Transforms · Pipelines</div>
+              </div>
+              <span class="rp-count">18 topics</span>
+              <span class="rp-chevron">▶</span>
+            </div>
+            <div class="rp-topics">
+              <div class="rp-topic" data-id="standardization"       onclick="location.href='topics/phase4-feature-engineering/standardization.html'">Standardization</div>
+              <div class="rp-topic" data-id="normalization"         onclick="location.href='topics/phase4-feature-engineering/normalization.html'">Normalization</div>
+              <div class="rp-topic" data-id="minmax-scaling"        onclick="location.href='topics/phase4-feature-engineering/minmax-scaling.html'">MinMax Scaling</div>
+              <div class="rp-topic" data-id="robust-scaling"        onclick="location.href='topics/phase4-feature-engineering/robust-scaling.html'">Robust Scaling</div>
+              <div class="rp-topic" data-id="ordinal-encoding"      onclick="location.href='topics/phase4-feature-engineering/ordinal-encoding.html'">Ordinal Encoding</div>
+              <div class="rp-topic" data-id="label-encoding"        onclick="location.href='topics/phase4-feature-engineering/label-encoding.html'">Label Encoding</div>
+              <div class="rp-topic" data-id="onehot-encoding"       onclick="location.href='topics/phase4-feature-engineering/onehot-encoding.html'">One-Hot Encoding</div>
+              <div class="rp-topic" data-id="target-encoding"       onclick="location.href='topics/phase4-feature-engineering/target-encoding.html'">Target Encoding</div>
+              <div class="rp-topic" data-id="log-transform"         onclick="location.href='topics/phase4-feature-engineering/log-transform.html'">Log Transform</div>
+              <div class="rp-topic" data-id="boxcox-transform"      onclick="location.href='topics/phase4-feature-engineering/boxcox-transform.html'">Box-Cox Transform</div>
+              <div class="rp-topic" data-id="yeo-johnson-transform" onclick="location.href='topics/phase4-feature-engineering/yeo-johnson-transform.html'">Yeo-Johnson Transform</div>
+              <div class="rp-topic" data-id="binning-discretization" onclick="location.href='topics/phase4-feature-engineering/binning-discretization.html'">Binning & Discretization</div>
+              <div class="rp-topic" data-id="feature-construction"  onclick="location.href='topics/phase4-feature-engineering/feature-construction.html'">Feature Construction</div>
+              <div class="rp-topic" data-id="feature-splitting"     onclick="location.href='topics/phase4-feature-engineering/feature-splitting.html'">Feature Splitting</div>
+              <div class="rp-topic" data-id="datetime-features"     onclick="location.href='topics/phase4-feature-engineering/datetime-features.html'">Datetime Features</div>
+              <div class="rp-topic" data-id="mixed-variables"       onclick="location.href='topics/phase4-feature-engineering/mixed-variables.html'">Mixed Variables</div>
+              <div class="rp-topic" data-id="column-transformer"    onclick="location.href='topics/phase4-feature-engineering/column-transformer.html'">Column Transformer</div>
+              <div class="rp-topic" data-id="ml-pipelines"          onclick="location.href='topics/phase4-feature-engineering/ml-pipelines.html'">ML Pipelines</div>
+            </div>
+          </div>
+
+          <!-- Phase 5 -->
+          <div class="roadmap-phase" id="rp-5">
+            <div class="rp-header">
+              <div class="rp-num phase-5">5</div>
+              <div class="rp-info">
+                <div class="rp-name">Feature Selection</div>
+                <div class="rp-meta">Filter · Wrapper · Embedded · PCA</div>
+              </div>
+              <span class="rp-count">5 topics</span>
+              <span class="rp-chevron">▶</span>
+            </div>
+            <div class="rp-topics">
+              <div class="rp-topic" data-id="curse-of-dimensionality" onclick="location.href='topics/phase5-feature-selection/curse-of-dimensionality.html'">Curse of Dimensionality</div>
+              <div class="rp-topic" data-id="filter-methods"          onclick="location.href='topics/phase5-feature-selection/filter-methods.html'">Filter Methods</div>
+              <div class="rp-topic" data-id="wrapper-methods"         onclick="location.href='topics/phase5-feature-selection/wrapper-methods.html'">Wrapper Methods</div>
+              <div class="rp-topic" data-id="embedded-methods"        onclick="location.href='topics/phase5-feature-selection/embedded-methods.html'">Embedded Methods</div>
+              <div class="rp-topic" data-id="pca"                     onclick="location.href='topics/phase5-feature-selection/pca.html'">PCA</div>
+            </div>
+          </div>
+
+          <!-- Algorithms -->
+          <div class="roadmap-phase" id="rp-algo">
+            <div class="rp-header">
+              <div class="rp-num phase-r" style="font-size:11px;">ALG</div>
+              <div class="rp-info">
+                <div class="rp-name">Algorithms</div>
+                <div class="rp-meta">Regression · Classification · Trees · Ensembles · Unsupervised · Real World</div>
+              </div>
+              <span class="rp-count">34 topics</span>
+              <span class="rp-chevron">▶</span>
+            </div>
+            <div class="rp-topics">
+              <!-- Regression -->
+              <div class="rp-topic" data-id="simple-linear-regression"   onclick="location.href='topics/algorithms/regression/simple-linear-regression.html'">Simple Linear Regression</div>
+              <div class="rp-topic" data-id="multiple-linear-regression"  onclick="location.href='topics/algorithms/regression/multiple-linear-regression.html'">Multiple Linear Regression</div>
+              <div class="rp-topic" data-id="gradient-descent"            onclick="location.href='topics/algorithms/regression/gradient-descent.html'">Gradient Descent</div>
+              <div class="rp-topic" data-id="polynomial-regression"       onclick="location.href='topics/algorithms/regression/polynomial-regression.html'">Polynomial Regression</div>
+              <div class="rp-topic" data-id="ridge-regression"            onclick="location.href='topics/algorithms/regression/ridge-regression.html'">Ridge Regression</div>
+              <div class="rp-topic" data-id="lasso-regression"            onclick="location.href='topics/algorithms/regression/lasso-regression.html'">Lasso Regression</div>
+              <div class="rp-topic" data-id="elasticnet-regression"       onclick="location.href='topics/algorithms/regression/elasticnet-regression.html'">ElasticNet</div>
+              <div class="rp-topic" data-id="regression-metrics"          onclick="location.href='topics/algorithms/regression/regression-metrics.html'">Regression Metrics</div>
+              <!-- Classification -->
+              <div class="rp-topic" data-id="logistic-regression"         onclick="location.href='topics/algorithms/classification/logistic-regression.html'">Logistic Regression</div>
+              <div class="rp-topic" data-id="softmax-regression"          onclick="location.href='topics/algorithms/classification/softmax-regression.html'">Softmax Regression</div>
+              <div class="rp-topic" data-id="naive-bayes"                 onclick="location.href='topics/algorithms/classification/naive-bayes.html'">Naive Bayes</div>
+              <div class="rp-topic" data-id="knn"                         onclick="location.href='topics/algorithms/classification/knn.html'">K-Nearest Neighbors</div>
+              <div class="rp-topic" data-id="svm"                         onclick="location.href='topics/algorithms/classification/svm.html'">SVM</div>
+              <div class="rp-topic" data-id="classification-metrics"      onclick="location.href='topics/algorithms/classification/classification-metrics.html'">Classification Metrics</div>
+              <!-- Trees -->
+              <div class="rp-topic" data-id="entropy"                     onclick="location.href='topics/algorithms/trees/entropy.html'">Entropy</div>
+              <div class="rp-topic" data-id="information-gain"            onclick="location.href='topics/algorithms/trees/information-gain.html'">Information Gain</div>
+              <div class="rp-topic" data-id="gini-impurity"               onclick="location.href='topics/algorithms/trees/gini-impurity.html'">Gini Impurity</div>
+              <div class="rp-topic" data-id="decision-tree"               onclick="location.href='topics/algorithms/trees/decision-tree.html'">Decision Tree</div>
+              <div class="rp-topic" data-id="regression-tree"             onclick="location.href='topics/algorithms/trees/regression-tree.html'">Regression Tree</div>
+              <div class="rp-topic" data-id="tree-hyperparameters"        onclick="location.href='topics/algorithms/trees/tree-hyperparameters.html'">Tree Hyperparameters</div>
+              <!-- Ensembles -->
+              <div class="rp-topic" data-id="ensemble-theory"             onclick="location.href='topics/algorithms/ensembles/ensemble-theory.html'">Ensemble Theory</div>
+              <div class="rp-topic" data-id="voting-classifier"           onclick="location.href='topics/algorithms/ensembles/voting-classifier.html'">Voting Classifier</div>
+              <div class="rp-topic" data-id="bagging"                     onclick="location.href='topics/algorithms/ensembles/bagging.html'">Bagging</div>
+              <div class="rp-topic" data-id="random-forest"               onclick="location.href='topics/algorithms/ensembles/random-forest.html'">Random Forest</div>
+              <div class="rp-topic" data-id="adaboost"                    onclick="location.href='topics/algorithms/ensembles/adaboost.html'">AdaBoost</div>
+              <div class="rp-topic" data-id="gradient-boosting"           onclick="location.href='topics/algorithms/ensembles/gradient-boosting.html'">Gradient Boosting</div>
+              <div class="rp-topic" data-id="xgboost"                     onclick="location.href='topics/algorithms/ensembles/xgboost.html'">XGBoost</div>
+              <div class="rp-topic" data-id="stacking-blending"           onclick="location.href='topics/algorithms/ensembles/stacking-blending.html'">Stacking & Blending</div>
+              <!-- Unsupervised -->
+              <div class="rp-topic" data-id="kmeans"                      onclick="location.href='topics/algorithms/unsupervised/kmeans.html'">K-Means</div>
+              <div class="rp-topic" data-id="hierarchical"                onclick="location.href='topics/algorithms/unsupervised/hierarchical.html'">Hierarchical Clustering</div>
+              <div class="rp-topic" data-id="dbscan"                      onclick="location.href='topics/algorithms/unsupervised/dbscan.html'">DBSCAN</div>
+              <!-- Real world -->
+              <div class="rp-topic" data-id="imbalanced-data"             onclick="location.href='topics/algorithms/realworld/imbalanced-data.html'">Imbalanced Data</div>
+              <div class="rp-topic" data-id="cross-validation"            onclick="location.href='topics/algorithms/realworld/cross-validation.html'">Cross Validation</div>
+              <div class="rp-topic" data-id="hyperparameter-tuning"       onclick="location.href='topics/algorithms/realworld/hyperparameter-tuning.html'">Hyperparameter Tuning</div>
+              <div class="rp-topic" data-id="overfitting-underfitting"    onclick="location.href='topics/algorithms/realworld/overfitting-underfitting.html'">Overfitting & Underfitting</div>
+            </div>
+          </div>
+
+          <!-- Projects -->
+          <div class="roadmap-phase" id="rp-proj">
+            <div class="rp-header">
+              <div class="rp-num phase-p" style="font-size:11px;">PRJ</div>
+              <div class="rp-info">
+                <div class="rp-name">End-to-End Projects</div>
+                <div class="rp-meta">Full pipelines — real datasets — deploy-ready</div>
+              </div>
+              <span class="rp-count">5 projects</span>
+              <span class="rp-chevron">▶</span>
+            </div>
+            <div class="rp-topics">
+              <div class="rp-topic" data-id="house-price"     onclick="location.href='topics/algorithms/projects/house-price.html'">House Price Prediction</div>
+              <div class="rp-topic" data-id="titanic"         onclick="location.href='topics/algorithms/projects/titanic.html'">Titanic Survival</div>
+              <div class="rp-topic" data-id="customer-churn"  onclick="location.href='topics/algorithms/projects/customer-churn.html'">Customer Churn</div>
+              <div class="rp-topic" data-id="spam-detection"  onclick="location.href='topics/algorithms/projects/spam-detection.html'">Spam Detection</div>
+              <div class="rp-topic" data-id="fraud-detection" onclick="location.href='topics/algorithms/projects/fraud-detection.html'">Fraud Detection</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Footer ────────────────────────────── -->
+      <footer style="margin-top:64px;padding-top:28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.02em;color:var(--text-1);">
+          <em style="color:var(--accent);font-style:normal;">ML</em>Learn
+        </div>
+        <div style="font-size:12px;color:var(--text-3);">
+          76 topics · Interactive visualisations · Run Python in browser
+        </div>
+        <div style="font-size:12px;color:var(--text-3);">
+          Built with Pyodide · KaTeX · Vanilla JS
+        </div>
+      </footer>
+
+    </main>
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script src="js/main.js"></script>
+</body>
+</html>

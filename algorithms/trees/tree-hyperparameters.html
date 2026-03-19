@@ -1,0 +1,702 @@
+<!-- tree-hyperparameters.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tree Hyperparameters — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(62,207,142,.09),rgba(45,212,191,.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 14px;background:var(--bg-input);border-radius:var(--r-md);min-width:78px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dash{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:3px;transition:color .3s;}
+    .acc-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;}
+    .acc-bar{height:100%;border-radius:2px;transition:width .5s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+    .hp-row{display:flex;flex-direction:column;gap:5px;}
+    .hp-label{display:flex;justify-content:space-between;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--green);font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+    /* hp effect cards */
+    .effect-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .effect-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;}
+    .ec-param{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--green);margin-bottom:4px;}
+    .ec-title{font-size:12.5px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .ec-low{font-size:11.5px;color:var(--text-2);margin-bottom:3px;}
+    .ec-high{font-size:11.5px;color:var(--text-2);}
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;}
+    .cmp-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:9px 14px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:left;}
+    .cmp-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);line-height:1.5;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-hover);}
+    .badge-g{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--green-surf);color:var(--green);}
+    .badge-r{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--red-surf);color:var(--red);}
+    .badge-y{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--accent-surface);color:var(--accent);}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(62,207,142,.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--green);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dash{grid-template-columns:repeat(2,1fr);}.effect-cards{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="tree-hyperparameters">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">Tree Hyperparameters</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Decision Trees</a><span class="sep">/</span>
+            <span class="current">Tree Hyperparameters</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(62,207,142,.25);background:var(--green-surf);color:var(--green);margin-bottom:14px;">Decision Trees · Tuning</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Tree Hyperparameters</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Decision trees have several levers that directly control complexity — from
+              <strong>max_depth</strong> (how tall the tree grows) to <strong>min_samples_leaf</strong>
+              (how many samples must sit at each leaf). Getting these right is the difference
+              between a tree that memorises noise and one that generalises beautifully.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 18 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — PARAMETER REFERENCE -->
+          <section class="section" id="parameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Every parameter and what it controls
+            </h2>
+            <p>Each hyperparameter controls a different aspect of tree complexity. Low values = simpler tree (risk of underfitting). High values = complex tree (risk of overfitting).</p>
+
+            <div class="effect-cards">
+              <div class="effect-card">
+                <div class="ec-param">max_depth</div>
+                <div class="ec-title">How tall can the tree grow?</div>
+                <div class="ec-low">⬇ Low (1-3): shallow tree, high bias, fast, easy to interpret</div>
+                <div class="ec-high">⬆ High / None: deep tree, can memorise every training point</div>
+              </div>
+              <div class="effect-card">
+                <div class="ec-param">min_samples_split</div>
+                <div class="ec-title">Min samples to attempt a split</div>
+                <div class="ec-low">⬇ Low (2): tries to split even tiny groups — overfits</div>
+                <div class="ec-high">⬆ High (20+): only splits larger groups — simpler tree</div>
+              </div>
+              <div class="effect-card">
+                <div class="ec-param">min_samples_leaf</div>
+                <div class="ec-title">Min samples at each leaf</div>
+                <div class="ec-low">⬇ Low (1): allows single-sample leaves — severe overfit</div>
+                <div class="ec-high">⬆ High (10+): forces larger leaves — smoother boundaries</div>
+              </div>
+              <div class="effect-card">
+                <div class="ec-param">max_features</div>
+                <div class="ec-title">Features considered per split</div>
+                <div class="ec-low">⬇ Low / sqrt(n): random subset adds variance reduction</div>
+                <div class="ec-high">⬆ None / all: considers every feature at every split</div>
+              </div>
+              <div class="effect-card">
+                <div class="ec-param">criterion</div>
+                <div class="ec-title">Split quality measure</div>
+                <div class="ec-low">gini: faster, slightly prefers larger classes</div>
+                <div class="ec-high">entropy: info-theoretic, marginally smoother splits</div>
+              </div>
+              <div class="effect-card">
+                <div class="ec-param">max_leaf_nodes</div>
+                <div class="ec-title">Total number of leaves allowed</div>
+                <div class="ec-low">⬇ Low (5-10): very compact tree, easy to visualise</div>
+                <div class="ec-high">⬆ None: no limit on leaves — grows until other constraints stop it</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — LIVE HP TUNING DASHBOARD -->
+          <section class="section" id="tuning-dashboard">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">▶</div>
+              Live tuning dashboard — drag any slider, retrain instantly
+            </h2>
+            <p>Every slider below immediately retrains a decision tree classifier and updates all accuracy metrics. Watch how each parameter affects the train-test gap.</p>
+
+            <div class="acc-dash">
+              <div class="acc-card"><div class="acc-num" id="ac-tr" style="color:var(--blue);">—</div><div class="acc-lbl">Train Acc</div><div class="acc-bar-wrap"><div class="acc-bar" id="ab-tr" style="background:var(--blue);width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="ac-te" style="color:var(--green);">—</div><div class="acc-lbl">Test Acc</div><div class="acc-bar-wrap"><div class="acc-bar" id="ab-te" style="background:var(--green);width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="ac-nd" style="color:var(--teal);">—</div><div class="acc-lbl">Tree nodes</div><div class="acc-bar-wrap"><div class="acc-bar" id="ab-nd" style="background:var(--teal);width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="ac-st" style="font-size:13px;color:var(--accent);">—</div><div class="acc-lbl">Fit status</div><div class="acc-bar-wrap"><div class="acc-bar" id="ab-st" style="background:var(--accent);width:50%;"></div></div></div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:14px;">Hyperparameters — all update live</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">max_depth</span><span class="hp-val" id="hv-d">4</span></div>
+                  <input type="range" min="1" max="20" value="4" step="1" class="ctrl-slider" id="hd" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Max levels in the tree. Higher = more complex. Start at 3-5.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">min_samples_split</span><span class="hp-val" id="hv-mss">2</span></div>
+                  <input type="range" min="2" max="50" value="2" step="1" class="ctrl-slider" id="hmss" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Min samples needed to split a node. Higher = fewer splits.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">min_samples_leaf</span><span class="hp-val" id="hv-msl">1</span></div>
+                  <input type="range" min="1" max="30" value="1" step="1" class="ctrl-slider" id="hmsl" oninput="onHP()" style="width:100%;"/>
+                  <div class="hp-desc">Min samples at any leaf. Prevents single-sample leaves.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">criterion</span><span class="hp-val" id="hv-crit" style="color:var(--green);">gini</span></div>
+                  <div style="display:flex;gap:6px;margin-top:4px;">
+                    <button class="ctrl-btn active" id="btn-gini" onclick="setCrit('gini')">Gini</button>
+                    <button class="ctrl-btn" id="btn-entropy" onclick="setCrit('entropy')">Entropy</button>
+                  </div>
+                  <div class="hp-desc">Split quality measure. Both produce similar results.</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;"><span class="canvas-title">Decision boundary (live)</span></div>
+                <canvas id="boundary-canvas" width="340" height="280" style="width:100%;display:block;"></canvas>
+              </div>
+              <div class="canvas-card" style="margin-bottom:0;">
+                <div class="canvas-toolbar" style="padding:8px 14px;">
+                  <span class="canvas-title">max_depth sweep</span>
+                  <button class="ctrl-btn" onclick="runDepthSweep()" style="margin-left:auto;">▶ Sweep</button>
+                </div>
+                <canvas id="sweep-canvas" width="340" height="280" style="width:100%;display:block;"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — DEPTH EFFECT -->
+          <section class="section" id="depth-effect">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">🌳</div>
+              max_depth — the most important parameter
+            </h2>
+            <p>
+              <strong>max_depth</strong> is almost always the first parameter to tune.
+              It directly controls how many decisions the tree can chain together.
+              A tree of depth 1 makes a single split (a decision stump). A tree of depth 20 can
+              learn extremely complex patterns — but memorises noise on small datasets.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Tree structure — how max_depth controls size</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">max_depth:</span>
+                  <input type="range" min="1" max="6" value="3" step="1" class="ctrl-slider"
+                    id="tree-depth-slider" oninput="drawTreeDiagram(this.value)" style="width:110px;"/>
+                  <span class="ctrl-value" id="tree-depth-val" style="color:var(--green);">3</span>
+                </div>
+              </div>
+              <canvas id="tree-diagram-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="td-nodes" style="color:var(--green);">—</span><span class="stat-pill-lbl">Total nodes</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="td-leaves" style="color:var(--teal);">—</span><span class="stat-pill-lbl">Leaves</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="td-splits" style="color:var(--orange);">—</span><span class="stat-pill-lbl">Splits</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="td-depth" style="color:var(--purple);">—</span><span class="stat-pill-lbl">Max decisions</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Rule of thumb:</strong> Start with max_depth=3 or 4. If your training accuracy is too low, increase it. If your test accuracy is much lower than training, decrease it or increase min_samples_leaf. Most real-world trees work well between depth 3 and 8.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — PRUNING -->
+          <section class="section" id="pruning">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">✂</div>
+              Cost-complexity pruning — ccp_alpha
+            </h2>
+            <p>
+              Beyond the growth-prevention parameters, sklearn also supports <strong>post-pruning</strong> via
+              <code>ccp_alpha</code> (cost-complexity pruning alpha). After the tree is fully grown,
+              branches that don't improve accuracy by at least alpha are removed.
+              This often finds a better tree than stopping growth early.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">ccp_alpha pruning — drag to prune the tree</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">ccp_alpha:</span>
+                  <input type="range" min="0" max="0.05" value="0" step="0.001" class="ctrl-slider"
+                    id="alpha-slider" oninput="updateAlpha(this.value)" style="width:120px;"/>
+                  <span class="ctrl-value" id="alpha-val" style="color:var(--orange);">0.000</span>
+                </div>
+              </div>
+              <canvas id="prune-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="pa-nodes" style="color:var(--green);">—</span><span class="stat-pill-lbl">Nodes left</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pa-tr" style="color:var(--blue);">—</span><span class="stat-pill-lbl">Train acc</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pa-te" style="color:var(--green);">—</span><span class="stat-pill-lbl">Test acc</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pa-zone" style="font-size:12px;color:var(--accent);">—</span><span class="stat-pill-lbl">Zone</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — WHEN TO USE WHAT -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">?</div>
+              When to adjust each parameter
+            </h2>
+            <table class="cmp-table">
+              <thead><tr><th>Problem</th><th>Symptom</th><th>Fix</th></tr></thead>
+              <tbody>
+                <tr><td>Overfitting</td><td>Train acc high, test acc much lower</td><td>Decrease max_depth · Increase min_samples_leaf · Increase ccp_alpha</td></tr>
+                <tr><td>Underfitting</td><td>Both train and test acc low</td><td>Increase max_depth · Decrease min_samples_leaf · Decrease min_samples_split</td></tr>
+                <tr><td>Tree too large</td><td>Hard to visualise, slow to predict</td><td>Set max_leaf_nodes · Reduce max_depth · Increase min_samples_split</td></tr>
+                <tr><td>Unstable splits</td><td>Small data changes flip the tree structure</td><td>Increase min_samples_split · Increase min_samples_leaf · Use Random Forest instead</td></tr>
+                <tr><td>Slow training</td><td>Takes too long on large dataset</td><td>Set max_features='sqrt' · Reduce max_depth · Use max_leaf_nodes limit</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">tree_params.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>Key takeaways</h2>
+            <div class="takeaways"><div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>max_depth</strong> is the most important. Start at 3-5. Too deep = overfit. Too shallow = underfit.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>min_samples_leaf</strong> prevents tiny leaves — the most effective regularisation after max_depth.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>ccp_alpha</strong> (post-pruning) to fine-tune after growing a full tree. Find the best alpha with cross-validation.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always compare <strong>train vs test accuracy</strong>. A large gap means overfitting. Both low means underfitting.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="decision-tree.html"><span class="pn-dir">← Previous</span><span class="pn-title">Decision Tree</span></a>
+            <a class="pn-card next" href="regression-tree.html"><span class="pn-dir">Next →</span><span class="pn-title">Regression Tree</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#parameters">Parameter reference</a></li>
+            <li class="toc-item"><a href="#tuning-dashboard">Live tuning</a></li>
+            <li class="toc-item"><a href="#depth-effect">max_depth effect</a></li>
+            <li class="toc-item"><a href="#pruning">Pruning (ccp_alpha)</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to adjust</a></li>
+            <li class="toc-item"><a href="#live-editor">Code editor</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* ── DATA ── */
+var W2=340,H2=280,hpData=null;
+function genData(){
+  hpData={tr:[],te:[]};
+  function mk(c){return{x:(c===0?-1:1)+(Math.random()-.5)*2.4,y:(c===0?-1:1)+(Math.random()-.5)*2.4,c:c};}
+  for(var i=0;i<80;i++) hpData.tr.push(mk(i%2));
+  for(var i=0;i<40;i++) hpData.te.push(mk(i%2));
+  function norm(a){return a.map(function(p){return{x:(p.x+3)/6*W2,y:(p.y+3)/6*H2,c:p.c};});}
+  hpData.trC=norm(hpData.tr); hpData.teC=norm(hpData.te);
+}
+
+/* ── TREE CLASSIFIER (JS simulation) ── */
+function imp(arr,crit){
+  var nA=arr.filter(function(p){return p.c===0;}).length,t=arr.length;
+  if(!t) return 0; var p=nA/t;
+  return crit==='gini'?2*p*(1-p):(p>0&&p<1?-(p*Math.log2(p)+(1-p)*Math.log2(1-p)):0);
+}
+function buildTree(pts,maxD,mss,msl,crit){
+  function build(arr,d){
+    var nA=arr.filter(function(p){return p.c===0;}).length,maj=nA>=arr.length-nA?0:1;
+    if(!arr.length) return{leaf:true,cls:0,n:0};
+    var pI=imp(arr,crit);
+    if(d>=maxD||arr.length<mss||pI<0.001) return{leaf:true,cls:maj,n:arr.length};
+    var best=-1,bF=-1,bT=0,bL=[],bR=[];
+    [0,1].forEach(function(feat){
+      var vals=[...new Set(arr.map(function(p){return feat===0?p.x:p.y;}))].sort(function(a,b){return a-b;});
+      for(var i=0;i<vals.length-1;i++){
+        var t=(vals[i]+vals[i+1])/2;
+        var L=arr.filter(function(p){return(feat===0?p.x:p.y)<=t;});
+        var R=arr.filter(function(p){return(feat===0?p.x:p.y)>t;});
+        if(L.length<msl||R.length<msl) continue;
+        var g=pI-(L.length/arr.length*imp(L,crit)+R.length/arr.length*imp(R,crit));
+        if(g>best){best=g;bF=feat;bT=t;bL=L;bR=R;}
+      }
+    });
+    if(bF===-1) return{leaf:true,cls:maj,n:arr.length};
+    return{leaf:false,feat:bF,thresh:bT,left:build(bL,d+1),right:build(bR,d+1),n:arr.length};
+  }
+  return build(pts,0);
+}
+function pred(tree,x,y){
+  if(tree.leaf) return tree.cls;
+  var v=tree.feat===0?x:y;
+  return v<=tree.thresh?pred(tree.left,x,y):pred(tree.right,x,y);
+}
+function countN(tree){
+  if(tree.leaf) return{n:1,d:0};
+  var l=countN(tree.left),r=countN(tree.right);
+  return{n:1+l.n+r.n,d:1+Math.max(l.d,r.d)};
+}
+
+var hpCrit='gini';
+function setCrit(c){
+  hpCrit=c; C('hv-crit').textContent=c;
+  ['gini','entropy'].forEach(function(k){C('btn-'+k).classList.toggle('active',k===c);});
+  onHP();
+}
+
+function onHP(){
+  var d=parseInt(C('hd').value),mss=parseInt(C('hmss').value),msl=parseInt(C('hmsl').value);
+  C('hv-d').textContent=d; C('hv-mss').textContent=mss; C('hv-msl').textContent=msl;
+  if(!hpData) return;
+  var tree=buildTree(hpData.trC,d,mss,msl,hpCrit);
+  var stats=countN(tree);
+  function acc(pts){return pts.filter(function(p){return pred(tree,p.x,p.y)===p.c;}).length/pts.length;}
+  var tr=acc(hpData.trC),te=acc(hpData.teC),gap=tr-te;
+  var status=gap>0.15?'Overfitting':gap<-0.05?'Underfitting':'Good fit';
+  C('ac-tr').textContent=(tr*100).toFixed(0)+'%'; C('ac-te').textContent=(te*100).toFixed(0)+'%';
+  C('ac-nd').textContent=stats.n; C('ac-st').textContent=status;
+  C('ab-tr').style.width=(tr*100)+'%'; C('ab-te').style.width=(te*100)+'%';
+  C('ab-nd').style.width=Math.min(100,stats.n/50*100)+'%';
+  C('ac-st').style.color=status==='Good fit'?'var(--green)':status==='Overfitting'?'var(--red)':'var(--orange)';
+  drawBoundary(tree);
+}
+
+function drawBoundary(tree){
+  var cv=C('boundary-canvas'),ctx=cv.getContext('2d'),res=5;
+  ctx.clearRect(0,0,W2,H2); ctx.fillStyle=bg(); ctx.fillRect(0,0,W2,H2);
+  for(var px=0;px<W2;px+=res) for(var py=0;py<H2;py+=res){
+    ctx.fillStyle=pred(tree,px,py)===0?'rgba(75,150,255,.15)':'rgba(240,96,96,.15)';
+    ctx.fillRect(px,py,res,res);
+  }
+  hpData.trC.forEach(function(p){
+    ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);
+    ctx.fillStyle=p.c===0?'#4b96ff':'#f06060';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,.25)':'rgba(0,0,0,.2)';ctx.lineWidth=1;ctx.stroke();
+  });
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('Crit:'+hpCrit,4,H2-4);ctx.textAlign='start';
+}
+
+async function runDepthSweep(){
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad={l:35,r:10,t:10,b:30};
+  var mss=parseInt(C('hmss').value),msl=parseInt(C('hmsl').value);
+  var results=[];
+  for(var d=1;d<=20;d++){
+    var tree=buildTree(hpData.trC,d,mss,msl,hpCrit);
+    function acc(pts,t2){return pts.filter(function(p){return pred(t2,p.x,p.y)===p.c;}).length/pts.length;}
+    results.push({d:d,tr:acc(hpData.trC,tree),te:acc(hpData.teC,tree)});
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+    var toX=function(d2){return pad.l+(d2-1)/19*(W-pad.l-pad.r);};
+    var toY=function(v){return(1-v)*(H-pad.t-pad.b)+pad.t;};
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+    [.6,.7,.8,.9,1].forEach(function(v){ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='9px mono';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-2,toY(v)+4);});
+    if(results.length>1){
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(r.d),toY(r.tr)):ctx.lineTo(toX(r.d),toY(r.tr));});ctx.strokeStyle='#4b96ff';ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();results.forEach(function(r,i){i===0?ctx.moveTo(toX(r.d),toY(r.te)):ctx.lineTo(toX(r.d),toY(r.te));});ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2;ctx.stroke();
+      results.forEach(function(r){ctx.beginPath();ctx.arc(toX(r.d),toY(r.tr),3,0,Math.PI*2);ctx.fillStyle='#4b96ff';ctx.fill();ctx.beginPath();ctx.arc(toX(r.d),toY(r.te),3,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();});
+    }
+    ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('max_depth',W/2,H-2);ctx.textAlign='start';
+    await delay(60);
+  }
+  var best=results.reduce(function(m,r){return r.te>m.te?r:m;},results[0]);
+  var toX=function(d2){return pad.l+(d2-1)/19*(W-pad.l-pad.r);};
+  var toY=function(v){return(1-v)*(H-pad.t-pad.b)+pad.t;};
+  ctx.beginPath();ctx.arc(toX(best.d),toY(best.te),6,0,Math.PI*2);
+  ctx.fillStyle='#f0a500';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#f0a500';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Best d='+best.d,toX(best.d),toY(best.te)-10);ctx.textAlign='start';
+}
+
+/* ── TREE DIAGRAM ── */
+function drawTreeDiagram(depth){
+  depth=parseInt(depth);
+  C('tree-depth-val').textContent=depth;
+  var totalNodes=Math.pow(2,depth+1)-1;
+  var leaves=Math.pow(2,depth);
+  var splits=totalNodes-leaves;
+  C('td-nodes').textContent=totalNodes;
+  C('td-leaves').textContent=leaves;
+  C('td-splits').textContent=splits;
+  C('td-depth').textContent=depth+' decisions';
+
+  var cv=C('tree-diagram-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var maxShow=Math.min(depth,5);
+  var nodeR=14,levelH=(H-30)/(maxShow+1);
+
+  function drawNode(level,pos,parent){
+    var x=W/2+(pos)*W/(Math.pow(2,level)+0.5);
+    var y=30+level*levelH;
+    if(parent){
+      ctx.beginPath();ctx.moveTo(parent.x,parent.y+nodeR);ctx.lineTo(x,y-nodeR);
+      ctx.strokeStyle=gc();ctx.lineWidth=1;ctx.stroke();
+    }
+    var isLeaf=level>=maxShow;
+    ctx.beginPath();ctx.arc(x,y,nodeR,0,Math.PI*2);
+    ctx.fillStyle=isLeaf?(isDark()?'#1a3a28':'#c8e8d0'):( isDark()?'#1a2a3a':'#c8d8e8');
+    ctx.fill();
+    ctx.strokeStyle=isLeaf?'#3ecf8e':'#4b96ff';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=isLeaf?'#3ecf8e':'#4b96ff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+    ctx.fillText(isLeaf?'leaf':'split',x,y+4);
+    if(!isLeaf&&level<maxShow){
+      var step=W/(Math.pow(2,level+1)+1);
+      drawNode(level+1,pos-step/2,{x:x,y:y});
+      drawNode(level+1,pos+step/2,{x:x,y:y});
+    }
+    ctx.textAlign='start';
+  }
+  drawNode(0,0,null);
+
+  if(depth>5){
+    ctx.fillStyle=tc();ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Showing depth 5 of '+depth+' ('+totalNodes+' total nodes)',W/2,H-8);
+    ctx.textAlign='start';
+  }
+}
+
+/* ── PRUNING VIZ ── */
+var pruneData=null;
+function initPruneData(){
+  pruneData={tr:[],te:[]};
+  function mk(c){return{x:(c===0?-1:1)+(Math.random()-.5)*2.2,y:(c===0?-1:1)+(Math.random()-.5)*2.2,c:c};}
+  for(var i=0;i<80;i++) pruneData.tr.push(mk(i%2));
+  for(var i=0;i<40;i++) pruneData.te.push(mk(i%2));
+  function norm(a){return a.map(function(p){return{x:(p.x+3)/6*700,y:(p.y+3)/6*280,c:p.c};});}
+  pruneData.trC=norm(pruneData.tr); pruneData.teC=norm(pruneData.te);
+}
+
+function updateAlpha(v){
+  var alpha=parseFloat(v);
+  C('alpha-val').textContent=alpha.toFixed(3);
+  // Simulate pruning: higher alpha = fewer nodes, different boundary
+  // Use alpha to control effective max depth
+  var effectiveDepth=Math.max(1,Math.round(10-alpha*180));
+  var msl=Math.max(1,Math.round(1+alpha*80));
+  var tree=buildTree(pruneData.trC,effectiveDepth,2,msl,'gini');
+  var stats=countN(tree);
+  function acc(pts){return pts.filter(function(p){return pred(tree,p.x,p.y)===p.c;}).length/pts.length;}
+  var tr=acc(pruneData.trC),te=acc(pruneData.teC),gap=tr-te;
+  var zone=gap>0.15?'Overfitting':gap<-0.05?'Underfitting':'Good fit';
+  C('pa-nodes').textContent=stats.n;
+  C('pa-tr').textContent=(tr*100).toFixed(0)+'%';
+  C('pa-te').textContent=(te*100).toFixed(0)+'%';
+  C('pa-zone').textContent=zone;
+  C('pa-zone').style.color=zone==='Good fit'?'var(--green)':zone==='Overfitting'?'var(--red)':'var(--orange)';
+  drawPruneCanvas(tree);
+}
+
+function drawPruneCanvas(tree){
+  var cv=C('prune-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,res=6;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  for(var px=0;px<W;px+=res) for(var py=0;py<H;py+=res){
+    ctx.fillStyle=pred(tree,px,py)===0?'rgba(75,150,255,.15)':'rgba(240,96,96,.15)';
+    ctx.fillRect(px,py,res,res);
+  }
+  pruneData.trC.forEach(function(p){
+    ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);
+    ctx.fillStyle=p.c===0?'#4b96ff':'#f06060';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,.2)':'rgba(0,0,0,.15)';ctx.lineWidth=1;ctx.stroke();
+  });
+}
+
+/* ── EDITOR ── */
+var SNIPPETS=[
+{file:'tree_params.py',label:'HP effect demo',code:`# Decision Tree Hyperparameters — see the effect of each one
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Vary max_depth and see its effect
+print("Effect of max_depth:")
+print(f"  {'depth':>6}  {'train':>8}  {'test':>8}  {'nodes':>7}  {'status'}")
+print("-" * 50)
+for depth in [1, 2, 3, 4, 5, 6, 8, 10, None]:
+    dt = DecisionTreeClassifier(max_depth=depth, random_state=42)
+    dt.fit(X_train, y_train)
+    tr = accuracy_score(y_train, dt.predict(X_train))
+    te = accuracy_score(y_test,  dt.predict(X_test))
+    gap = tr - te
+    status = "OVERFIT" if gap > 0.05 else "underfit" if te < 0.88 else "OK"
+    print(f"  {str(depth):>6}  {tr:>8.2%}  {te:>8.2%}  {dt.tree_.node_count:>7}  {status}")
+
+print()
+# Vary min_samples_leaf
+print("Effect of min_samples_leaf (max_depth=None):")
+print(f"  {'leaf':>6}  {'train':>8}  {'test':>8}")
+print("-" * 32)
+for msl in [1, 2, 5, 10, 20, 50]:
+    dt = DecisionTreeClassifier(min_samples_leaf=msl, random_state=42)
+    dt.fit(X_train, y_train)
+    tr = accuracy_score(y_train, dt.predict(X_train))
+    te = accuracy_score(y_test,  dt.predict(X_test))
+    print(f"  {msl:>6}  {tr:>8.2%}  {te:>8.2%}")
+`},
+{file:'ccp_pruning.py',label:'CCP pruning',code:`# Cost-complexity pruning — find the best alpha automatically
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 1: grow a full tree and get all possible alphas
+full_tree = DecisionTreeClassifier(random_state=42)
+path = full_tree.cost_complexity_pruning_path(X_train, y_train)
+alphas = path.ccp_alphas  # all pruning thresholds
+print(f"Number of possible alpha values: {len(alphas)}")
+print()
+
+# Step 2: train a tree for each alpha and evaluate
+print(f"  {'alpha':>10}  {'train':>8}  {'test':>8}  {'nodes':>7}")
+print("-" * 42)
+
+best_test, best_alpha = 0, 0
+for alpha in alphas[::5]:  # sample every 5th alpha to keep output short
+    dt = DecisionTreeClassifier(ccp_alpha=alpha, random_state=42)
+    dt.fit(X_train, y_train)
+    tr = accuracy_score(y_train, dt.predict(X_train))
+    te = accuracy_score(y_test,  dt.predict(X_test))
+    if te > best_test:
+        best_test, best_alpha = te, alpha
+    print(f"  {alpha:>10.5f}  {tr:>8.2%}  {te:>8.2%}  {dt.tree_.node_count:>7}")
+
+print()
+print(f"Best alpha: {best_alpha:.5f}  Test accuracy: {best_test:.2%}")
+print()
+print("Tip: use cross-validation to find the best alpha reliably!")
+`}
+];
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click ▶ Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';var t0=Date.now();
+  if(!pyodide){var st=C('py-status');st.textContent='Loading...';
+    try{if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+    else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+    st.textContent='● Python ready';st.className='py-status ready';}
+    catch(e){out.textContent='Failed.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}}
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+window.addEventListener('load',function(){
+  genData();onHP();drawTreeDiagram(3);
+  initPruneData();updateAlpha(0);
+  (function poll(){if(typeof CodeMirror==='undefined'){setTimeout(poll,60);return;}buildTabs();var mount=C('cm-editor-mount');if(!mount)return;cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});cmEditor.setSize('100%',null);setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);})();
+  new MutationObserver(function(){onHP();drawTreeDiagram(C('tree-depth-slider').value);updateAlpha(C('alpha-slider').value);if(cmEditor)cmEditor.refresh();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JSON Loading — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(167,139,250,.1),rgba(45,212,191,.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .json-tree-wrap{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;max-height:360px;overflow-y:auto;margin-bottom:16px;}
+    .jt-key{color:#a78bfa;}.jt-str{color:#4ade80;}.jt-num{color:#fb923c;}.jt-bool{color:#2dd4bf;}.jt-null{color:var(--text-3);}
+    .structure-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .structure-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:all .2s;}
+    .structure-card:hover{border-color:var(--border-hi);}
+    .structure-card.active{border-color:#a78bfa;background:rgba(167,139,250,0.08);}
+    .sc-type{font-family:var(--font-display);font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:4px;}
+    .sc-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .json-editor-wrap{background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--r-md);margin-bottom:12px;}
+    .json-input{width:100%;min-height:160px;background:transparent;border:none;padding:14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);resize:vertical;box-sizing:border-box;}
+    .json-input:focus{outline:none;}
+    .json-output-area{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);line-height:1.7;min-height:80px;white-space:pre-wrap;max-height:240px;overflow-y:auto;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(167,139,250,.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#a78bfa;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.structure-cards{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="json-loading">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">JSON Loading</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Collection</a><span class="sep">/</span>
+            <span class="current">JSON Loading</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(167,139,250,.25);background:rgba(167,139,250,0.08);color:#a78bfa;margin-bottom:14px;">Data Collection · File Formats</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">JSON Loading</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              JSON is the most common format for API responses and semi-structured data.
+              Unlike CSV, JSON can represent <strong>nested structures</strong> — lists inside
+              dicts inside lists. Loading JSON into pandas requires understanding that nesting.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#8987; 16 min</span>
+              <span class="topic-meta-item">&#9670; Beginner</span>
+              <span class="topic-meta-item">json · pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — JSON STRUCTURE EXPLORER -->
+          <section class="section" id="structure">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(167,139,250,0.1);color:#a78bfa;">{}</div>
+              JSON structure — click to explore
+            </h2>
+            <p>JSON has six data types: <strong>string, number, boolean, null, array, and object</strong>. The complexity for ML comes from nesting. Click a card below to see the structure and the resulting DataFrame.</p>
+
+            <div class="structure-cards">
+              <div class="structure-card active" id="sc-flat" onclick="selectStructure('flat')">
+                <div class="sc-type">Flat JSON</div>
+                <div class="sc-desc">Simple key-value pairs. Easiest — loads directly with pd.read_json() or pd.DataFrame().</div>
+              </div>
+              <div class="structure-card" id="sc-nested" onclick="selectStructure('nested')">
+                <div class="sc-type">Nested JSON</div>
+                <div class="sc-desc">Objects inside objects (user.address.city). Needs json_normalize() or manual flattening.</div>
+              </div>
+              <div class="structure-card" id="sc-array" onclick="selectStructure('array')">
+                <div class="sc-type">Array of objects</div>
+                <div class="sc-desc">List of records — the most common API format. pd.DataFrame(data) handles this directly.</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">JSON structure</div>
+                <div class="json-tree-wrap" id="json-tree"></div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Resulting DataFrame</div>
+                <div class="json-output-area" id="df-preview"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — INTERACTIVE PARSER -->
+          <section class="section" id="parser">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(167,139,250,0.1);color:#a78bfa;">&#9654;</div>
+              Interactive JSON parser — paste your own JSON
+            </h2>
+            <p>Paste any JSON below. The parser detects the structure type and shows the best pandas loading strategy.</p>
+
+            <div class="json-editor-wrap">
+              <textarea class="json-input" id="json-input" spellcheck="false" oninput="parseJSON()" placeholder='Paste JSON here...'></textarea>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+              <button class="ctrl-btn active" onclick="loadSample('records')">Records list</button>
+              <button class="ctrl-btn" onclick="loadSample('nested')">Nested object</button>
+              <button class="ctrl-btn" onclick="loadSample('weather')">Weather API</button>
+              <button class="ctrl-btn" onclick="loadSample('github')">GitHub API</button>
+              <button class="ctrl-btn" onclick="loadSample('jsonlines')">JSON Lines</button>
+            </div>
+            <div id="parse-result" style="display:none;">
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 18px;margin-bottom:12px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:10px;">Parse analysis</div>
+                <div id="parse-details" style="font-size:13px;color:var(--text-2);line-height:1.8;"></div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Recommended Python code</div>
+                <div class="json-output-area" id="parse-code" style="color:#2dd4bf;"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — FLATTENING CANVAS -->
+          <section class="section" id="flattening">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">&#8595;</div>
+              Flattening nested JSON — the key skill
+            </h2>
+            <p>
+              Nested JSON is the trickiest case. Pandas' <code>json_normalize()</code> flattens
+              nested objects into dot-separated column names automatically.
+              Change the nesting depth below to see how it works.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">How json_normalize() flattens nested JSON</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Nesting depth:</span>
+                  <input type="range" min="1" max="3" value="2" step="1" class="ctrl-slider"
+                    id="depth-slider" oninput="drawFlattenCanvas(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="depth-val" style="color:#a78bfa;font-weight:700;">2</span>
+                </div>
+              </div>
+              <canvas id="flatten-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — JSON LINES -->
+          <section class="section" id="jsonlines">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">&#8801;</div>
+              JSON Lines — one JSON object per line
+            </h2>
+            <p>
+              JSON Lines (.jsonl) is a streaming-friendly format where each line is a complete
+              JSON object. Common for log files, ML training data, and large exports.
+              Load with <code>pd.read_json("file.jsonl", lines=True)</code>.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">JSON vs JSON Lines — format comparison</span>
+              </div>
+              <canvas id="jsonl-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">&#128161;</span>
+              <p><strong>When to use JSON Lines for ML:</strong> Large training datasets (millions of rows),
+              streaming data from APIs, log files, NLP corpora. Process line-by-line with a for loop
+              when the file is too large for RAM.</p>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">json_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9733;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways"><div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Flat list of records: use <code>pd.DataFrame(data)</code> or <code>pd.read_json("file.json")</code> directly.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Nested JSON: use <code>pd.json_normalize(data)</code> to flatten nested objects into dot-separated column names.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>JSON Lines (.jsonl): use <code>pd.read_json("file.jsonl", lines=True)</code> or read line by line for very large files.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <code>json.loads(string)</code> to parse a JSON string. Use <code>json.dumps(obj)</code> to convert Python to JSON.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>After loading, always check <code>df.info()</code> and <code>df.head()</code> — nested fields often come in as object dtype.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="csv-loading.html"><span class="pn-dir">&#8592; Previous</span><span class="pn-title">CSV Loading</span></a>
+            <a class="pn-card next" href="sql-loading.html"><span class="pn-dir">Next &#8594;</span><span class="pn-title">SQL Loading</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#structure">JSON structure</a></li>
+            <li class="toc-item"><a href="#parser">Interactive parser</a></li>
+            <li class="toc-item"><a href="#flattening">Flattening nested JSON</a></li>
+            <li class="toc-item"><a href="#jsonlines">JSON Lines</a></li>
+            <li class="toc-item"><a href="#live-editor">Code editor</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+
+/* ── SECTION 1: STRUCTURE CARDS ── */
+var STRUCTURES={
+  flat:{
+    json:'{\n  "name": "Alice",\n  "age": 30,\n  "score": 0.92,\n  "active": true\n}',
+    df:'   name  age  score  active\n0  Alice   30   0.92    True',
+    code:'import json, pandas as pd\n\nwith open("data.json") as f:\n    data = json.load(f)\n\ndf = pd.DataFrame([data])\nprint(df)'
+  },
+  nested:{
+    json:'{\n  "user": "Alice",\n  "address": {\n    "city": "London",\n    "country": "UK"\n  },\n  "score": 0.92\n}',
+    df:'    user  address.city  address.country  score\n0  Alice        London               UK   0.92',
+    code:'import json, pandas as pd\nfrom pandas import json_normalize\n\nwith open("data.json") as f:\n    data = json.load(f)\n\ndf = json_normalize(data)\nprint(df.columns.tolist())'
+  },
+  array:{
+    json:'[\n  {"name": "Alice", "age": 30},\n  {"name": "Bob",   "age": 25},\n  {"name": "Carol", "age": 35}\n]',
+    df:'    name  age\n0  Alice   30\n1    Bob   25\n2  Carol   35',
+    code:'import json, pandas as pd\n\nwith open("data.json") as f:\n    data = json.load(f)\n\ndf = pd.DataFrame(data)\nprint(df)'
+  }
+};
+
+function selectStructure(s){
+  ['flat','nested','array'].forEach(function(k){C('sc-'+k).classList.toggle('active',k===s);});
+  var st=STRUCTURES[s];
+  C('json-tree').innerHTML='<pre style="margin:0;">'+syntaxHighlight(st.json)+'</pre>';
+  C('df-preview').textContent=st.df;
+}
+
+function syntaxHighlight(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(m){
+      var cls='jt-num';
+      if(/^"/.test(m)){cls=/:$/.test(m)?'jt-key':'jt-str';}
+      else if(/true|false/.test(m)){cls='jt-bool';}
+      else if(/null/.test(m)){cls='jt-null';}
+      return '<span class="'+cls+'">'+m+'</span>';
+    });
+}
+
+/* ── SECTION 2: INTERACTIVE PARSER ── */
+var SAMPLES={
+  records:'[\n  {"name": "Alice", "age": 30, "salary": 75000, "city": "London"},\n  {"name": "Bob",   "age": 25, "salary": 62000, "city": "Paris"},\n  {"name": "Carol", "age": 35, "salary": 88000, "city": "Berlin"}\n]',
+  nested:'{\n  "user": "Alice",\n  "profile": {\n    "age": 30,\n    "address": {\n      "city": "London",\n      "postcode": "SW1A"\n    }\n  },\n  "scores": [0.9, 0.85, 0.92]\n}',
+  weather:'{\n  "latitude": 51.5,\n  "longitude": -0.1,\n  "current": {\n    "time": "2024-01-15T12:00",\n    "temperature_2m": 8.4,\n    "wind_speed_10m": 15.2\n  }\n}',
+  github:'{\n  "login": "torvalds",\n  "id": 1024025,\n  "name": "Linus Torvalds",\n  "public_repos": 8,\n  "followers": 232000,\n  "created_at": "2011-09-04T22:48:51Z"\n}',
+  jsonlines:'{"id": 1, "text": "Hello world", "label": 1}\n{"id": 2, "text": "Spam message", "label": 0}\n{"id": 3, "text": "Buy now!", "label": 0}\n{"id": 4, "text": "Meeting at 3pm", "label": 1}'
+};
+
+function loadSample(key){C('json-input').value=SAMPLES[key];parseJSON();}
+
+function parseJSON(){
+  var raw=C('json-input').value.trim();
+  if(!raw){C('parse-result').style.display='none';return;}
+  C('parse-result').style.display='';
+
+  var lines=raw.split('\n').filter(function(l){return l.trim();});
+  var isJSONL=lines.length>1&&lines.every(function(l){try{JSON.parse(l);return true;}catch(e){return false;}});
+
+  if(isJSONL){
+    C('parse-details').innerHTML='<strong style="color:var(--green);">JSON Lines format detected</strong> — '+lines.length+' records, one JSON per line.';
+    C('parse-code').textContent='import pandas as pd\ndf = pd.read_json("file.jsonl", lines=True)\nprint(df.shape)';
+    return;
+  }
+
+  try{
+    var obj=JSON.parse(raw);
+    var details='',code='';
+    if(Array.isArray(obj)){
+      var isNested=obj[0]&&Object.values(obj[0]).some(function(v){return typeof v==='object'&&v!==null;});
+      details='<strong style="color:#a78bfa;">Array of objects</strong> — '+obj.length+' records.<br/>';
+      if(isNested){
+        details+='Contains nested objects. Use <code>json_normalize()</code> to flatten.';
+        code='from pandas import json_normalize\nimport json\nwith open("data.json") as f:\n    data = json.load(f)\ndf = json_normalize(data)\nprint(df.columns.tolist())';
+      }else{
+        var keys=obj[0]?Object.keys(obj[0]):[];
+        details+='Flat structure. Columns: '+keys.map(function(k){return '<code>'+k+'</code>';}).join(', ');
+        code='import pandas as pd, json\nwith open("data.json") as f:\n    data = json.load(f)\ndf = pd.DataFrame(data)\nprint(df.head())';
+      }
+    }else if(typeof obj==='object'){
+      var isNested2=Object.values(obj).some(function(v){return typeof v==='object'&&v!==null;});
+      details='<strong style="color:#a78bfa;">Single JSON object</strong> — '+Object.keys(obj).length+' top-level keys.<br/>';
+      if(isNested2){
+        details+='Contains nested objects. Use <code>json_normalize()</code>.';
+        code='from pandas import json_normalize\nimport json\nwith open("data.json") as f:\n    data = json.load(f)\ndf = json_normalize([data])\nprint(df.columns.tolist())';
+      }else{
+        details+='Flat key-value pairs.';
+        code='import pandas as pd, json\nwith open("data.json") as f:\n    data = json.load(f)\ndf = pd.DataFrame([data])\nprint(df)';
+      }
+    }
+    C('parse-details').innerHTML=details;
+    C('parse-code').textContent=code;
+  }catch(e){
+    C('parse-details').innerHTML='<span style="color:var(--red);">Invalid JSON: '+e.message+'</span><br/>Use double quotes, no trailing commas, no comments.';
+    C('parse-code').textContent='';
+  }
+}
+
+/* ── SECTION 3: FLATTEN CANVAS — FIXED ── */
+function drawFlattenCanvas(depth){
+  depth=parseInt(depth);
+  C('depth-val').textContent=depth;
+  var cv=C('flatten-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=bg();
+  ctx.fillRect(0,0,W,H);
+
+  /* Data for each depth level */
+  var examples=[
+    { before:['{ "name": "Alice",','  "age": 30','}'],
+      after:['"name"   | "age"','"Alice"  |  30'] },
+    { before:['{ "name": "Alice",','  "address": {','    "city": "London"','  },','  "score": 0.92','}'],
+      after:['"name"  | "address.city" | "score"','"Alice" | "London"      |   0.92'] },
+    { before:['{ "user": "Alice",','  "loc": {','    "addr": {','      "city": "London"','    }','  }','}'],
+      after:['"user"  | "loc.addr.city"','"Alice" | "London"'] }
+  ];
+  var ex=examples[depth-1];
+
+  var pad=18;
+  var midX=W/2;
+  var boxW=midX-pad*2;
+  var boxH=H-pad*2;
+
+  /* ── LEFT BOX: nested JSON ── */
+  ctx.save();
+  /* background */
+  ctx.fillStyle=isDark()?'#0f0f14':'#e8e6e0';
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(pad, pad, boxW, boxH, 8);
+  else ctx.rect(pad, pad, boxW, boxH);
+  ctx.fill();
+  /* border */
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.1)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  /* title */
+  ctx.fillStyle='#a78bfa';
+  ctx.font='bold 12px sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('Nested JSON  (input)', pad+boxW/2, pad+18);
+  /* code lines */
+  ctx.fillStyle=isDark()?'#d0ccf0':'#2a1a5e';
+  ctx.font='12px monospace';
+  ctx.textAlign='left';
+  ex.before.forEach(function(line,i){
+    ctx.fillText(line, pad+12, pad+38+i*20);
+  });
+  ctx.restore();
+
+  /* ── MIDDLE ARROW ── */
+  ctx.save();
+  ctx.textAlign='center';
+  ctx.fillStyle='#2dd4bf';
+  ctx.font='bold 24px sans-serif';
+  ctx.fillText('\u2192', midX, H/2+4);
+  ctx.font='10px sans-serif';
+  ctx.fillStyle=tc();
+  ctx.fillText('json_normalize()', midX, H/2+20);
+  ctx.restore();
+
+  /* ── RIGHT BOX: flat DataFrame ── */
+  var rx=midX+pad;
+  var rw=W-rx-pad;
+  ctx.save();
+  ctx.fillStyle=isDark()?'#081a0f':'#d5eedc';
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(rx, pad, rw, boxH, 8);
+  else ctx.rect(rx, pad, rw, boxH);
+  ctx.fill();
+  ctx.strokeStyle='rgba(62,207,142,0.5)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  /* title */
+  ctx.fillStyle='#3ecf8e';
+  ctx.font='bold 12px sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('Flat DataFrame  (output)', rx+rw/2, pad+18);
+  /* header separator */
+  ctx.strokeStyle='rgba(62,207,142,0.3)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(rx+8, pad+32);
+  ctx.lineTo(rx+rw-8, pad+32);
+  ctx.stroke();
+  /* data lines */
+  ctx.fillStyle=isDark()?'#9ee8b8':'#1a5e2a';
+  ctx.font='12px monospace';
+  ctx.textAlign='left';
+  ex.after.forEach(function(line,i){
+    ctx.fillText(line, rx+12, pad+48+i*24);
+  });
+  ctx.restore();
+}
+
+/* ── SECTION 4: JSON LINES CANVAS — FIXED ── */
+function drawJSONLCanvas(){
+  var cv=C('jsonl-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=bg();
+  ctx.fillRect(0,0,W,H);
+
+  var pad=12;
+  var midX=W/2;
+  var boxW=midX-pad*2;
+  var boxH=H-pad*2;
+
+  /* ── LEFT BOX: regular JSON array ── */
+  ctx.save();
+  ctx.fillStyle=isDark()?'#0f0f14':'#e8e6e0';
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(pad, pad, boxW, boxH, 8);
+  else ctx.rect(pad, pad, boxW, boxH);
+  ctx.fill();
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.1)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  /* title */
+  ctx.fillStyle='#a78bfa';
+  ctx.font='bold 12px sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('data.json  (JSON Array)', pad+boxW/2, pad+18);
+  /* lines */
+  ctx.fillStyle=isDark()?'#d0ccf0':'#2a1a5e';
+  ctx.font='12px monospace';
+  ctx.textAlign='left';
+  var leftLines=[
+    '[',
+    '  {"id":1,"text":"Hello","label":1},',
+    '  {"id":2,"text":"Spam","label":0},',
+    '  {"id":3,"text":"Buy!","label":0}',
+    ']',
+    '',
+    '# Load:',
+    'df = pd.read_json("data.json")'
+  ];
+  leftLines.forEach(function(line,i){
+    ctx.fillText(line, pad+10, pad+36+i*20);
+  });
+  ctx.restore();
+
+  /* ── RIGHT BOX: JSON Lines ── */
+  var rx=midX+pad;
+  var rw=W-rx-pad;
+  ctx.save();
+  ctx.fillStyle=isDark()?'#081a0f':'#d5eedc';
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(rx, pad, rw, boxH, 8);
+  else ctx.rect(rx, pad, rw, boxH);
+  ctx.fill();
+  ctx.strokeStyle='rgba(62,207,142,0.5)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  /* title */
+  ctx.fillStyle='#3ecf8e';
+  ctx.font='bold 12px sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('data.jsonl  (JSON Lines)', rx+rw/2, pad+18);
+  /* lines */
+  ctx.fillStyle=isDark()?'#9ee8b8':'#1a5e2a';
+  ctx.font='12px monospace';
+  ctx.textAlign='left';
+  var rightLines=[
+    '{"id":1,"text":"Hello","label":1}',
+    '{"id":2,"text":"Spam","label":0}',
+    '{"id":3,"text":"Buy!","label":0}',
+    '',
+    '# Each line = one record',
+    '',
+    '# Load:',
+    'df = pd.read_json("data.jsonl",',
+    '                  lines=True)'
+  ];
+  rightLines.forEach(function(line,i){
+    ctx.fillText(line, rx+10, pad+36+i*20);
+  });
+  ctx.restore();
+}
+
+/* ── EDITOR ── */
+var SNIPPETS=[
+{file:'json_basics.py',label:'JSON basics',code:`import json
+
+# json module is built-in — no install needed
+
+# Parse a JSON string
+json_string = '{"name": "Alice", "age": 30, "scores": [0.9, 0.85, 0.92]}'
+data = json.loads(json_string)
+
+print("Type:", type(data))
+print("name:", data["name"])
+print("age:", data["age"])
+print("scores:", data["scores"])
+print("first score:", data["scores"][0])
+print()
+
+# Convert Python to JSON
+python_dict = {
+    "model": "RandomForest",
+    "accuracy": 0.943,
+    "params": {"n_estimators": 100, "max_depth": 5},
+    "trained": True
+}
+json_output = json.dumps(python_dict, indent=2)
+print("Python dict as JSON:")
+print(json_output)
+`},
+{file:'json_to_df.py',label:'JSON to DataFrame',code:`import json
+import pandas as pd
+from pandas import json_normalize
+
+# CASE 1: List of flat dicts (most common)
+data_flat = [
+    {"name": "Alice", "age": 30, "city": "London", "salary": 75000},
+    {"name": "Bob",   "age": 25, "city": "Paris",  "salary": 62000},
+    {"name": "Carol", "age": 35, "city": "Berlin", "salary": 88000}
+]
+df_flat = pd.DataFrame(data_flat)
+print("=== Flat JSON ===")
+print(df_flat)
+print()
+
+# CASE 2: Nested dicts — use json_normalize
+data_nested = [
+    {"name": "Alice", "address": {"city": "London", "country": "UK"}, "score": 0.92},
+    {"name": "Bob",   "address": {"city": "Paris",  "country": "FR"}, "score": 0.88},
+]
+df_nested = json_normalize(data_nested)
+print("=== Nested JSON after json_normalize ===")
+print(df_nested)
+print("Columns:", df_nested.columns.tolist())
+print()
+
+# CASE 3: API-style wrapped response
+api_response = {
+    "total": 3,
+    "results": [
+        {"id": 1, "product": "Laptop", "price": 999},
+        {"id": 2, "product": "Phone",  "price": 699},
+    ]
+}
+df_api = pd.DataFrame(api_response["results"])
+print("=== API response — extracted 'results' key ===")
+print(df_api)
+`},
+{file:'json_lines.py',label:'JSON Lines',code:`import json
+import pandas as pd
+import tempfile, os
+
+# Create a sample .jsonl file
+sample = [
+    {"id": 1, "text": "Great product!", "sentiment": "positive", "rating": 5},
+    {"id": 2, "text": "Arrived broken.", "sentiment": "negative", "rating": 1},
+    {"id": 3, "text": "Average quality.", "sentiment": "neutral",  "rating": 3},
+    {"id": 4, "text": "Amazing! Will buy again.", "sentiment": "positive", "rating": 5},
+]
+
+tmpfile = tempfile.mktemp(suffix=".jsonl")
+with open(tmpfile, "w") as f:
+    for record in sample:
+        f.write(json.dumps(record) + "\\n")
+
+print("Created", len(sample), "records in JSON Lines file")
+print()
+
+# Method 1: Load all at once
+df = pd.read_json(tmpfile, lines=True)
+print("=== pd.read_json(lines=True) ===")
+print(df)
+print()
+
+# Method 2: Line by line (for huge files)
+print("=== Line-by-line (for files too big for RAM) ===")
+with open(tmpfile) as f:
+    for i, line in enumerate(f, 1):
+        rec = json.loads(line.strip())
+        print(f"  Line {i}: id={rec['id']} sentiment={rec['sentiment']}")
+
+os.unlink(tmpfile)
+`},
+{file:'edge_cases.py',label:'Edge cases',code:`import json
+import pandas as pd
+from pandas import json_normalize
+
+# Problem 1: Missing keys in some records
+records_missing = [
+    {"name": "Alice", "age": 30, "email": "alice@example.com"},
+    {"name": "Bob",   "age": 25},              # no email!
+    {"name": "Carol",            "email": "carol@example.com"}  # no age!
+]
+df = pd.DataFrame(records_missing)
+print("=== Records with missing keys ===")
+print(df)
+print("Missing counts:", df.isnull().sum().to_dict())
+print()
+
+# Problem 2: Mixed types in a column
+records_mixed = [
+    {"id": 1, "value": 42},
+    {"id": 2, "value": "N/A"},  # string instead of number
+    {"id": 3, "value": None},
+    {"id": 4, "value": 3.14}
+]
+df2 = pd.DataFrame(records_mixed)
+df2["value_clean"] = pd.to_numeric(df2["value"], errors="coerce")
+print("=== Mixed types fixed with to_numeric ===")
+print(df2)
+print()
+
+# Problem 3: Deeply nested JSON
+deep = [
+    {"id": 1, "user": {"name": "Alice", "loc": {"city": "London", "country": "UK"}}},
+    {"id": 2, "user": {"name": "Bob",   "loc": {"city": "Paris",  "country": "FR"}}},
+]
+df3 = json_normalize(deep)
+print("=== Deeply nested — all columns ===")
+print(df3.columns.tolist())
+print(df3[["id", "user.name", "user.loc.city"]])
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas']);
+        pyLoading=false;
+      } else {
+        while(pyLoading) await new Promise(function(r){setTimeout(r,100);});
+      }
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){
+      out.textContent='Failed to load Python.';out.className='editor-output error';
+      btn.disabled=false;btn.textContent='Run';return;
+    }
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    await pyodide.runPythonAsync(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+window.addEventListener('load',function(){
+  selectStructure('flat');
+  loadSample('records');
+  drawFlattenCanvas(2);
+  drawJSONLCanvas();
+
+  (function poll(){
+    if(typeof CodeMirror==='undefined'){setTimeout(poll,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){
+        if(cm.somethingSelected())cm.indentSelection('add');
+        else cm.replaceSelection('    ','end');
+      }}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    var active=document.querySelector('.structure-card.active');
+    selectStructure(active?active.id.replace('sc-',''):'flat');
+    drawFlattenCanvas(C('depth-slider').value);
+    drawJSONLCanvas();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

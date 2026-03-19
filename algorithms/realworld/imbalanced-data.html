@@ -1,0 +1,731 @@
+<!-- imbalanced-data.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Imbalanced Data — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,96,96,0.09),rgba(240,165,0,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(240,96,96,0.1) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .algo-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+    .algo-step{display:flex;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;transition:border-color .2s;}
+    .algo-step:hover{border-color:rgba(240,96,96,0.4);}
+    .algo-step-num{width:38px;height:38px;border-radius:50%;background:var(--red-surf);border:2px solid var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--red);flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--red-surf);color:var(--red);margin-bottom:7px;letter-spacing:.04em;}
+    .algo-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:10px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid var(--red);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+    .strategy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .strategy-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:16px;cursor:pointer;transition:all .18s;}
+    .strategy-card:hover{transform:translateY(-2px);}
+    .strategy-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .strategy-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:100px;display:inline-block;margin-bottom:8px;}
+    .strategy-desc{font-size:12px;color:var(--text-3);line-height:1.5;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--red);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.strategy-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="imbalanced-data">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Imbalanced Data</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Real World</a><span class="sep">/</span>
+            <span class="current">Imbalanced Data</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(240,96,96,.25);margin-bottom:14px;">Real World &middot; Class Imbalance</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Imbalanced Data</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">When 99% of your data is class 0, a model that always predicts 0 gets 99% accuracy but is completely useless. Learn to detect, measure, and fix class imbalance.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">20 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: ACCURACY TRAP -->
+          <section class="section" id="imbalance-viz">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              The accuracy trap &mdash; see it live
+            </h2>
+            <p>Drag the slider. A <strong>dummy classifier</strong> (always predicts majority) maintains high accuracy while being completely useless. This is why accuracy is the wrong metric for imbalanced data.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Class imbalance visualiser</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Minority class:</span>
+                  <input type="range" min="1" max="50" value="10" class="ctrl-slider" id="imbal-slider" style="width:120px;" oninput="updateImbalViz(this.value)"/>
+                  <span class="ctrl-value" id="imbal-val" style="color:var(--red);">10%</span>
+                </div>
+                <button class="ctrl-btn" onclick="document.getElementById('imbal-slider').value=1;updateImbalViz(1)">1% extreme</button>
+                <button class="ctrl-btn" onclick="document.getElementById('imbal-slider').value=10;updateImbalViz(10)">10% fraud</button>
+                <button class="ctrl-btn" onclick="document.getElementById('imbal-slider').value=20;updateImbalViz(20)">20% churn</button>
+              </div>
+              <canvas id="imbal-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="im-ratio">9:1</span><span class="stat-pill-lbl">Class ratio</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="im-acc" style="color:var(--green);">90%</span><span class="stat-pill-lbl">Dummy accuracy</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="im-rec" style="color:var(--red);">0%</span><span class="stat-pill-lbl">Minority recall</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="im-f1" style="color:var(--red);">0.00</span><span class="stat-pill-lbl">F1 score</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="im-verdict" style="font-size:13px;color:var(--red);">Useless!</span><span class="stat-pill-lbl">Model quality</span></div>
+              </div>
+            </div>
+            <div class="callout danger">
+              <span class="callout-icon">!</span>
+              <p><strong>The accuracy paradox:</strong> At 1% minority, a model predicting ALL majority gets 99% accuracy, 0% recall on fraud/disease, and F1 = 0. Never use accuracy alone on imbalanced datasets.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: STRATEGIES -->
+          <section class="section" id="strategies">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">6</div>
+              Handling strategies &mdash; animated comparison
+            </h2>
+            <p>Click any strategy to see how it rebalances the training data visually.</p>
+            <div class="strategy-grid">
+              <div class="strategy-card active" id="strat-none" onclick="selectStrategy('none')" style="border-color:var(--red);">
+                <div class="strategy-name">No resampling</div>
+                <div class="strategy-tag" style="background:var(--red-surf);color:var(--red);">Baseline (bad)</div>
+                <div class="strategy-desc">Train on raw imbalanced data. Model learns to predict majority almost always.</div>
+              </div>
+              <div class="strategy-card" id="strat-oversample" onclick="selectStrategy('oversample')">
+                <div class="strategy-name">Oversampling (SMOTE)</div>
+                <div class="strategy-tag" style="background:var(--blue-surf);color:var(--blue);">Add synthetic minority</div>
+                <div class="strategy-desc">Generate synthetic minority samples by interpolating between existing ones.</div>
+              </div>
+              <div class="strategy-card" id="strat-undersample" onclick="selectStrategy('undersample')">
+                <div class="strategy-name">Undersampling</div>
+                <div class="strategy-tag" style="background:var(--teal-surf);color:var(--teal);">Remove majority</div>
+                <div class="strategy-desc">Randomly remove majority class samples until balanced. Loses information.</div>
+              </div>
+              <div class="strategy-card" id="strat-weights" onclick="selectStrategy('weights')">
+                <div class="strategy-name">Class weights</div>
+                <div class="strategy-tag" style="background:var(--purple-surf);color:var(--purple);">Penalise misclassification</div>
+                <div class="strategy-desc">Multiply loss for minority class. No data changes. Simplest fix.</div>
+              </div>
+              <div class="strategy-card" id="strat-threshold" onclick="selectStrategy('threshold')">
+                <div class="strategy-name">Threshold tuning</div>
+                <div class="strategy-tag" style="background:var(--orange-surf);color:var(--orange);">Move decision boundary</div>
+                <div class="strategy-desc">Lower threshold to catch more minority cases at cost of precision.</div>
+              </div>
+              <div class="strategy-card" id="strat-ensemble" onclick="selectStrategy('ensemble')">
+                <div class="strategy-name">BalancedRandomForest</div>
+                <div class="strategy-tag" style="background:var(--green-surf);color:var(--green);">Best of both worlds</div>
+                <div class="strategy-desc">Samples equal classes per tree. Often best out-of-the-box performance.</div>
+              </div>
+            </div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title" id="strat-canvas-title">No resampling &mdash; imbalanced training set</span>
+              </div>
+              <canvas id="strat-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 3: SMOTE ANIMATION -->
+          <section class="section" id="smote-anim">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">+</div>
+              SMOTE &mdash; watch synthetic samples being created
+            </h2>
+            <p>SMOTE picks a minority point, finds its K nearest minority neighbours, and interpolates new samples between them. Click <strong>Generate step</strong> to watch one sample appear at a time.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">SMOTE synthetic generation</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K neighbours:</span>
+                  <input type="range" min="1" max="7" value="3" class="ctrl-slider" style="width:80px;" id="smote-k" oninput="C('smote-k-val').textContent=this.value"/>
+                  <span class="ctrl-value" id="smote-k-val" style="color:var(--blue);">3</span>
+                </div>
+                <button class="ctrl-btn active" onclick="smoteStep()">+ Generate step</button>
+                <button class="ctrl-btn" onclick="smoteRun()">Run 20</button>
+                <button class="ctrl-btn" onclick="smoteReset()">Reset</button>
+              </div>
+              <canvas id="smote-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="smote-orig" style="color:var(--red);">8</span><span class="stat-pill-lbl">Original minority</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="smote-synth" style="color:var(--blue);">0</span><span class="stat-pill-lbl">Synthetic added</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="smote-total">8</span><span class="stat-pill-lbl">Total minority</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="smote-ratio">10%</span><span class="stat-pill-lbl">Minority ratio</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: RIGHT METRICS -->
+          <section class="section" id="metrics">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">M</div>
+              Right metrics for imbalanced data
+            </h2>
+            <div class="algo-steps">
+              <div class="algo-step">
+                <div class="algo-step-num">1</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Never use alone</div>
+                  <div class="algo-step-title">Accuracy &mdash; misleading on imbalanced data</div>
+                  <div class="algo-step-desc">A model predicting ALL majority gets (majority/total) accuracy. For 99:1 data that is 99% accuracy with zero predictive value for the minority class.</div>
+                  <div class="algo-step-formula">accuracy = (TP + TN) / (TP + TN + FP + FN)
+# 99% accuracy but catches 0% of fraud = useless!</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">2</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Use these</div>
+                  <div class="algo-step-title">Precision, Recall, and F1</div>
+                  <div class="algo-step-desc">Precision = of predicted positives, how many correct. Recall = of actual positives, how many caught. F1 = harmonic mean. For fraud/disease, recall matters most.</div>
+                  <div class="algo-step-formula">precision = TP / (TP + FP)   # of predicted fraud, how many real?
+recall    = TP / (TP + FN)   # of actual fraud, how many caught?
+F1        = 2 * (P * R) / (P + R)</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">3</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Best single metric</div>
+                  <div class="algo-step-title">ROC-AUC and PR-AUC</div>
+                  <div class="algo-step-desc">ROC-AUC measures discrimination across all thresholds. For extreme imbalance (&lt;5%), use PR-AUC instead. ROC-AUC can look great while PR-AUC is terrible.</div>
+                  <div class="algo-step-formula">ROC-AUC = area under ROC curve (TPR vs FPR)
+PR-AUC  = area under Precision-Recall curve
+# Use PR-AUC for severe imbalance (&lt;5% minority)</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">4</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Threshold tuning</div>
+                  <div class="algo-step-title">Move the decision threshold</div>
+                  <div class="algo-step-desc">Default threshold is 0.5. Lower it (e.g. 0.3) to catch more minority cases (higher recall) at the cost of more false alarms (lower precision). Choose based on business cost of each error type.</div>
+                  <div class="algo-step-formula">y_pred = (model.predict_proba(X)[:,1] >= threshold).astype(int)
+# Find optimal threshold via F1 or cost-sensitive criterion</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: detect imbalance, class weights, threshold tuning, and metrics comparison.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">imbalanced_detect.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Optimising for accuracy on imbalanced data.</strong> Always use F1, ROC-AUC, or PR-AUC. Report per-class precision and recall.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Applying SMOTE before train-test split.</strong> SMOTE must only be applied to training data. Applying it first leaks synthetic samples into the test set and inflates metrics.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Always defaulting to SMOTE.</strong> class_weight='balanced' is simpler, faster, and often equally effective. Try weights first before resampling.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Ignoring business cost of errors.</strong> False negatives (missed fraud) may cost 1000x more than false positives. Tune threshold based on real cost, not F1.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using ROC-AUC with extreme imbalance.</strong> At 0.1% minority, ROC-AUC can be 0.95 while PR-AUC is 0.10. Always report PR-AUC for &lt;5% minority problems.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Never evaluate imbalanced models on accuracy alone. Use F1, ROC-AUC, and PR-AUC.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Try class_weight='balanced' first &mdash; simplest fix, often as good as SMOTE.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>SMOTE must only be applied to training data, never before the train-test split.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For severe imbalance (&lt;5%), use PR-AUC instead of ROC-AUC as the primary metric.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Tune the decision threshold based on business cost of each error type.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>BalancedRandomForest and EasyEnsemble are often the best out-of-the-box solutions.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="../../algorithms/ensembles/stacking-blending.html"><span class="pn-dir">Previous</span><span class="pn-title">Stacking &amp; Blending</span></a>
+            <a class="pn-card next" id="next-card" href="cross-validation.html"><span class="pn-dir">Next</span><span class="pn-title">Cross Validation</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#imbalance-viz">Accuracy trap</a></li>
+            <li class="toc-item"><a href="#strategies">Handling strategies</a></li>
+            <li class="toc-item"><a href="#smote-anim">SMOTE animation</a></li>
+            <li class="toc-item"><a href="#metrics">Right metrics</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* SECTION 1 */
+var IC=C('imbal-canvas'),IX=IC.getContext('2d');
+function updateImbalViz(v){
+  v=parseInt(v);
+  C('imbal-val').textContent=v+'%';
+  C('imbal-slider').value=v;
+  var majority=(100-v)/100,minority=v/100;
+  C('im-ratio').textContent=Math.round(majority/minority)+':1';
+  C('im-acc').textContent=(majority*100).toFixed(1)+'%';
+  C('im-rec').textContent='0%';
+  C('im-f1').textContent='0.00';
+  C('im-verdict').textContent=v<5?'Catastrophic!':v<15?'Useless!':v<30?'Poor':'Borderline';
+  C('im-verdict').style.color=v<15?'var(--red)':v<30?'var(--accent)':'var(--orange)';
+  var W=IC.width,H=IC.height,pad=30;
+  IX.clearRect(0,0,W,H);IX.fillStyle=bg();IX.fillRect(0,0,W,H);
+  var midX=W/2-10;
+  IX.fillStyle=tc();IX.font='bold 12px sans-serif';IX.textAlign='center';
+  IX.fillText('Class distribution',midX/2+pad,pad+4);
+  var barH=H-2*pad-40,majH=majority*barH,minH=minority*barH,bx1=pad+30,bx2=pad+110,barW=60;
+  IX.fillStyle='rgba(75,150,255,0.8)';IX.fillRect(bx1,H-pad-40-majH,barW,majH);
+  IX.fillStyle='rgba(240,96,96,0.9)';IX.fillRect(bx2,H-pad-40-minH,barW,minH);
+  IX.fillStyle=tc();IX.font='10px sans-serif';IX.textAlign='center';
+  IX.fillText('Majority',bx1+barW/2,H-pad-25);IX.fillText((majority*100).toFixed(0)+'%',bx1+barW/2,H-pad-12);
+  IX.fillText('Minority',bx2+barW/2,H-pad-25);IX.fillText(v+'%',bx2+barW/2,H-pad-12);
+  IX.strokeStyle=gc();IX.lineWidth=1;IX.beginPath();IX.moveTo(midX,pad);IX.lineTo(midX,H-pad);IX.stroke();
+  var rx=midX+20,mW=W-rx-pad-10;
+  IX.fillStyle=tc();IX.font='bold 12px sans-serif';IX.textAlign='center';
+  IX.fillText('Metrics: dummy classifier (always predicts majority)',rx+mW/2,pad+4);
+  var metrics=[
+    {label:'Accuracy',val:majority*100,color:'rgba(75,150,255,0.7)',note:'Looks good! But...'},
+    {label:'Minority Recall',val:0,color:'rgba(240,96,96,0.8)',note:'0% catch rate'},
+    {label:'F1 Score',val:0,color:'rgba(240,96,96,0.8)',note:'Worst possible'},
+    {label:'PR-AUC',val:minority*80,color:'rgba(240,165,0,0.8)',note:'Shows reality'}
+  ];
+  metrics.forEach(function(m,i){
+    var my=pad+30+i*56;
+    IX.fillStyle=tc();IX.font='11px sans-serif';IX.textAlign='left';IX.fillText(m.label,rx,my);
+    var bw2=(m.val/100)*mW;
+    IX.fillStyle='var(--bg-input)';IX.fillRect(rx,my+8,mW,22);
+    if(bw2>0){IX.fillStyle=m.color;IX.fillRect(rx,my+8,bw2,22);}
+    IX.fillStyle=tc();IX.font='10px monospace';IX.textAlign='left';IX.fillText(m.note,rx+mW+4,my+22);
+  });
+}
+
+/* SECTION 2 */
+var SC2=C('strat-canvas'),SX2=SC2.getContext('2d'),currentStrategy='none';
+function selectStrategy(s){
+  currentStrategy=s;
+  var cols={none:'var(--red)',oversample:'var(--blue)',undersample:'var(--teal)',weights:'var(--purple)',threshold:'var(--orange)',ensemble:'var(--green)'};
+  var titles={none:'No resampling - imbalanced training set (bad baseline)',oversample:'SMOTE oversampling - synthetic minority points added (blue rings)',undersample:'Random undersampling - faded majority points removed',weights:'Class weights - minority points get larger loss ring',threshold:'Threshold tuning - decision boundary shifted left',ensemble:'Balanced Random Forest - equal subsampling per tree'};
+  Object.keys(cols).forEach(function(k){
+    var el=C('strat-'+k);if(!el)return;
+    el.classList.toggle('active',k===s);
+    el.style.borderColor=k===s?cols[k]:'var(--border)';
+  });
+  C('strat-canvas-title').textContent=titles[s]||'';
+  drawStrategy(s);
+}
+function drawStrategy(s){
+  var W=SC2.width,H=SC2.height,pad=30;
+  SX2.clearRect(0,0,W,H);SX2.fillStyle=bg();SX2.fillRect(0,0,W,H);
+  var seed=42;
+  function rng(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;}
+  var majN=80,minN=8,majority=[],minority=[];
+  for(var i=0;i<majN;i++)majority.push([pad+rng()*(W-2*pad),pad+30+rng()*(H-2*pad-30)]);
+  for(var i=0;i<minN;i++)minority.push([pad+rng()*(W/3),pad+30+rng()*(H-2*pad-30)]);
+  SX2.fillStyle=tc();SX2.font='11px sans-serif';SX2.textAlign='left';
+  SX2.fillText('Majority (class 0): '+majN+'  |  Minority (class 1): '+minN,pad,18);
+  var synthPts=[],removedIdx=[];
+  if(s==='oversample'){for(var i=0;i<40;i++){var a=minority[Math.floor(rng()*minN)],b=minority[Math.floor(rng()*minN)],t=rng();synthPts.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);}}
+  else if(s==='undersample'){for(var i=0;i<majN-minN;i++)removedIdx.push(i);}
+  majority.forEach(function(p,i){
+    var removed=s==='undersample'&&removedIdx.indexOf(i)>-1;
+    SX2.beginPath();SX2.arc(p[0],p[1],5,0,Math.PI*2);
+    SX2.fillStyle=removed?'rgba(75,150,255,0.12)':'rgba(75,150,255,0.7)';SX2.fill();
+    if(removed){SX2.strokeStyle='rgba(75,150,255,0.2)';SX2.lineWidth=1;SX2.setLineDash([2,2]);SX2.stroke();SX2.setLineDash([]);}
+  });
+  minority.forEach(function(p){
+    SX2.beginPath();SX2.arc(p[0],p[1],6,0,Math.PI*2);
+    SX2.fillStyle='rgba(240,96,96,0.9)';SX2.fill();
+    SX2.strokeStyle='#fff';SX2.lineWidth=1.5;SX2.stroke();
+    if(s==='weights'){SX2.beginPath();SX2.arc(p[0],p[1],13,0,Math.PI*2);SX2.strokeStyle='rgba(167,139,250,0.6)';SX2.lineWidth=2;SX2.setLineDash([3,3]);SX2.stroke();SX2.setLineDash([]);}
+  });
+  synthPts.forEach(function(p){
+    SX2.beginPath();SX2.arc(p[0],p[1],5,0,Math.PI*2);
+    SX2.fillStyle='rgba(75,150,255,0.45)';SX2.fill();
+    SX2.strokeStyle='#4b96ff';SX2.lineWidth=1.5;SX2.stroke();
+  });
+  if(s==='threshold'){
+    SX2.beginPath();SX2.strokeStyle='rgba(240,165,0,0.9)';SX2.lineWidth=2.5;SX2.setLineDash([6,4]);
+    SX2.moveTo(W*0.33,pad+30);SX2.lineTo(W*0.33,H-pad);SX2.stroke();SX2.setLineDash([]);
+    SX2.fillStyle='rgba(240,165,0,0.9)';SX2.font='bold 11px sans-serif';SX2.textAlign='center';
+    SX2.fillText('Threshold = 0.35',W*0.33,pad+22);
+    SX2.beginPath();SX2.strokeStyle='rgba(75,150,255,0.35)';SX2.lineWidth=1.5;SX2.setLineDash([4,4]);
+    SX2.moveTo(W*0.5,pad+30);SX2.lineTo(W*0.5,H-pad);SX2.stroke();SX2.setLineDash([]);
+    SX2.fillStyle='rgba(75,150,255,0.4)';SX2.font='10px sans-serif';
+    SX2.fillText('Default = 0.50',W*0.5,pad+22);
+  }
+  var lx=W-160,ly=H-55;
+  SX2.fillStyle='rgba(75,150,255,0.7)';SX2.beginPath();SX2.arc(lx,ly,4,0,Math.PI*2);SX2.fill();
+  SX2.fillStyle=tc();SX2.font='11px sans-serif';SX2.textAlign='left';SX2.fillText('Majority',lx+10,ly+4);
+  SX2.fillStyle='rgba(240,96,96,0.9)';SX2.beginPath();SX2.arc(lx,ly+18,4,0,Math.PI*2);SX2.fill();
+  SX2.fillText('Minority',lx+10,ly+22);
+  if(s==='oversample'){
+    SX2.fillStyle='rgba(75,150,255,0.45)';SX2.beginPath();SX2.arc(lx,ly+36,4,0,Math.PI*2);SX2.fill();
+    SX2.strokeStyle='#4b96ff';SX2.lineWidth=1.5;SX2.stroke();
+    SX2.fillStyle=tc();SX2.fillText('Synthetic',lx+10,ly+40);
+  }
+}
+
+/* SECTION 3: SMOTE */
+var SMTC=C('smote-canvas'),SMTX=SMTC.getContext('2d');
+var smoteOrig=[],smoteSynth=[],smoteMaj=[];
+function smoteReset(){
+  var seed=99;function rng(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;}
+  var W=SMTC.width,H=SMTC.height,pad=40;
+  smoteOrig=[];smoteSynth=[];smoteMaj=[];
+  for(var i=0;i<8;i++)smoteOrig.push([pad+rng()*W*0.4,pad+rng()*(H-2*pad)]);
+  for(var i=0;i<72;i++)smoteMaj.push([pad+W*0.05+rng()*(W-2*pad-W*0.05),pad+rng()*(H-2*pad)]);
+  drawSMOTE(null,null,null);
+  C('smote-synth').textContent='0';C('smote-total').textContent='8';C('smote-ratio').textContent='10%';
+}
+async function smoteStep(){
+  if(!smoteOrig.length)smoteReset();
+  var k=parseInt(C('smote-k').value)||3;
+  var idx=Math.floor(Math.random()*smoteOrig.length),pt=smoteOrig[idx];
+  var dists=smoteOrig.map(function(p,i){return{d:Math.sqrt((p[0]-pt[0])**2+(p[1]-pt[1])**2),i:i};});
+  dists.sort(function(a,b){return a.d-b.d;});
+  var neighbours=dists.slice(1,k+1).map(function(d){return smoteOrig[d.i];});
+  var nb=neighbours[Math.floor(Math.random()*neighbours.length)];
+  var t=Math.random(),newPt=[pt[0]+(nb[0]-pt[0])*t,pt[1]+(nb[1]-pt[1])*t];
+  drawSMOTE(pt,neighbours,newPt);
+  await delay(350);
+  smoteSynth.push(newPt);
+  drawSMOTE(null,null,null);
+  var total=smoteOrig.length+smoteSynth.length,allN=total+smoteMaj.length;
+  C('smote-synth').textContent=smoteSynth.length;
+  C('smote-total').textContent=total;
+  C('smote-ratio').textContent=Math.round(total/allN*100)+'%';
+}
+async function smoteRun(){for(var i=0;i<20;i++){await smoteStep();await delay(60);}}
+function drawSMOTE(activePt,neighbours,newPt){
+  var W=SMTC.width,H=SMTC.height;
+  SMTX.clearRect(0,0,W,H);SMTX.fillStyle=bg();SMTX.fillRect(0,0,W,H);
+  smoteMaj.forEach(function(p){SMTX.beginPath();SMTX.arc(p[0],p[1],4,0,Math.PI*2);SMTX.fillStyle='rgba(75,150,255,0.3)';SMTX.fill();});
+  if(activePt&&neighbours){
+    neighbours.forEach(function(nb){
+      SMTX.beginPath();SMTX.moveTo(activePt[0],activePt[1]);SMTX.lineTo(nb[0],nb[1]);
+      SMTX.strokeStyle='rgba(62,207,142,0.7)';SMTX.lineWidth=1.5;SMTX.setLineDash([4,3]);SMTX.stroke();SMTX.setLineDash([]);
+    });
+  }
+  smoteSynth.forEach(function(p){
+    SMTX.beginPath();SMTX.arc(p[0],p[1],6,0,Math.PI*2);
+    SMTX.fillStyle='rgba(75,150,255,0.5)';SMTX.fill();
+    SMTX.strokeStyle='#4b96ff';SMTX.lineWidth=1.5;SMTX.stroke();
+  });
+  if(newPt){SMTX.beginPath();SMTX.arc(newPt[0],newPt[1],8,0,Math.PI*2);SMTX.fillStyle='rgba(62,207,142,0.9)';SMTX.fill();SMTX.strokeStyle='#fff';SMTX.lineWidth=2;SMTX.stroke();}
+  smoteOrig.forEach(function(p){
+    var isActive=activePt&&p[0]===activePt[0]&&p[1]===activePt[1];
+    SMTX.beginPath();SMTX.arc(p[0],p[1],isActive?9:6,0,Math.PI*2);
+    SMTX.fillStyle='rgba(240,96,96,0.9)';SMTX.fill();
+    SMTX.strokeStyle=isActive?'#fff':'rgba(255,255,255,0.5)';SMTX.lineWidth=isActive?2.5:1.5;SMTX.stroke();
+  });
+  if(neighbours){neighbours.forEach(function(nb){SMTX.beginPath();SMTX.arc(nb[0],nb[1],10,0,Math.PI*2);SMTX.strokeStyle='rgba(62,207,142,0.8)';SMTX.lineWidth=2;SMTX.setLineDash([4,3]);SMTX.stroke();SMTX.setLineDash([]);});}
+  SMTX.fillStyle=tc();SMTX.font='11px sans-serif';SMTX.textAlign='center';
+  SMTX.fillText('Red = original minority  |  Blue ring = synthetic (SMOTE)  |  Green = just created',W/2,H-8);
+}
+
+/* LIVE EDITOR */
+var SNIPPETS=[
+{file:'imbalanced_detect.py',label:'Detect & measure',code:`import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (classification_report, roc_auc_score,
+                             average_precision_score)
+
+# Create imbalanced dataset (5% minority)
+X, y = make_classification(
+    n_samples=1000, n_features=10,
+    weights=[0.95, 0.05],
+    random_state=42
+)
+
+print("Class distribution:")
+unique, counts = np.unique(y, return_counts=True)
+for cls, cnt in zip(unique, counts):
+    print(f"  Class {cls}: {cnt} ({cnt/len(y)*100:.1f}%)")
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+
+model = LogisticRegression(random_state=42)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)[:,1]
+
+print()
+print("=== Naive model (no handling) ===")
+acc = (y_pred==y_test).mean()
+roc = roc_auc_score(y_test, y_prob)
+pr  = average_precision_score(y_test, y_prob)
+print(f"Accuracy : {acc:.3f}  <- looks good but misleading!")
+print(f"ROC-AUC  : {roc:.3f}")
+print(f"PR-AUC   : {pr:.3f}  <- low, reflects reality")
+print()
+print(classification_report(y_test, y_pred,
+      target_names=['majority','minority']))`},
+{file:'imbalanced_weights.py',label:'Class weights',code:`from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import average_precision_score, roc_auc_score
+import numpy as np
+
+X, y = make_classification(
+    n_samples=2000, n_features=15,
+    weights=[0.90, 0.10], random_state=42)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, stratify=y, random_state=42)
+
+models = {
+    "LogReg (default)"  : LogisticRegression(random_state=42),
+    "LogReg (balanced)" : LogisticRegression(class_weight='balanced', random_state=42),
+    "RF (default)"      : RandomForestClassifier(n_estimators=100, random_state=42),
+    "RF (balanced)"     : RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42),
+}
+
+print(f"{'Model':<25} {'ROC-AUC':>8} {'PR-AUC':>8} {'Recall-1':>10}")
+print("-" * 56)
+for name, m in models.items():
+    m.fit(X_train, y_train)
+    y_pred = m.predict(X_test)
+    y_prob = m.predict_proba(X_test)[:,1]
+    roc = roc_auc_score(y_test, y_prob)
+    pr  = average_precision_score(y_test, y_prob)
+    rec = (y_pred[y_test==1]==1).mean()
+    print(f"{name:<25} {roc:>8.3f} {pr:>8.3f} {rec:>10.3f}")`},
+{file:'imbalanced_threshold.py',label:'Threshold tuning',code:`from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (precision_recall_curve, f1_score,
+                             classification_report)
+import numpy as np
+
+X, y = make_classification(
+    n_samples=1000, n_features=10,
+    weights=[0.90, 0.10], random_state=42)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+
+model = LogisticRegression(random_state=42)
+model.fit(X_train, y_train)
+y_prob = model.predict_proba(X_test)[:,1]
+
+# Find optimal threshold
+precisions, recalls, thresholds = precision_recall_curve(y_test, y_prob)
+f1_scores = (2 * precisions[:-1] * recalls[:-1] /
+             (precisions[:-1] + recalls[:-1] + 1e-10))
+best_threshold = thresholds[f1_scores.argmax()]
+
+print("Default threshold (0.5):")
+print(classification_report(y_test, (y_prob>=0.5).astype(int),
+      target_names=['majority','minority']))
+
+print(f"Optimal threshold ({best_threshold:.3f}):")
+print(classification_report(y_test, (y_prob>=best_threshold).astype(int),
+      target_names=['majority','minority']))
+
+print("Threshold scan:")
+for t in [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]:
+    yp = (y_prob >= t).astype(int)
+    f1 = f1_score(y_test, yp, pos_label=1, zero_division=0)
+    rec = (yp[y_test==1]==1).mean() if (y_test==1).sum()>0 else 0
+    print(f"  t={t:.1f}  F1={f1:.3f}  recall={rec:.3f}")`},
+{file:'imbalanced_compare.py',label:'Full comparison',code:`from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import average_precision_score, make_scorer
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+X, y = make_classification(
+    n_samples=3000, n_features=20,
+    weights=[0.95, 0.05], random_state=42)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+
+pr_auc = make_scorer(average_precision_score, needs_proba=True)
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+strategies = {
+    "LR - default"     : LogisticRegression(max_iter=500, random_state=42),
+    "LR - balanced"    : LogisticRegression(class_weight='balanced', max_iter=500, random_state=42),
+    "RF - default"     : RandomForestClassifier(100, random_state=42),
+    "RF - balanced"    : RandomForestClassifier(100, class_weight='balanced', random_state=42),
+    "GBM - default"    : GradientBoostingClassifier(100, random_state=42),
+}
+
+print(f"{'Strategy':<22} {'PR-AUC (CV mean)':>18} {'Std':>8}")
+print("-" * 52)
+for name, model in strategies.items():
+    scores = cross_val_score(model, X_train, y_train, cv=cv, scoring=pr_auc)
+    print(f"{name:<22} {scores.mean():>18.4f} {scores.std():>8.4f}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+window.addEventListener('load',function(){
+  updateImbalViz(10);selectStrategy('none');smoteReset();initEditor();
+  new MutationObserver(function(){
+    updateImbalViz(parseInt(C('imbal-slider').value));
+    if(currentStrategy)drawStrategy(currentStrategy);
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

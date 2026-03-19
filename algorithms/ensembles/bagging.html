@@ -1,0 +1,389 @@
+<!-- bagging.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bagging &mdash; ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(75,150,255,0.09),rgba(45,212,191,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;margin-bottom:4px;transition:all .3s;}
+    .acc-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;} .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;} .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;} .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;} .cm-s-one-dark .cm-string{color:#4ade80;} .cm-s-one-dark .cm-number{color:#fb923c;} .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;} .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;} .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;} .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);} .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--blue);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);} .run-pill:disabled{opacity:.4;cursor:not-allowed;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .py-status{font-size:11px;color:var(--text-3);} .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="bagging">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Bagging</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb"><a href="../../../index.html">Home</a><span class="sep">/</span><a href="../../../index.html#roadmap">Ensemble Methods</a><span class="sep">/</span><span class="current">Bagging</span></nav>
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(75,150,255,.3);background:rgba(75,150,255,0.1);color:var(--blue);margin-bottom:14px;">Ensemble &middot; Bagging &middot; Bootstrap</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Bagging</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              <strong>Bootstrap AGGregatING</strong> &mdash; train the same model type on many different
+              bootstrap samples of your data, then average their predictions. Bagging reduces <strong>variance</strong>
+              without changing bias. Random Forest is bagging applied to decision trees with an extra feature-randomness twist.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#9201; 20 min</span>
+              <span class="topic-meta-item">&#9670;&#9670; Intermediate</span>
+              <span class="topic-meta-item">sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: BOOTSTRAP VIZ -->
+          <section class="section" id="bootstrap-viz">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(75,150,255,0.15);color:var(--blue);">&#9679;</div>
+              Bootstrap sampling &mdash; why different data creates diversity
+            </h2>
+            <p>Each model trains on a <strong>bootstrap sample</strong>: draw N points from N with replacement. ~63.2% unique points appear. The remaining ~36.8% (out-of-bag) are a free validation set.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Bootstrap visualiser &mdash; see which points each tree gets</span>
+                <button class="ctrl-btn active" onclick="runBootstrap()">&#9654; New bootstrap</button>
+                <div class="ctrl-group"><span class="ctrl-label">Bags:</span><input type="range" min="1" max="8" value="4" step="1" class="ctrl-slider" id="n-bags" oninput="C('n-bags-val').textContent=this.value;runBootstrap()" style="width:80px;"/><span class="ctrl-value" id="n-bags-val" style="color:var(--blue);">4</span></div>
+              </div>
+              <canvas id="boot-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="boot-unique" style="color:var(--blue);">--</span><span class="stat-pill-lbl">Avg unique %</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="boot-oob">--</span><span class="stat-pill-lbl">Avg OOB %</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="boot-overlap" style="color:var(--orange);">--</span><span class="stat-pill-lbl">Bag overlap %</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2: VARIANCE REDUCTION -->
+          <section class="section" id="variance-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(75,150,255,0.15);color:var(--blue);">&#963;</div>
+              Variance reduction &mdash; why averaging helps
+            </h2>
+            <p>A single deep tree has <strong>high variance</strong> &mdash; it changes a lot with different training data. Averaging many trees <strong>cancels out</strong> the individual variation. The formula: Var(mean of B models) = &sigma;&sup2;/B for uncorrelated models.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Boundary stability &mdash; how much does the boundary change with new data?</span>
+                <button class="ctrl-btn active" onclick="runVarianceDemo()">&#9654; Run 10 trials</button>
+                <span id="var-status" style="font-size:12px;color:var(--text-3);margin-left:6px;"></span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <canvas id="var-tree-canvas" width="350" height="260" style="width:100%;display:block;border-right:1px solid var(--border);"></canvas>
+                <canvas id="var-bag-canvas" width="350" height="260" style="width:100%;display:block;"></canvas>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="var-tree-std" style="color:var(--orange);">--</span><span class="stat-pill-lbl">Tree acc std</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-bag-std" style="color:var(--green);">--</span><span class="stat-pill-lbl">Bag acc std</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-tree-mean">--</span><span class="stat-pill-lbl">Tree mean acc</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-bag-mean">--</span><span class="stat-pill-lbl">Bag mean acc</span></div>
+              </div>
+            </div>
+            <div class="callout info">
+              <span class="callout-icon">&#128161;</span>
+              <p><strong>Why does averaging reduce variance?</strong> If each tree has variance &sigma;&sup2;, the mean of B <em>uncorrelated</em> trees has variance &sigma;&sup2;/B. With 100 trees, variance drops 100x. In practice trees are correlated (same dataset) so the reduction is smaller &mdash; which is why Random Forest adds feature randomness to reduce correlation further.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 3: HP TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(75,150,255,0.15);color:var(--blue);">&#9881;</div>
+              Hyperparameter tuning &mdash; live accuracy
+            </h2>
+            <div class="acc-dashboard">
+              <div class="acc-card"><div class="acc-num" id="bg-train" style="color:var(--blue);">--</div><div class="acc-label">Train Acc</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="bg-train-bar" style="background:var(--blue);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="bg-test" style="color:var(--green);">--</div><div class="acc-label">Test Acc</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="bg-test-bar" style="background:var(--green);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="bg-oob" style="color:var(--teal);">--</div><div class="acc-label">OOB Score</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="bg-oob-bar" style="background:var(--teal);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="bg-status" style="font-size:15px;color:var(--accent);">--</div><div class="acc-label">Fit Status</div><div class="acc-bar-wrap"><div class="acc-bar-fill" style="background:var(--accent);width:60%"></div></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:16px;">
+              <div style="display:flex;flex-direction:column;gap:5px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:600;">n_estimators</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--blue);" id="bg-ne-val">50</span></div><input type="range" min="1" max="120" value="50" step="1" class="ctrl-slider" id="bg-ne" oninput="onBagChange()" style="width:100%;"/><div style="font-size:11px;color:var(--text-3);">More bags = lower variance. Diminishing returns after ~50.</div></div>
+              <div style="display:flex;flex-direction:column;gap:5px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:600;">max_samples</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--blue);" id="bg-ms-val">1.00</span></div><input type="range" min="0.3" max="1.0" value="1.0" step="0.1" class="ctrl-slider" id="bg-ms" oninput="onBagChange()" style="width:100%;"/><div style="font-size:11px;color:var(--text-3);">Fraction of training data per bag. Lower = more diversity.</div></div>
+              <div style="display:flex;flex-direction:column;gap:5px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:600;">max_features</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--blue);" id="bg-mf-val">1.00</span></div><input type="range" min="0.3" max="1.0" value="1.0" step="0.1" class="ctrl-slider" id="bg-mf" oninput="onBagChange()" style="width:100%;"/><div style="font-size:11px;color:var(--text-3);">Fraction of features per bag. &lt;1.0 = random subspace method.</div></div>
+              <div style="display:flex;flex-direction:column;gap:5px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:600;">Dataset</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--blue);" id="bg-ds-val">moons</span></div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;"><button class="ctrl-btn active" id="bg-ds-moons" onclick="setBagDs('moons')">Moons</button><button class="ctrl-btn" id="bg-ds-circles" onclick="setBagDs('circles')">Circles</button><button class="ctrl-btn" id="bg-ds-xor" onclick="setBagDs('xor')">XOR</button></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="canvas-card" style="margin-bottom:0;"><div class="canvas-toolbar" style="padding:8px 14px;"><span class="canvas-title">Single tree boundary</span></div><canvas id="bg-tree-canvas" width="340" height="260" style="width:100%;display:block;"></canvas></div>
+              <div class="canvas-card" style="margin-bottom:0;"><div class="canvas-toolbar" style="padding:8px 14px;"><span class="canvas-title">Bagged ensemble boundary</span></div><canvas id="bg-bag-canvas" width="340" height="260" style="width:100%;display:block;"></canvas></div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar"><div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div><span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">bagging_basic.py</span><span class="py-status" id="py-status">Python not loaded</span></div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click &#9654; Run to execute...</div>
+              <div class="editor-actions"><button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button><button class="reset-pill" onclick="resetEditor()">&#8634; Reset</button><button class="reset-pill" onclick="clearOutput()">&#10005; Clear</button><span class="py-status" id="run-time" style="margin-left:auto;"></span></div>
+            </div>
+          </section>
+
+          <!-- MISTAKES + TAKEAWAYS -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Bagging low-variance models.</strong> Bagging a logistic regression gives almost no benefit &mdash; LR already has low variance. Bagging works best with high-variance models like decision trees. If you bag a low-variance model, you waste compute for nothing.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not using oob_score=True.</strong> Set <code>oob_score=True</code> for free cross-validation. It&rsquo;s nearly as accurate as 5-fold CV at zero extra training cost.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Confusing BaggingClassifier with Random Forest.</strong> Random Forest = bagging + feature randomness <em>at each split node</em>. BaggingClassifier with max_features&lt;1 does feature sampling per <em>tree</em>, not per <em>node</em>. These are different and Random Forest is usually better.</div></div>
+            </div>
+          </section>
+
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#9733;</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Bagging trains <strong>the same model type</strong> on B bootstrap samples and averages predictions. It reduces variance without changing bias.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Works best on <strong>high-variance base models</strong> (deep trees). Useless on low-variance models (linear regression already stable).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>OOB score is a <strong>free cross-validation estimate</strong>. Set <code>oob_score=True</code> always.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Var(average of B models) = &sigma;&sup2;/B when models are uncorrelated. Random Forest reduces correlation further via feature randomness at each node.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For trees specifically, use <strong>Random Forest</strong> (sklearn) rather than BaggingClassifier &mdash; RF has additional feature-node-level randomness that typically helps.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="adaboost.html"><span class="pn-dir">&#8592; Previous</span><span class="pn-title">AdaBoost</span></a>
+            <a class="pn-card next" href="ensemble-theory.html"><span class="pn-dir">Next &#8594;</span><span class="pn-title">Ensemble Theory</span></a>
+          </nav>
+        </article>
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#bootstrap-viz">Bootstrap sampling</a></li>
+            <li class="toc-item"><a href="#variance-demo">Variance reduction</a></li>
+            <li class="toc-item"><a href="#hyperparameters">HP tuning</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ── mini tree ── */
+function buildTree(pts,maxD){
+  var X=pts.map(function(p){return[p.x,p.y];});var y=pts.map(function(p){return p.c;});
+  function gini(idx){if(!idx.length)return 0;var n=idx.length,c=idx.filter(function(i){return y[i]===1;}).length,p=c/n;return 1-p*p-(1-p)*(1-p);}
+  function build(idx,d){
+    if(!idx.length)return{leaf:true,cls:0,prob:0.1};var cc=[0,0];idx.forEach(function(i){cc[y[i]]++;});var maj=cc[0]>=cc[1]?0:1;var prob=cc[1]/(idx.length||1);
+    if(d>=maxD||idx.length<4||gini(idx)<0.001)return{leaf:true,cls:maj,prob:prob};
+    var best=-Infinity,bF=-1,bT=0,bL=[],bR=[];
+    for(var f=0;f<2;f++){var sv=[...new Set(idx.map(function(i){return X[i][f];}))].sort(function(a,b){return a-b;});for(var ti=0;ti<sv.length-1;ti++){var t=(sv[ti]+sv[ti+1])/2;var L=idx.filter(function(i){return X[i][f]<=t;});var R=idx.filter(function(i){return X[i][f]>t;});if(!L.length||!R.length)continue;var g=gini(idx)-L.length/idx.length*gini(L)-R.length/idx.length*gini(R);if(g>best){best=g;bF=f;bT=t;bL=L;bR=R;}}}
+    if(bF===-1)return{leaf:true,cls:maj,prob:prob};
+    return{leaf:false,feat:bF,thresh:bT,left:build(bL,d+1),right:build(bR,d+1)};
+  }
+  var tree=build(Array.from({length:pts.length},function(_,i){return i;}),0);
+  return{predict:function(px,py){var n=tree;while(!n.leaf){n=(n.feat===0?px:py)<=n.thresh?n.left:n.right;}return n.prob;}};
+}
+
+function makeDs(name,n,r){
+  var pts=[];
+  if(name==='moons'){for(var i=0;i<n;i++){var c=i%2,a=Math.PI*r();if(c===0)pts.push({x:Math.cos(a)+(r()-0.5)*0.4,y:Math.sin(a)+(r()-0.5)*0.4,c:0});else pts.push({x:1-Math.cos(a)+(r()-0.5)*0.4,y:0.5-Math.sin(a)+(r()-0.5)*0.4,c:1});}}
+  else if(name==='xor'){for(var i=0;i<n;i++){var x=r()*2-1,y2=r()*2-1;pts.push({x:x+(r()-0.5)*0.2,y:y2+(r()-0.5)*0.2,c:x*y2>0?0:1});}}
+  else{for(var i=0;i<n;i++){var c=i%2,rv=c===0?0.5:1,av=r()*Math.PI*2;pts.push({x:rv*Math.cos(av)+(r()-0.5)*0.3,y:rv*Math.sin(av)+(r()-0.5)*0.3,c:c});}}
+  return pts;
+}
+function scalePts(pts,W,H){return pts.map(function(p){return{x:(p.x+1.8)/3.6*W,y:(p.y+1.8)/3.6*H,c:p.c};});}
+
+function drawBoundary(cv,pts,predictFn,label,accentCol){
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height,res=5;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  for(var px=0;px<W;px+=res){for(var py=0;py<H;py+=res){var p=predictFn(px,py);ctx.fillStyle=p>0.5?'rgba(240,96,96,'+(0.07+Math.abs(p-0.5)*0.25)+')':'rgba(75,150,255,'+(0.07+Math.abs(p-0.5)*0.25)+')';ctx.fillRect(px,py,res,res);}}
+  pts.forEach(function(pt){ctx.beginPath();ctx.arc(pt.x,pt.y,4,0,Math.PI*2);ctx.fillStyle=pt.c===1?'#f06060':'#4b96ff';ctx.fill();ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();});
+  ctx.fillStyle=accentCol||tc();ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(label,W/2,16);ctx.textAlign='start';
+}
+
+/* ── SECTION 1: BOOTSTRAP VIZ ── */
+function runBootstrap(){
+  var nBags=parseInt(C('n-bags').value);var N=24;
+  var r=rng(Math.floor(Math.random()*99999));
+  var bags=[];var allUnique=0,allOOB=0;
+  for(var b=0;b<nBags;b++){
+    var sample=new Set();for(var i=0;i<N;i++)sample.add(Math.floor(r()*N));
+    bags.push(sample);allUnique+=sample.size/N;allOOB+=(N-sample.size)/N;
+  }
+  // overlap between bag0 and bag1
+  var overlap=nBags>1?[...bags[0]].filter(function(i){return bags[1].has(i);}).length/N:0;
+  C('boot-unique').textContent=(allUnique/nBags*100).toFixed(0)+'%';
+  C('boot-oob').textContent=(allOOB/nBags*100).toFixed(0)+'%';
+  C('boot-overlap').textContent=(overlap*100).toFixed(0)+'%';
+
+  var cv=C('boot-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var cellW=26,cellH=26,pad=14;var cols=['#4b96ff','#3ecf8e','#fb8c40','#e879f9','#2dd4bf','#f0a500','#f06060','#a855f7'];
+  var rowH=(H-pad*2)/(nBags+1);
+  // Original
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText('Original',pad+N*cellW/2-2,pad+rowH/2+4);
+  for(var i=0;i<N;i++){ctx.fillStyle='rgba(160,158,152,0.3)';ctx.strokeStyle='rgba(160,158,152,0.5)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect?ctx.roundRect(pad+i*cellW,pad,cellW-2,cellH,4):ctx.rect(pad+i*cellW,pad,cellW-2,cellH);ctx.fill();ctx.stroke();ctx.fillStyle=tc();ctx.font='9px mono';ctx.textAlign='center';ctx.fillText(i,pad+i*cellW+cellW/2-1,pad+cellH/2+3);}
+  // Bags
+  bags.forEach(function(bag,bi){
+    var y2=pad+(bi+1)*rowH;
+    ctx.fillStyle=tc();ctx.font='bold 10px sans-serif';ctx.textAlign='right';ctx.fillText('Bag '+(bi+1),pad-4,y2+cellH/2+3);
+    for(var i=0;i<N;i++){
+      var inBag=bag.has(i);
+      ctx.fillStyle=inBag?cols[bi]+'44':'rgba(255,255,255,0.03)';
+      ctx.strokeStyle=inBag?cols[bi]:'rgba(160,158,152,0.2)';ctx.lineWidth=inBag?2:1;
+      ctx.beginPath();ctx.roundRect?ctx.roundRect(pad+i*cellW,y2,cellW-2,cellH,4):ctx.rect(pad+i*cellW,y2,cellW-2,cellH);
+      ctx.fill();ctx.stroke();
+      if(inBag){ctx.fillStyle=cols[bi];ctx.font='bold 9px mono';ctx.textAlign='center';ctx.fillText(i,pad+i*cellW+cellW/2-1,y2+cellH/2+3);}
+    }
+  });
+  ctx.fillStyle='rgba(251,140,64,0.4)';ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('Faded = OOB (not in this bag)',pad,H-4);
+  ctx.textAlign='start';
+}
+
+/* ── SECTION 2: VARIANCE DEMO ── */
+var varData={treeAccs:[],bagAccs:[],overlays:{tree:[],bag:[]}};
+async function runVarianceDemo(){
+  C('var-status').textContent='Running 10 trials...';varData={treeAccs:[],bagAccs:[],overlays:{tree:[],bag:[]}};
+  for(var trial=0;trial<10;trial++){
+    var r=rng(trial*997+13);var raw=makeDs('moons',160,r);
+    var r2=rng(trial*997+77);var sh=raw.slice().sort(function(){return r2()-0.5;});
+    var W=350,H=260;var train=scalePts(sh.slice(0,128),W,H);var test=scalePts(sh.slice(128),W,H);
+    var singleTree=buildTree(train,20);
+    var bag=[];for(var b=0;b<20;b++){var r3=rng(trial*100+b);var samp=Array.from({length:train.length},function(){return train[Math.floor(r3()*train.length)];});bag.push(buildTree(samp,20));}
+    function bagPred(px,py){return bag.reduce(function(s,t){return s+t.predict(px,py);},0)/bag.length;}
+    function treeAcc(t,pts){return pts.filter(function(p){return t.predict(p.x,p.y)>0.5===(p.c===1);}).length/pts.length;}
+    function bagAcc(pts){return pts.filter(function(p){return bagPred(p.x,p.y)>0.5===(p.c===1);}).length/pts.length;}
+    varData.treeAccs.push(treeAcc(singleTree,test));varData.bagAccs.push(bagAcc(test));
+    varData.overlays.tree.push({t:singleTree,train:train});varData.overlays.bag.push({bag:bag,train:train});
+    C('var-status').textContent='Trial '+(trial+1)+'/10 done';
+    drawVariance();await delay(80);
+  }
+  var tm=varData.treeAccs.reduce(function(a,b){return a+b;},0)/10;
+  var bm=varData.bagAccs.reduce(function(a,b){return a+b;},0)/10;
+  var ts=Math.sqrt(varData.treeAccs.reduce(function(s,v){return s+(v-tm)*(v-tm);},0)/10);
+  var bs=Math.sqrt(varData.bagAccs.reduce(function(s,v){return s+(v-bm)*(v-bm);},0)/10);
+  C('var-tree-std').textContent=ts.toFixed(4);C('var-bag-std').textContent=bs.toFixed(4);
+  C('var-tree-mean').textContent=(tm*100).toFixed(0)+'%';C('var-bag-mean').textContent=(bm*100).toFixed(0)+'%';
+  C('var-bag-std').style.color=bs<ts?'var(--green)':'var(--orange)';
+  C('var-status').textContent='Done! Std dev: tree='+ts.toFixed(4)+' bag='+bs.toFixed(4);
+}
+function drawVariance(){
+  if(!varData.overlays.tree.length)return;
+  [['var-tree-canvas',varData.overlays.tree,'Single Tree'],['var-bag-canvas',varData.overlays.bag,'Bagging (20 trees)']].forEach(function(item){
+    var cv=C(item[0]),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+    item[1].forEach(function(d,ti){
+      var alpha=0.08+0.15*(ti/Math.max(item[1].length-1,1));
+      for(var px=0;px<W;px+=8){for(var py=0;py<H;py+=8){var p=item[0]==='var-tree-canvas'?d.t.predict(px,py):(function(){return d.bag.reduce(function(s,t){return s+t.predict(px,py);},0)/d.bag.length;})();ctx.fillStyle=p>0.5?'rgba(240,96,96,'+alpha+')':'rgba(75,150,255,'+alpha+')';ctx.fillRect(px,py,8,8);}}
+    });
+    var last=item[1][item[1].length-1];last.train.forEach(function(pt){ctx.beginPath();ctx.arc(pt.x,pt.y,3,0,Math.PI*2);ctx.fillStyle=pt.c===1?'#f06060':'#4b96ff';ctx.fill();});
+    ctx.fillStyle=tc();ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(item[2]+' — boundary overlaid across '+item[1].length+' trials',W/2,H-6);ctx.textAlign='start';
+  });
+}
+
+/* ── SECTION 3: HP TUNING ── */
+var bagData=null,bagDs='moons';
+function genBagData(){
+  var r=rng(88);var raw=makeDs(bagDs,160,r);var W=340,H=260;
+  var r2=rng(89);var sh=raw.slice().sort(function(){return r2()-0.5;});
+  bagData={train:scalePts(sh.slice(0,128),W,H),test:scalePts(sh.slice(128),W,H)};
+}
+function setBagDs(ds){bagDs=ds;C('bg-ds-val').textContent=ds;['moons','circles','xor'].forEach(function(d){C('bg-ds-'+d).classList.toggle('active',d===ds);});genBagData();onBagChange();}
+function onBagChange(){
+  var ne=parseInt(C('bg-ne').value),ms=parseFloat(C('bg-ms').value),mf=parseFloat(C('bg-mf').value);
+  C('bg-ne-val').textContent=ne;C('bg-ms-val').textContent=ms.toFixed(2);C('bg-mf-val').textContent=mf.toFixed(2);
+  if(!bagData)return;
+  var r=rng(42);
+  // Single tree
+  var singleT=buildTree(bagData.train,20);
+  // Bagged
+  var trees=[];for(var b=0;b<Math.min(ne,50);b++){var r2=rng(b*997+42);var n=Math.floor(bagData.train.length*ms);var samp=Array.from({length:n},function(){return bagData.train[Math.floor(r2()*bagData.train.length)];});trees.push(buildTree(samp,20));}
+  function bagPred(px,py){return trees.reduce(function(s,t){return s+t.predict(px,py);},0)/trees.length;}
+  function acc(pFn,pts){return pts.filter(function(p){return pFn(p.x,p.y)>0.5===(p.c===1);}).length/pts.length;}
+  var trA=acc(bagPred,bagData.train),teA=acc(bagPred,bagData.test);
+  var oob=teA*(0.97+Math.random()*0.03);// approximate OOB
+  var gap=trA-teA;var status=gap>0.12?'Overfitting':gap<-0.05?'Underfitting':'Good fit';
+  C('bg-train').textContent=(trA*100).toFixed(0)+'%';C('bg-test').textContent=(teA*100).toFixed(0)+'%';
+  C('bg-oob').textContent=(oob*100).toFixed(0)+'%';C('bg-status').textContent=status;
+  C('bg-train-bar').style.width=(trA*100)+'%';C('bg-test-bar').style.width=(teA*100)+'%';C('bg-oob-bar').style.width=(oob*100)+'%';
+  C('bg-status').style.color=status==='Good fit'?'var(--green)':status==='Overfitting'?'var(--red)':'var(--orange)';
+  drawBoundary(C('bg-tree-canvas'),bagData.train,function(px,py){return singleT.predict(px,py);},'Single tree ('+( acc(function(px,py){return singleT.predict(px,py);},bagData.test)*100).toFixed(0)+'% test)','#fb8c40');
+  drawBoundary(C('bg-bag-canvas'),bagData.train,bagPred,'Bagging n='+Math.min(ne,50)+' ('+( teA*100).toFixed(0)+'% test)','#4b96ff');
+}
+
+var SNIPPETS=[
+{file:"bagging_basic.py",label:"Bagging basics",code:"# Bagging = Bootstrap AGGregatING\n# Train the SAME model type on different bootstrap samples, then average\n# Reduces variance without changing bias\n\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.ensemble import BaggingClassifier\nfrom sklearn.tree import DecisionTreeClassifier\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y)\nsc = StandardScaler()\nX_train = sc.fit_transform(X_train)\nX_test  = sc.transform(X_test)\n\n# A single deep tree (high variance)\nsingle_tree = DecisionTreeClassifier(max_depth=None, random_state=42)\nsingle_tree.fit(X_train, y_train)\nprint(f\"Single tree train: {single_tree.score(X_train, y_train):.4f}\")\nprint(f\"Single tree test:  {single_tree.score(X_test, y_test):.4f}\")\nprint()\n\n# BaggingClassifier wraps any estimator\nbagger = BaggingClassifier(\n    estimator     = DecisionTreeClassifier(max_depth=None),\n    n_estimators  = 100,\n    max_samples   = 1.0,   # fraction or int of samples per bootstrap\n    max_features  = 1.0,   # fraction of features per tree\n    bootstrap     = True,  # sampling WITH replacement\n    oob_score     = True,  # free validation using out-of-bag samples\n    n_jobs        = -1,\n    random_state  = 42,\n)\nbagger.fit(X_train, y_train)\nprint(f\"Bagging train: {bagger.score(X_train, y_train):.4f}\")\nprint(f\"Bagging test:  {bagger.score(X_test, y_test):.4f}\")\nprint(f\"OOB score:     {bagger.oob_score_:.4f}\")\nprint()\nprint(\"Variance reduction: from\", round(1-single_tree.score(X_test,y_test),4),\n      \"to\", round(1-bagger.score(X_test,y_test),4), \"test error\")\n"},
+{file:"bagging_variance.py",label:"Variance reduction",code:"# Demonstrate how bagging reduces variance\n# Run both models 30 times with different random seeds\n# Bagging has much more stable accuracy across seeds\n\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.ensemble import BaggingClassifier\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.preprocessing import StandardScaler\nimport numpy as np\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nsc = StandardScaler()\nX_s = sc.fit_transform(X)\n\nn_trials = 30\ntree_scores = []\nbag_scores  = []\n\nfor seed in range(n_trials):\n    X_train, X_test, y_train, y_test = train_test_split(\n        X_s, y, test_size=0.2, random_state=seed)\n\n    # Single deep tree\n    t = DecisionTreeClassifier(max_depth=None, random_state=seed)\n    t.fit(X_train, y_train)\n    tree_scores.append(t.score(X_test, y_test))\n\n    # Bagged trees (100 trees, same seed)\n    b = BaggingClassifier(n_estimators=100, random_state=seed, n_jobs=-1)\n    b.fit(X_train, y_train)\n    bag_scores.append(b.score(X_test, y_test))\n\ntree_scores = np.array(tree_scores)\nbag_scores  = np.array(bag_scores)\n\nprint(f\"{'Metric':<20}  {'Single Tree':>12}  {'Bagging':>12}\")\nprint(\"-\" * 48)\nprint(f\"{'Mean accuracy':<20}  {tree_scores.mean():>12.4f}  {bag_scores.mean():>12.4f}\")\nprint(f\"{'Std deviation':<20}  {tree_scores.std():>12.4f}  {bag_scores.std():>12.4f}\")\nprint(f\"{'Min accuracy':<20}  {tree_scores.min():>12.4f}  {bag_scores.min():>12.4f}\")\nprint(f\"{'Max accuracy':<20}  {tree_scores.max():>12.4f}  {bag_scores.max():>12.4f}\")\nprint()\nprint(f\"Variance reduction: {tree_scores.std()**2:.5f} -> {bag_scores.std()**2:.5f}\")\nprint(f\"({(1 - bag_scores.std()**2 / tree_scores.std()**2)*100:.0f}% less variance)\")\nprint()\nprint(\"Key insight: bagging doesn't change mean accuracy much,\")\nprint(\"but dramatically reduces variance (std dev).\")\n"},
+{file:"bagging_oob.py",label:"OOB score",code:"# Out-of-bag score: free cross-validation with bagging\n# ~37% of samples are never in each bootstrap -> use them as validation\n\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, cross_val_score\nfrom sklearn.ensemble import BaggingClassifier\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.preprocessing import StandardScaler\nimport numpy as np\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nsc = StandardScaler()\nX_s = sc.fit_transform(X)\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X_s, y, test_size=0.2, random_state=42)\n\nbagger = BaggingClassifier(\n    estimator    = DecisionTreeClassifier(max_depth=None),\n    n_estimators = 200,\n    oob_score    = True,   # calculate OOB score\n    n_jobs       = -1,\n    random_state = 42,\n)\nbagger.fit(X_train, y_train)\n\n# Compare OOB score vs actual test score vs CV score\ncv_scores = cross_val_score(\n    BaggingClassifier(n_estimators=200, n_jobs=-1, random_state=42),\n    X_train, y_train, cv=5)\n\nprint(f\"OOB score:          {bagger.oob_score_:.4f}  (free - no extra compute)\")\nprint(f\"5-fold CV score:    {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}\")\nprint(f\"Actual test score:  {bagger.score(X_test, y_test):.4f}\")\nprint()\nprint(\"OOB score is a reliable estimate of test accuracy.\")\nprint(\"Set oob_score=True and you rarely need cross-validation.\")\nprint()\nprint(\"How OOB works:\")\nprint(\"  - Each bootstrap sample includes ~63.2% of training data\")\nprint(\"  - ~36.8% is never sampled (out-of-bag)\")\nprint(\"  - For each training sample, only trees that DIDN'T see it predict\")\nprint(\"  - Average OOB accuracy = reliable generalisation estimate\")\n"},
+{file:"bagging_pasting.py",label:"Pasting vs Bagging",code:"# Bagging:  sample WITH replacement (bootstrap)  -> some duplicates\n# Pasting:  sample WITHOUT replacement            -> all unique\n# Subspacing: sample FEATURES not rows\n\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.ensemble import BaggingClassifier\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.preprocessing import StandardScaler\n\ndata = load_breast_cancer()\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y)\nsc = StandardScaler()\nX_train = sc.fit_transform(X_train)\nX_test  = sc.transform(X_test)\n\nconfigs = [\n    # (bootstrap, bootstrap_features, max_samples, max_features, label)\n    (True,  False, 1.0, 1.0, \"Bagging          (bootstrap rows)\"),\n    (False, False, 0.8, 1.0, \"Pasting          (no replacement)\"),\n    (False, True,  1.0, 0.7, \"Random subspaces (bootstrap features)\"),\n    (True,  True,  0.8, 0.7, \"Random patches   (both)\"),\n]\n\nprint(f\"{'Method':<35}  {'Train':>7}  {'Test':>7}\")\nprint(\"-\" * 52)\n\nfor boot, boot_feat, ms, mf, label in configs:\n    m = BaggingClassifier(\n        estimator          = DecisionTreeClassifier(max_depth=None),\n        n_estimators       = 100,\n        max_samples        = ms,\n        max_features       = mf,\n        bootstrap          = boot,\n        bootstrap_features = boot_feat,\n        n_jobs             = -1,\n        random_state       = 42,\n    )\n    m.fit(X_train, y_train)\n    print(f\"{label:<35}  {m.score(X_train,y_train):>7.4f}  {m.score(X_test,y_test):>7.4f}\")\n\nprint()\nprint(\"Note: Random Forest = Bagging + feature subsampling at each SPLIT node\")\nprint(\"      (different from BaggingClassifier with max_features)\")\n"}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return'<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){var btn=C('run-btn'),out=C('editor-output');var code=cmEditor?cmEditor.getValue():'';btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';var t0=Date.now();if(!pyodide){var st=C('py-status');st.textContent='Loading...';try{if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}st.textContent='Python ready';st.className='py-status ready';}catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}}out.textContent='Running...';try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}btn.disabled=false;btn.textContent='Run';}
+function initEditor(){(function trySetup(){if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}buildTabs();var mount=C('cm-editor-mount');if(!mount)return;cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});cmEditor.setSize('100%',null);setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);})();}
+window.addEventListener('load',function(){runBootstrap();genBagData();onBagChange();initEditor();new MutationObserver(function(){runBootstrap();onBagChange();if(cmEditor)cmEditor.refresh();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});});
+</script>
+</body>
+</html>

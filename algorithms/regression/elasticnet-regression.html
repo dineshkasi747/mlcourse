@@ -1,0 +1,1455 @@
+<!-- elasticnet-regression.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ElasticNet Regression — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,146,60,0.08),rgba(139,92,246,0.06));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:16px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:#fb923c;font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+    .mix-slider-wrap{position:relative;margin:20px 0;}
+    .mix-track{height:12px;border-radius:6px;background:linear-gradient(to right,#a78bfa,#fb923c);position:relative;}
+    .mix-labels{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text-3);}
+    .mix-labels span:first-child{color:#a78bfa;font-weight:700;}
+    .mix-labels span:last-child{color:#fb923c;font-weight:700;}
+    .trio-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;}
+    .trio-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .trio-card.ridge-card{border-color:rgba(167,139,250,0.4);}
+    .trio-card.lasso-card{border-color:rgba(52,211,153,0.4);}
+    .trio-card.enet-card{border-color:rgba(251,146,60,0.4);}
+    .trio-title{font-size:13px;font-weight:700;margin-bottom:6px;}
+    .trio-badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;margin-bottom:8px;}
+    .trio-desc{font-size:11.5px;color:var(--text-3);line-height:1.5;}
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:26px;height:26px;border-radius:50%;background:rgba(251,146,60,0.1);border:1.5px solid #fb923c;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fb923c;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border-left:3px solid #fb923c;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(251,146,60,0.15)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#ea580c;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.12);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}.trio-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="elasticnet-regression">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">ElasticNet Regression</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <span class="current">ElasticNet Regression</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(251,146,60,.3);background:rgba(251,146,60,0.08);color:#fb923c;margin-bottom:14px;">Ridge + Lasso combined</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">ElasticNet Regression</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Ridge keeps all features. Lasso zeros some out but struggles when features are correlated.
+              <strong>ElasticNet combines both</strong> — you get sparsity from Lasso AND stability
+              from Ridge, controlled by a single dial called <code>l1_ratio</code>.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#8987; 18 min</span>
+              <span class="topic-meta-item">&#9670; Intermediate</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — INTUITION -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#9670;</div>
+              What is ElasticNet? — the best of both worlds
+            </h2>
+
+            <p>You have learned Ridge and Lasso. Here is the problem each one has:</p>
+            <ul style="margin:12px 0 12px 20px;line-height:1.9;color:var(--text-2);">
+              <li><strong>Ridge</strong> — keeps ALL features (no zeros). Bad when you want to know which features matter.</li>
+              <li><strong>Lasso</strong> — zeros features out. But when two features are highly correlated, it randomly picks one and drops the other. Unstable.</li>
+            </ul>
+            <p>
+              ElasticNet fixes both problems. It mixes Ridge and Lasso using a parameter called
+              <strong>l1_ratio</strong>. Setting l1_ratio=0 gives you pure Ridge. Setting l1_ratio=1
+              gives you pure Lasso. Anything in between is ElasticNet.
+            </p>
+
+            <div class="callout info">
+              <span class="callout-icon">&#128161;</span>
+              <p><strong>Simple analogy:</strong> Imagine mixing hot and cold water with two taps.
+              Ridge is the cold tap (stable, no zeros). Lasso is the hot tap (sparse, zeros things out).
+              ElasticNet's l1_ratio is the dial that mixes them. You choose the temperature that works
+              best for your data.</p>
+            </div>
+
+            <!-- 3 cards: Ridge vs Lasso vs ElasticNet -->
+            <div class="trio-grid">
+              <div class="trio-card ridge-card">
+                <div class="trio-title" style="color:#a78bfa;">Ridge (L2)</div>
+                <div class="trio-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa;">l1_ratio = 0</div>
+                <div class="trio-desc">Shrinks all coefficients toward zero. No feature is fully removed. Great when all features matter a little.</div>
+              </div>
+              <div class="trio-card enet-card">
+                <div class="trio-title" style="color:#fb923c;">ElasticNet</div>
+                <div class="trio-badge" style="background:rgba(251,146,60,0.15);color:#fb923c;">l1_ratio = 0.5</div>
+                <div class="trio-desc">Mix of both. Some features get zeroed (Lasso part). Correlated features are handled stably (Ridge part).</div>
+              </div>
+              <div class="trio-card lasso-card">
+                <div class="trio-title" style="color:#34d399;">Lasso (L1)</div>
+                <div class="trio-badge" style="background:rgba(52,211,153,0.15);color:#34d399;">l1_ratio = 1</div>
+                <div class="trio-desc">Zeros out weak features completely. Unstable with correlated features — randomly picks one from a correlated group.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — L1_RATIO MIXER -->
+          <section class="section" id="mixer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#8646;</div>
+              The l1_ratio dial — slide between Ridge and Lasso
+            </h2>
+            <p>
+              Drag the slider below. Watch how the constraint shape changes from a
+              <strong style="color:#a78bfa;">circle (Ridge)</strong> to a
+              <strong style="color:#fb923c;">rounded diamond (ElasticNet)</strong> to a
+              <strong style="color:#34d399;">sharp diamond (Lasso)</strong>.
+              The shape directly controls whether coefficients can reach exactly zero.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Constraint shape changes as you drag l1_ratio</span>
+                <div class="ctrl-group" style="flex:1;">
+                  <span class="ctrl-label" style="color:#a78bfa;">Ridge</span>
+                  <input type="range" min="0" max="1" value="0.5" step="0.01"
+                    class="ctrl-slider" id="l1-ratio-slider"
+                    oninput="onL1RatioChange(this.value)"
+                    style="flex:1;max-width:260px;"/>
+                  <span class="ctrl-label" style="color:#34d399;">Lasso</span>
+                  <span class="ctrl-value" id="l1-ratio-val" style="color:#fb923c;font-weight:700;min-width:60px;">0.50</span>
+                </div>
+              </div>
+              <canvas id="shape-canvas" width="700" height="360" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="shape-zeros" style="color:#34d399;">—</span><span class="stat-pill-lbl">Exact zeros</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="shape-corners">—</span><span class="stat-pill-lbl">Corner sharpness</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="shape-type" style="font-size:13px;">ElasticNet</span><span class="stat-pill-lbl">Behaviour</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — LIVE COEFFICIENT EXPLORER -->
+          <section class="section" id="coef-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#946;</div>
+              See how coefficients change — Ridge vs ElasticNet vs Lasso
+            </h2>
+            <p>
+              This is the most important visual. The same dataset, same alpha —
+              but three different l1_ratio values. Watch which features survive and
+              which get zeroed depending on the mix.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Coefficient comparison — same data, different l1_ratio</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">alpha:</span>
+                  <input type="range" min="0.01" max="1" value="0.2" step="0.01"
+                    class="ctrl-slider" id="coef-alpha" oninput="onCoefAlphaChange(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="coef-alpha-val" style="color:#fb923c;">0.20</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Corr (features):</span>
+                  <input type="range" min="0" max="0.95" value="0.7" step="0.05"
+                    class="ctrl-slider" id="coef-corr" oninput="onCoefAlphaChange(C('coef-alpha').value)" style="width:90px;"/>
+                  <span class="ctrl-value" id="coef-corr-val">0.70</span>
+                </div>
+                <button class="ctrl-btn" onclick="reshuffleCoefData()">New data</button>
+              </div>
+              <canvas id="coef-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Purple = Ridge (l1=0) &nbsp;|&nbsp; Orange = ElasticNet (l1=0.5) &nbsp;|&nbsp; Green = Lasso (l1=1) &nbsp;|&nbsp; Grey ghost = true coefficient
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — HYPERPARAMETER TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">&#9881;</div>
+              Hyperparameter tuning — alpha and l1_ratio together
+            </h2>
+            <p>
+              ElasticNet has two hyperparameters: <strong>alpha</strong> (overall regularisation strength)
+              and <strong>l1_ratio</strong> (Ridge vs Lasso mix). Use <strong>ElasticNetCV</strong>
+              to search both at once. Tune below and watch how the model behaves.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="hp-train" style="color:#fb923c;">—</div>
+                <div class="acc-label">Train R&#178;</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-train-bar" style="background:#fb923c;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-test" style="color:var(--green);">—</div>
+                <div class="acc-label">Test R&#178;</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-test-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-nonzero" style="color:var(--teal);">—</div>
+                <div class="acc-label">Active features</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-nonzero-bar" style="background:var(--teal);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-status" style="font-size:15px;color:var(--green);">—</div>
+                <div class="acc-label">Fit status</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-status-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">&#9881; Controls — every slider updates instantly</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">alpha (strength)</span><span class="hp-val" id="hp-alpha-val">0.1</span></div>
+                  <input type="range" min="0.001" max="2" value="0.1" step="0.005" class="ctrl-slider" id="hp-alpha" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Overall regularisation. Higher = smaller / fewer coefficients.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">l1_ratio (Ridge&#8596;Lasso mix)</span><span class="hp-val" id="hp-l1-val">0.5</span></div>
+                  <input type="range" min="0" max="1" value="0.5" step="0.01" class="ctrl-slider" id="hp-l1" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">0 = pure Ridge (no zeros). 1 = pure Lasso (exact zeros). 0.5 = balanced mix.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Feature correlation</span><span class="hp-val" id="hp-corr-val">0.7</span></div>
+                  <input type="range" min="0" max="0.98" value="0.7" step="0.02" class="ctrl-slider" id="hp-corr" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">When correlation is high, Lasso picks randomly. ElasticNet handles it fairly.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Noise level</span><span class="hp-val" id="hp-noise-val">1.0</span></div>
+                  <input type="range" min="0.1" max="4" value="1.0" step="0.1" class="ctrl-slider" id="hp-noise" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More noise = harder problem. Regularisation helps more.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live coefficient bar chart -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Current coefficients — active (orange) vs zeroed (red X)</span>
+              </div>
+              <canvas id="hp-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <!-- 2D grid: alpha vs l1_ratio heatmap -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Grid search — test R&#178; for all alpha x l1_ratio combinations</span>
+                <button class="ctrl-btn active" onclick="runGridSearch()">&#9654; Run grid search</button>
+                <span id="grid-status" style="font-size:12px;color:var(--text-3);margin-left:8px;"></span>
+              </div>
+              <canvas id="grid-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Brighter = higher test R&#178;. The best alpha x l1_ratio combination is marked with a star.
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — MATH (SIMPLE) -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#8721;</div>
+              The formula — one line that says it all
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">ElasticNet combines both penalties</div>
+                  <div class="derive-desc">Start with the plain OLS loss (sum of squared errors). Then add <em>both</em> the Ridge penalty (sum of squared coefficients) and the Lasso penalty (sum of absolute coefficients). The l1_ratio controls how much weight each gets.</div>
+                  <div class="derive-formula">ElasticNet loss =
+  fitting error  +  alpha * l1_ratio * |beta|   (Lasso part)
+                 +  alpha * (1 - l1_ratio) * beta^2  (Ridge part)
+
+When l1_ratio = 1:  only Lasso part  ->  exact zeros possible
+When l1_ratio = 0:  only Ridge part  ->  no exact zeros
+When l1_ratio = 0.5: equal mix</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Why ElasticNet beats Lasso with correlated features</div>
+                  <div class="derive-desc">When two features X1 and X2 are perfectly correlated, Lasso randomly picks one and drops the other (an arbitrary choice). Ridge part of ElasticNet encourages keeping both by spreading the coefficient between them. This is more honest and more stable.</div>
+                  <div class="derive-formula">Example: X1 and X2 are 95% correlated, both important
+
+Lasso might give:   beta1 = 2.0,  beta2 = 0   (arbitrary pick)
+              or:   beta1 = 0,    beta2 = 2.0  (different run!)
+
+ElasticNet gives:   beta1 = 1.1,  beta2 = 0.9  (stable, shares credit)
+Ridge gives:        beta1 = 1.0,  beta2 = 1.0  (stable but no zeros)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">How to choose alpha and l1_ratio</div>
+                  <div class="derive-desc">Never guess these values. Use ElasticNetCV which automatically tries many combinations and picks the best using cross-validation. A good starting strategy: try l1_ratio values in [0.1, 0.5, 0.7, 0.9, 0.95, 1.0] to cover the full range.</div>
+                  <div class="derive-formula">from sklearn.linear_model import ElasticNetCV
+
+model = ElasticNetCV(
+    l1_ratio = [0.1, 0.5, 0.7, 0.9, 0.95, 1.0],  # try many values
+    alphas = None,   # auto-generate 100 alpha values
+    cv = 5           # 5-fold cross-validation
+)
+model.fit(X_train, y_train)
+
+print(model.alpha_)     # best alpha found
+print(model.l1_ratio_)  # best l1_ratio found</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor — simple, readable examples
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">elasticnet_intro.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- WHEN TO USE GUIDE -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">&#10003;</div>
+              Quick decision guide — which model to pick?
+            </h2>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="border-bottom:2px solid var(--border);">
+                    <th style="text-align:left;padding:10px 12px;color:var(--text-3);font-size:11px;text-transform:uppercase;">Situation</th>
+                    <th style="text-align:center;padding:10px 12px;color:#a78bfa;">Ridge</th>
+                    <th style="text-align:center;padding:10px 12px;color:#34d399;">Lasso</th>
+                    <th style="text-align:center;padding:10px 12px;color:#fb923c;">ElasticNet</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:10px 12px;color:var(--text-2);">All features probably matter</td>
+                    <td style="text-align:center;padding:10px;">&#10003;</td><td style="text-align:center;">&#10007;</td><td style="text-align:center;">~</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:10px 12px;color:var(--text-2);">Most features are noise (sparse)</td>
+                    <td style="text-align:center;">~</td><td style="text-align:center;padding:10px;">&#10003;</td><td style="text-align:center;padding:10px;">&#10003;</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:10px 12px;color:var(--text-2);">Features are highly correlated</td>
+                    <td style="text-align:center;padding:10px;">&#10003;</td><td style="text-align:center;">&#10007;</td><td style="text-align:center;padding:10px;">&#10003;</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:10px 12px;color:var(--text-2);">Need to know which features matter</td>
+                    <td style="text-align:center;">&#10007;</td><td style="text-align:center;padding:10px;">&#10003;</td><td style="text-align:center;padding:10px;">&#10003;</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:10px 12px;color:var(--text-2);">Many more features than samples (p > n)</td>
+                    <td style="text-align:center;">~</td><td style="text-align:center;padding:10px;">&#10003;</td><td style="text-align:center;padding:10px;">&#10003;</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 12px;color:var(--text-2);">Not sure which to use</td>
+                    <td style="text-align:center;">~</td><td style="text-align:center;">~</td><td style="text-align:center;padding:10px;font-weight:700;color:#fb923c;">Use this!</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not scaling features.</strong> Both L1 and L2 penalties are sensitive to feature scale. Use StandardScaler before ElasticNet — always. This is the single most common mistake.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Setting l1_ratio = 0 and calling it ElasticNet.</strong> When l1_ratio = 0, you have pure Ridge. Just use Ridge directly — it has a much faster closed-form solution. ElasticNet with l1_ratio=0 uses slow coordinate descent for no benefit.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Guessing alpha and l1_ratio by hand.</strong> Use ElasticNetCV. It tries many combinations automatically with cross-validation. Manual guessing almost never gives the best result.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Using ElasticNet when data is non-linear.</strong> Like Ridge and Lasso, ElasticNet is a linear model. If your data has curves, combine it with PolynomialFeatures, or switch to a tree-based model entirely.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9733;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>ElasticNet = Ridge penalty + Lasso penalty. The <strong>l1_ratio</strong> dial controls the mix. 0 = Ridge, 1 = Lasso, 0.5 = equal blend.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>ElasticNet inherits <strong>sparsity from Lasso</strong> (zeros features out) and <strong>stability from Ridge</strong> (handles correlated features without randomly picking one).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>When you're not sure whether to use Ridge or Lasso, <strong>just use ElasticNet with ElasticNetCV</strong>. It will find the right balance for you.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always scale features first.</strong> StandardScaler before ElasticNet. No exceptions.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>ElasticNetCV</strong> with a list of l1_ratio values like [0.1, 0.5, 0.9, 1.0] to search both hyperparameters at once.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="lasso-regression.html">
+              <span class="pn-dir">&#8592; Previous</span>
+              <span class="pn-title">Lasso Regression</span>
+            </a>
+            <a class="pn-card next" href="regression-metrics.html">
+              <span class="pn-dir">Next &#8594;</span>
+              <span class="pn-title">Regression Metrics</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">What is ElasticNet?</a></li>
+            <li class="toc-item"><a href="#mixer">l1_ratio dial</a></li>
+            <li class="toc-item"><a href="#coef-explorer">Coefficient explorer</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#math">The formula</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#when-to-use">Decision guide</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ── Helpers ── */
+function C(id){ return document.getElementById(id); }
+function isDark(){ return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg(){ return isDark() ? '#18181d' : '#e9e7e1'; }
+function tc(){ return isDark() ? '#a09e98' : '#5c5a54'; }
+function gc(){ return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'; }
+function delay(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+/* ── Simple seeded random ── */
+var seed = 42;
+function srnd(){
+  seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+  return (seed >>> 0) / 0xffffffff;
+}
+function rseed(s){ seed = s || 42; }
+
+/* ── Soft threshold (Lasso update step) ── */
+function softThresh(x, t){
+  if(x > t) return x - t;
+  if(x < -t) return x + t;
+  return 0;
+}
+
+/* ── Coordinate descent to solve ElasticNet ──
+   ElasticNet update = soft_thresh(rho, alpha*l1) / (colNorm + alpha*(1-l1))
+   When l1=1 this is Lasso. When l1=0 this becomes Ridge. */
+function elasticNetCD(X, y, alpha, l1Ratio, maxIter){
+  maxIter = maxIter || 300;
+  var n = X.length, p = X[0].length;
+  var beta = new Array(p).fill(0);
+
+  // Pre-compute column norms once
+  var colNorms = [];
+  for(var j = 0; j < p; j++){
+    var s = 0;
+    for(var i = 0; i < n; i++) s += X[i][j] * X[i][j];
+    colNorms.push(s / n);
+  }
+
+  for(var iter = 0; iter < maxIter; iter++){
+    var maxChange = 0;
+    for(var j = 0; j < p; j++){
+      // Partial residual: y minus everything except feature j
+      var rho = 0;
+      for(var i = 0; i < n; i++){
+        var res = y[i];
+        for(var k = 0; k < p; k++) if(k !== j) res -= X[i][k] * beta[k];
+        rho += X[i][j] * res;
+      }
+      rho = rho / n;
+
+      // ElasticNet update formula
+      var l1Pen = alpha * l1Ratio;
+      var l2Pen = alpha * (1 - l1Ratio);
+      var denom = colNorms[j] + l2Pen;
+      var newBeta = denom > 1e-10 ? softThresh(rho / denom, l1Pen / denom) : 0;
+
+      maxChange = Math.max(maxChange, Math.abs(newBeta - beta[j]));
+      beta[j] = newBeta;
+    }
+    if(maxChange < 1e-6) break;
+  }
+  return beta;
+}
+
+function r2score(y, yhat){
+  var mean = y.reduce(function(a,b){ return a+b; }, 0) / y.length;
+  var sst = y.reduce(function(s,v){ return s + (v-mean)*(v-mean); }, 0);
+  var sse = y.reduce(function(s,v,i){ return s + (v-yhat[i])*(v-yhat[i]); }, 0);
+  return sst > 0 ? 1 - sse/sst : 1;
+}
+
+function dotProd(X, beta){
+  return X.map(function(row){
+    return row.reduce(function(s,v,j){ return s + v*beta[j]; }, 0);
+  });
+}
+
+/* ── Generate a dataset with correlated features and a sparse true model ── */
+function makeDataset(n, p, trueK, rho, noise, s){
+  rseed(s || 42);
+  var trueCoefs = [];
+  for(var j = 0; j < p; j++){
+    trueCoefs.push(j < trueK ? (srnd()*3 - 1.5) : 0);
+  }
+
+  var X = [], y = [];
+  for(var i = 0; i < n; i++){
+    var base = srnd() * 2 - 1; // shared factor for correlation
+    var row = [];
+    for(var j = 0; j < p; j++){
+      var val = rho * base + Math.sqrt(1 - rho*rho) * (srnd()*2-1);
+      row.push(val);
+    }
+    var yi = 0;
+    for(var j = 0; j < p; j++) yi += row[j] * trueCoefs[j];
+    yi += (srnd()*2-1) * noise;
+    X.push(row);
+    y.push(yi);
+  }
+
+  // Standardise columns
+  for(var j = 0; j < p; j++){
+    var mean = X.reduce(function(s,r){ return s+r[j]; }, 0) / n;
+    var std = Math.sqrt(X.reduce(function(s,r){ return s+(r[j]-mean)*(r[j]-mean); }, 0) / n) || 1;
+    X.forEach(function(r){ r[j] = (r[j]-mean)/std; });
+  }
+  // Standardise y
+  var yMean = y.reduce(function(a,b){ return a+b; }, 0) / n;
+  var yStd = Math.sqrt(y.reduce(function(s,v){ return s+(v-yMean)*(v-yMean); }, 0) / n) || 1;
+  y = y.map(function(v){ return (v-yMean)/yStd; });
+
+  return { X:X, y:y, trueCoefs:trueCoefs, n:n, p:p, k:trueK };
+}
+
+/* ═══════════════════════════════════════
+   SECTION 2 — CONSTRAINT SHAPE CANVAS
+═══════════════════════════════════════ */
+function onL1RatioChange(v){
+  var l1 = parseFloat(v);
+  C('l1-ratio-val').textContent = l1.toFixed(2);
+  drawShapeCanvas(l1);
+}
+
+function drawShapeCanvas(l1){
+  var cv = C('shape-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var cx = W/2, cy = H/2, radius = 110;
+
+  // Axes
+  ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(50, cy); ctx.lineTo(W-50, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, 30); ctx.lineTo(cx, H-30); ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = tc();
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('beta1', W-40, cy-8);
+  ctx.fillText('beta2', cx, 22);
+
+  // OLS solution point (fixed)
+  var olsX = cx + 1.5 * radius * 0.5;
+  var olsY = cy - 1.2 * radius * 0.5;
+
+  // Draw loss contours (ellipses around OLS point)
+  ctx.strokeStyle = isDark() ? 'rgba(240,96,96,0.22)' : 'rgba(200,50,50,0.18)';
+  [0.4, 0.7, 1.0, 1.4, 2.0].forEach(function(r){
+    ctx.beginPath();
+    ctx.ellipse(olsX, olsY, r * 75, r * 50, 0.3, 0, Math.PI*2);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Draw the constraint shape
+  // l1=0 → circle, l1=1 → diamond, in-between → rounded diamond
+  // We draw by sampling angles and computing the L1/L2 blended norm boundary
+  var shapeColor = l1 < 0.2 ? '#a78bfa' : l1 > 0.8 ? '#34d399' : '#fb923c';
+
+  var grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  grd.addColorStop(0, shapeColor.replace(')', ', 0.12)').replace('rgb', 'rgba').replace('#a78bfa','rgba(167,139,250,0.12)').replace('#34d399','rgba(52,211,153,0.12)').replace('#fb923c','rgba(251,146,60,0.12)'));
+  grd.addColorStop(1, 'transparent');
+
+  // Sample points on the constraint boundary
+  var pts = [];
+  for(var t = 0; t < Math.PI*2; t += 0.03){
+    var cosT = Math.cos(t), sinT = Math.sin(t);
+    // For a given direction, find how far we can go while |b|_l1l2 = 1
+    // We do a binary search: find r such that l1*r*|c|+(1-l1)*r^2*(c^2) = 1
+    // Simplified: project onto shape
+    var absC = Math.abs(cosT), absS = Math.abs(sinT);
+    // ElasticNet unit ball boundary: l1*(|b1|+|b2|) + (1-l1)*(b1^2+b2^2)/2 = r
+    // We parametrize the shape by angle and solve for scaling
+    var lo = 0, hi = 2;
+    for(var bi = 0; bi < 30; bi++){
+      var mid = (lo + hi) / 2;
+      var b1 = mid * cosT, b2 = mid * sinT;
+      var val = l1 * (Math.abs(b1) + Math.abs(b2)) + (1-l1) * (b1*b1 + b2*b2);
+      if(val < 1) lo = mid; else hi = mid;
+    }
+    var r2 = (lo + hi) / 2;
+    pts.push({ x: cx + r2 * cosT * radius, y: cy - r2 * sinT * radius });
+  }
+
+  ctx.beginPath();
+  pts.forEach(function(p, i){ i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+  ctx.closePath();
+  ctx.fillStyle = l1 < 0.2 ? 'rgba(167,139,250,0.1)' : l1 > 0.8 ? 'rgba(52,211,153,0.1)' : 'rgba(251,146,60,0.08)';
+  ctx.fill();
+  ctx.strokeStyle = shapeColor;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Find intersection point (where loss contour first touches the shape)
+  // Approx: project OLS onto the boundary
+  var ols_dx = olsX - cx, ols_dy = olsY - cy;
+  var ols_angle = Math.atan2(-ols_dy, ols_dx);
+  var closest = pts.reduce(function(best, p){
+    var ang = Math.atan2(cy-p.y, p.x-cx);
+    var diff = Math.abs(ang - ols_angle);
+    return diff < best.diff ? {p:p, diff:diff} : best;
+  }, {p:pts[0], diff:999});
+  var solPt = closest.p;
+
+  // OLS dot
+  ctx.beginPath(); ctx.arc(olsX, olsY, 9, 0, Math.PI*2);
+  ctx.fillStyle = '#f06060'; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Solution dot
+  ctx.beginPath(); ctx.arc(solPt.x, solPt.y, 9, 0, Math.PI*2);
+  ctx.fillStyle = shapeColor; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Arrow
+  ctx.beginPath(); ctx.moveTo(olsX, olsY); ctx.lineTo(solPt.x, solPt.y);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+
+  // Labels
+  ctx.fillStyle = '#f06060'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('OLS solution', olsX+12, olsY-4);
+
+  // Is the solution on an axis (zero coefficient)?
+  var onAxis = Math.abs(solPt.x - cx) < 8 || Math.abs(solPt.y - cy) < 8;
+  var axisNote = onAxis ? ' (beta = 0!)' : ' (no zero)';
+  ctx.fillStyle = shapeColor; ctx.textAlign = 'right';
+  ctx.fillText('Constrained solution'+axisNote, solPt.x-12, solPt.y-4);
+
+  // l1_ratio label in centre
+  ctx.fillStyle = shapeColor; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('l1_ratio = ' + l1.toFixed(2), cx, H - 20);
+
+  // Tick labels on axes
+  ctx.fillStyle = tc(); ctx.font = '10px mono';
+  [-1, 1].forEach(function(v){
+    ctx.textAlign = 'center'; ctx.fillText(v, cx + v*radius*0.5, cy + 14);
+    ctx.textAlign = 'right'; ctx.fillText(v, cx - 6, cy - v*radius*0.5 + 4);
+  });
+
+  // Update pills
+  var zeros = l1 > 0.05 ? 'Possible' : 'None';
+  var corners = l1 < 0.05 ? 'None (circle)' : l1 > 0.95 ? 'Sharp' : 'Rounded';
+  var type = l1 < 0.05 ? 'Pure Ridge' : l1 > 0.95 ? 'Pure Lasso' : 'ElasticNet';
+  C('shape-zeros').textContent = zeros;
+  C('shape-corners').textContent = corners;
+  C('shape-type').textContent = type;
+
+  ctx.textAlign = 'start';
+}
+
+/* ═══════════════════════════════════════
+   SECTION 3 — COEFFICIENT COMPARISON
+═══════════════════════════════════════ */
+var coefData = null;
+
+function reshuffleCoefData(){
+  rseed(Date.now() & 0xffff);
+  var n = 80, p = 8, k = 4;
+  var rho = parseFloat(C('coef-corr').value);
+  coefData = makeDataset(n, p, k, rho, 1.0, seed);
+  onCoefAlphaChange(C('coef-alpha').value);
+}
+
+function onCoefAlphaChange(v){
+  var alpha = parseFloat(v);
+  var rho = parseFloat(C('coef-corr').value);
+  C('coef-alpha-val').textContent = alpha.toFixed(2);
+  C('coef-corr-val').textContent = rho.toFixed(2);
+
+  if(!coefData){
+    coefData = makeDataset(80, 8, 4, rho, 1.0, 42);
+  }
+  drawCoefCanvas(alpha);
+}
+
+function drawCoefCanvas(alpha){
+  var cv = C('coef-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height, pad = {l:40, r:20, t:30, b:40};
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var d = coefData;
+  var tn = Math.floor(d.n * 0.8);
+  var Xtr = d.X.slice(0, tn), ytr = d.y.slice(0, tn);
+
+  // Solve for three models
+  var ridgeB  = elasticNetCD(Xtr, ytr, alpha, 0.0);   // l1=0 → Ridge
+  var enetB   = elasticNetCD(Xtr, ytr, alpha, 0.5);   // l1=0.5 → ElasticNet
+  var lassoB  = elasticNetCD(Xtr, ytr, alpha, 1.0);   // l1=1 → Lasso
+
+  var allCoefs = ridgeB.concat(enetB).concat(lassoB).concat(d.trueCoefs);
+  var maxV = Math.max(0.3, Math.max.apply(null, allCoefs.map(Math.abs)));
+
+  var groupW = (W - pad.l - pad.r) / d.p;
+  var barW = groupW * 0.2;
+  var midY = H - pad.b - (H - pad.t - pad.b) * 0.3;
+  var scaleH = (H - pad.t - pad.b) * 0.65;
+
+  // Zero line
+  ctx.beginPath(); ctx.moveTo(pad.l, midY); ctx.lineTo(W - pad.r, midY);
+  ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 1; ctx.stroke();
+
+  var models = [
+    { beta: ridgeB,  color: '#a78bfa', label: 'Ridge'  },
+    { beta: enetB,   color: '#fb923c', label: 'ENet'   },
+    { beta: lassoB,  color: '#34d399', label: 'Lasso'  }
+  ];
+
+  for(var j = 0; j < d.p; j++){
+    var cx2 = pad.l + j * groupW + groupW / 2;
+
+    // True coefficient ghost bar
+    var tc2 = d.trueCoefs[j];
+    var tH = Math.abs(tc2) / maxV * scaleH;
+    ctx.fillStyle = isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+    if(tH > 0) ctx.fillRect(cx2 - barW*1.5, tc2>=0 ? midY-tH : midY, barW*3, tH);
+
+    // Feature label at bottom
+    ctx.fillStyle = j < d.k ? tc() : 'rgba(155,155,155,0.5)';
+    ctx.font = 'bold 10px mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('x' + (j+1), cx2, H - 8);
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = j < d.k ? 'rgba(62,207,142,0.5)' : 'rgba(120,120,120,0.35)';
+    ctx.fillText(j < d.k ? 'real' : 'noise', cx2, H - pad.b + 16);
+
+    // Draw each model's bar
+    models.forEach(function(m, mi){
+      var b = m.beta[j];
+      var bX = cx2 + (mi - 1) * barW * 1.2;
+      var isZero = Math.abs(b) < 1e-6;
+      if(isZero){
+        // Small red cross
+        ctx.strokeStyle = 'rgba(240,96,96,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(bX-4, midY-4); ctx.lineTo(bX+4, midY+4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(bX+4, midY-4); ctx.lineTo(bX-4, midY+4); ctx.stroke();
+      } else {
+        var bH = Math.abs(b) / maxV * scaleH;
+        ctx.fillStyle = m.color;
+        ctx.globalAlpha = 0.82;
+        ctx.fillRect(bX - barW/2, b>=0 ? midY-bH : midY, barW, bH);
+        ctx.globalAlpha = 1;
+      }
+    });
+  }
+
+  // Legend
+  models.forEach(function(m, mi){
+    var lx = pad.l + mi * 120;
+    ctx.fillStyle = m.color;
+    ctx.fillRect(lx, pad.t - 16, 16, 10);
+    ctx.fillStyle = tc();
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(m.label, lx + 20, pad.t - 7);
+  });
+  ctx.fillStyle = isDark() ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
+  ctx.fillRect(pad.l + 3*120, pad.t-16, 16, 10);
+  ctx.fillStyle = tc(); ctx.font = '11px sans-serif';
+  ctx.fillText('True coef', pad.l + 3*120 + 20, pad.t - 7);
+
+  ctx.textAlign = 'start';
+}
+
+/* ═══════════════════════════════════════
+   SECTION 4 — HYPERPARAMETER TUNING
+═══════════════════════════════════════ */
+var hpData = null;
+
+function onHPChange(){
+  var alpha  = parseFloat(C('hp-alpha').value);
+  var l1     = parseFloat(C('hp-l1').value);
+  var rho    = parseFloat(C('hp-corr').value);
+  var noise  = parseFloat(C('hp-noise').value);
+
+  C('hp-alpha-val').textContent = alpha.toFixed(3);
+  C('hp-l1-val').textContent    = l1.toFixed(2);
+  C('hp-corr-val').textContent  = rho.toFixed(2);
+  C('hp-noise-val').textContent = noise.toFixed(1);
+
+  rseed(99);
+  hpData = makeDataset(100, 10, 4, rho, noise, 99);
+  var d = hpData;
+  var tn = Math.floor(d.n * 0.75);
+  var Xtr = d.X.slice(0,tn), ytr = d.y.slice(0,tn);
+  var Xte = d.X.slice(tn), yte = d.y.slice(tn);
+
+  var beta   = elasticNetCD(Xtr, ytr, alpha, l1);
+  var trainR2 = Math.max(0, Math.min(1, r2score(ytr, dotProd(Xtr, beta))));
+  var testR2  = Math.max(-0.2, Math.min(1, r2score(yte, dotProd(Xte, beta))));
+  var nonzero = beta.filter(function(b){ return Math.abs(b) > 1e-6; }).length;
+  var gap = trainR2 - testR2;
+  var status = gap > 0.2 ? 'Overfitting' : testR2 < 0.2 ? 'Underfitting' : 'Good fit';
+  var statusColor = gap > 0.2 ? 'var(--red)' : testR2 < 0.2 ? 'var(--blue)' : 'var(--green)';
+
+  C('hp-train').textContent   = trainR2.toFixed(3);
+  C('hp-test').textContent    = testR2.toFixed(3);
+  C('hp-nonzero').textContent = nonzero + '/' + d.p;
+  C('hp-status').textContent  = status;
+  C('hp-status').style.color  = statusColor;
+  C('hp-train-bar').style.width   = (trainR2 * 100) + '%';
+  C('hp-test-bar').style.width    = (Math.max(0,testR2) * 100) + '%';
+  C('hp-nonzero-bar').style.width = (nonzero / d.p * 100) + '%';
+
+  drawHPBars(beta, d.trueCoefs, d.p, d.k);
+}
+
+function drawHPBars(beta, trueCoefs, p, k){
+  var cv = C('hp-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height, pad = {l:40, r:20, t:25, b:35};
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var allV = beta.concat(trueCoefs);
+  var maxV = Math.max(0.3, Math.max.apply(null, allV.map(Math.abs)));
+  var groupW = (W - pad.l - pad.r) / p;
+  var barW = Math.min(32, groupW * 0.55);
+  var midY = H - pad.b - (H - pad.t - pad.b) * 0.3;
+  var scaleH = (H - pad.t - pad.b) * 0.6;
+
+  // Zero line
+  ctx.beginPath(); ctx.moveTo(pad.l, midY); ctx.lineTo(W-pad.r, midY);
+  ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 1; ctx.stroke();
+
+  for(var j = 0; j < p; j++){
+    var cx2 = pad.l + j * groupW + groupW / 2;
+    var b = beta[j];
+    var isZero = Math.abs(b) < 1e-6;
+    var isTrue = j < k;
+
+    // True coef ghost
+    var tc2 = trueCoefs[j];
+    if(Math.abs(tc2) > 0.01){
+      var tH = Math.abs(tc2) / maxV * scaleH;
+      ctx.fillStyle = isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+      ctx.fillRect(cx2 - barW/2, tc2>=0 ? midY-tH : midY, barW, tH);
+    }
+
+    if(isZero){
+      ctx.strokeStyle = 'rgba(240,96,96,0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx2-6, midY-6); ctx.lineTo(cx2+6, midY+6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx2+6, midY-6); ctx.lineTo(cx2-6, midY+6); ctx.stroke();
+    } else {
+      var bH = Math.abs(b) / maxV * scaleH;
+      ctx.fillStyle = isTrue ? 'rgba(251,146,60,0.82)' : 'rgba(96,165,250,0.65)';
+      ctx.fillRect(cx2 - barW/2, b>=0 ? midY-bH : midY, barW, bH);
+    }
+
+    // Feature label
+    ctx.fillStyle = isZero ? 'rgba(240,96,96,0.6)' : (isTrue ? '#fb923c' : tc());
+    ctx.font = 'bold 10px mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('x'+(j+1), cx2, H-8);
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = isTrue ? 'rgba(251,146,60,0.45)' : 'rgba(130,130,130,0.35)';
+    ctx.fillText(isTrue ? 'real' : 'noise', cx2, H - pad.b + 16);
+  }
+
+  ctx.textAlign = 'start';
+}
+
+/* ═══════════════════════════════════════
+   GRID SEARCH — alpha x l1_ratio heatmap
+═══════════════════════════════════════ */
+async function runGridSearch(){
+  C('grid-status').textContent = 'Running...';
+  rseed(99);
+  var d = makeDataset(100, 10, 4, 0.6, 1.2, 99);
+  var tn = Math.floor(d.n * 0.75);
+  var Xtr = d.X.slice(0,tn), ytr = d.y.slice(0,tn);
+  var Xte = d.X.slice(tn), yte = d.y.slice(tn);
+
+  var alphas  = [0.001, 0.01, 0.05, 0.1, 0.3, 0.7, 1.5];
+  var l1s     = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+  var results = [];
+  var bestR2 = -999, bestA = 0, bestL = 0, bestAi = 0, bestLi = 0;
+
+  for(var ai = 0; ai < alphas.length; ai++){
+    var row = [];
+    for(var li = 0; li < l1s.length; li++){
+      var beta = elasticNetCD(Xtr, ytr, alphas[ai], l1s[li]);
+      var r2   = Math.max(0, r2score(yte, dotProd(Xte, beta)));
+      row.push(r2);
+      if(r2 > bestR2){ bestR2=r2; bestA=alphas[ai]; bestL=l1s[li]; bestAi=ai; bestLi=li; }
+    }
+    results.push(row);
+    drawGrid(results, alphas, l1s, bestAi, bestLi);
+    await delay(60);
+  }
+
+  C('grid-status').textContent = 'Best: alpha=' + bestA + ', l1_ratio=' + bestL.toFixed(1) + ' (R2=' + bestR2.toFixed(3) + ')';
+}
+
+function drawGrid(results, alphas, l1s, bestAi, bestLi){
+  var cv = C('grid-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = {l:60, r:30, t:20, b:50};
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0,0,W,H);
+
+  var cellW = (W - pad.l - pad.r) / l1s.length;
+  var cellH = (H - pad.t - pad.b) / alphas.length;
+
+  results.forEach(function(row, ai){
+    row.forEach(function(val, li){
+      var x = pad.l + li * cellW;
+      var y = pad.t + ai * cellH;
+      // Colour from dark (low) to bright orange (high)
+      var t = Math.pow(Math.max(0, val), 0.5);
+      var r = Math.round(30 + t * 221);
+      var g = Math.round(20 + t * 106);
+      var b = Math.round(10 + t * 50);
+      ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+      ctx.fillRect(x+1, y+1, cellW-2, cellH-2);
+
+      // Value label
+      ctx.fillStyle = t > 0.5 ? '#fff' : '#aaa';
+      ctx.font = '11px mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(val.toFixed(2), x + cellW/2, y + cellH/2 + 4);
+    });
+  });
+
+  // Best cell marker
+  if(bestAi < results.length){
+    var bx = pad.l + bestLi * cellW;
+    var by = pad.t + bestAi * cellH;
+    ctx.strokeStyle = '#f0a500';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(bx+2, by+2, cellW-4, cellH-4);
+    ctx.fillStyle = '#f0a500';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('★', bx + cellW/2, by + cellH/2 + 5);
+  }
+
+  // X-axis labels (l1_ratio)
+  ctx.fillStyle = tc();
+  ctx.font = '10px sans-serif';
+  l1s.forEach(function(l, li){
+    ctx.textAlign = 'center';
+    ctx.fillText(l.toFixed(1), pad.l + li * cellW + cellW/2, H - pad.b + 14);
+  });
+  ctx.textAlign = 'center';
+  ctx.fillText('l1_ratio', W/2, H - 8);
+
+  // Y-axis labels (alpha)
+  ctx.font = '10px mono';
+  alphas.forEach(function(a, ai){
+    if(ai < results.length){
+      ctx.textAlign = 'right';
+      ctx.fillText(a, pad.l - 4, pad.t + ai * cellH + cellH/2 + 4);
+    }
+  });
+  ctx.save();
+  ctx.translate(14, H/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center';
+  ctx.fillText('alpha', 0, 0);
+  ctx.restore();
+
+  ctx.textAlign = 'start';
+}
+
+/* ═══════════════════════════════════════
+   LIVE EDITOR
+═══════════════════════════════════════ */
+var SNIPPETS = [
+{file:'elasticnet_intro.py', label:'Intro example', code:`import numpy as np
+
+# ── What is ElasticNet? ──────────────────────────────
+# ElasticNet = Ridge + Lasso combined
+#
+# loss = squared_error
+#      + alpha * l1_ratio        * sum(|coef|)   <- Lasso part
+#      + alpha * (1 - l1_ratio)  * sum(coef**2)  <- Ridge part
+#
+# l1_ratio = 0  ->  pure Ridge (no zeros)
+# l1_ratio = 1  ->  pure Lasso (exact zeros)
+# l1_ratio = 0.5 -> equal mix
+
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# Make a dataset: 4 real features + 6 noise features
+# Features are correlated (rho = 0.7)
+np.random.seed(42)
+n, p = 100, 10
+
+# Correlated features
+Z = np.random.randn(n, p)
+rho = 0.7
+X = rho * Z[:, [0]] + np.sqrt(1 - rho**2) * Z   # all correlated with Z[:,0]
+
+# Only first 4 features matter
+true_coef = np.array([2.0, -1.5, 1.0, -0.8, 0, 0, 0, 0, 0, 0])
+y = X @ true_coef + np.random.randn(n)
+
+# Always scale first!
+scaler = StandardScaler()
+X_s = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_s, y, test_size=0.25, random_state=42)
+
+# Fit three models with the same alpha
+alpha = 0.2
+models = {
+    'Ridge   (l1=0)  ': Ridge(alpha=alpha),
+    'ElasticNet(l1=.5)': ElasticNet(alpha=alpha, l1_ratio=0.5, max_iter=2000),
+    'Lasso   (l1=1)  ': Lasso(alpha=alpha, max_iter=2000),
+}
+
+print(f"{'Model':<24} {'Test R2':>8}  {'Non-zero coefs':>14}")
+print("-" * 52)
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    r2   = model.score(X_test, y_test)
+    nz   = np.sum(np.abs(model.coef_) > 0.01)
+    print(f"{name:<24} {r2:>8.4f}  {nz:>14}")
+
+print()
+print("Key observation:")
+print("  Lasso may keep only 1 from a correlated group (unstable)")
+print("  ElasticNet shares coefficients across the correlated group")
+print("  Ridge keeps all features (no zeros)")
+`},
+{file:'elasticnet_cv.py', label:'ElasticNetCV', code:`import numpy as np
+from sklearn.linear_model import ElasticNetCV, ElasticNet
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# Simple dataset
+np.random.seed(42)
+n, p = 150, 12
+
+X = np.random.randn(n, p)
+# Make features 1-2 correlated
+X[:, 1] = 0.85 * X[:, 0] + 0.15 * X[:, 1]
+
+# True model: only features 0,1,2,3 matter
+true_coef = np.array([2.0, -1.8, 1.2, -0.9] + [0]*8)
+y = X @ true_coef + np.random.randn(n) * 0.8
+
+# Scale features (always do this!)
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# ElasticNetCV searches both alpha and l1_ratio for you
+model = ElasticNetCV(
+    l1_ratio=[0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 1.0],  # try many mixes
+    n_alphas=50,   # try 50 alpha values
+    cv=5,          # 5-fold cross-validation
+    max_iter=3000
+)
+
+model.fit(X_train, y_train)
+
+print("ElasticNetCV Results:")
+print(f"  Best alpha:    {model.alpha_:.4f}")
+print(f"  Best l1_ratio: {model.l1_ratio_:.2f}")
+print(f"  Train R2:      {model.score(X_train, y_train):.4f}")
+print(f"  Test  R2:      {model.score(X_test, y_test):.4f}")
+print()
+
+# Which features were selected?
+selected = np.where(np.abs(model.coef_) > 0.01)[0]
+print(f"  Features kept: {[int(i)+1 for i in selected]}")
+print(f"  True features: [1, 2, 3, 4]")
+print()
+
+# Show all coefficients
+print("  Coefficients:")
+for j, c in enumerate(model.coef_):
+    bar = '#' * int(abs(c) * 10)
+    zero = '(zero)' if abs(c) < 0.01 else ''
+    print(f"    x{j+1:2d}: {c:>7.3f}  {bar}  {zero}")
+`},
+{file:'compare_all.py', label:'Ridge vs Lasso vs ElasticNet', code:`import numpy as np
+
+# ── From scratch: compare all three regularisers ─────
+# Simple, readable code — no sklearn
+
+def soft_thresh(x, t):
+    # This is the key operation in Lasso and ElasticNet
+    if x > t:  return x - t
+    if x < -t: return x + t
+    return 0.0  # zero!
+
+def fit_elasticnet(X, y, alpha, l1_ratio, max_iter=500):
+    """
+    Fits ElasticNet using coordinate descent.
+    l1_ratio=0 -> Ridge behaviour
+    l1_ratio=1 -> Lasso behaviour
+    """
+    n, p = X.shape
+    beta = np.zeros(p)
+    col_norms = np.sum(X**2, axis=0) / n  # pre-compute once
+
+    for _ in range(max_iter):
+        old_beta = beta.copy()
+        for j in range(p):
+            # Step 1: compute partial residual (y minus all OTHER features)
+            residual = y - X @ beta + X[:, j] * beta[j]
+
+            # Step 2: OLS update for feature j alone
+            rho = X[:, j] @ residual / n
+
+            # Step 3: apply ElasticNet update
+            l1_pen = alpha * l1_ratio           # Lasso part
+            l2_pen = alpha * (1 - l1_ratio)     # Ridge part
+            denom  = col_norms[j] + l2_pen
+
+            if denom > 1e-10:
+                beta[j] = soft_thresh(rho / denom, l1_pen / denom)
+
+        # Stop if converged
+        if np.max(np.abs(beta - old_beta)) < 1e-6:
+            break
+
+    return beta
+
+def r2(y_true, y_pred):
+    ss_res = np.sum((y_true - y_pred)**2)
+    ss_tot = np.sum((y_true - y_true.mean())**2)
+    return 1 - ss_res / ss_tot
+
+# ── Run experiment ───────────────────────────────────
+np.random.seed(42)
+n, p, k = 100, 10, 3
+
+# Correlated features
+X = np.random.randn(n, p)
+X[:, 1] = 0.9 * X[:, 0] + 0.1 * X[:, 1]  # x2 correlated with x1
+X[:, 2] = 0.8 * X[:, 0] + 0.2 * X[:, 2]  # x3 correlated with x1
+
+# Standardise
+X = (X - X.mean(0)) / X.std(0)
+
+# Only first 3 features matter
+true_coef = np.array([2.0, 1.5, -1.0] + [0]*(p-k))
+y = X @ true_coef + np.random.randn(n)
+y = (y - y.mean()) / y.std()
+
+split = 80
+Xtr, Xte = X[:split], X[split:]
+ytr, yte = y[:split], y[split:]
+
+alpha = 0.15
+
+print(f"alpha = {alpha}")
+print(f"{'Model':<20} {'Test R2':>8}  {'Non-zero':>9}  Coefficients of x1,x2,x3")
+print("-" * 70)
+
+for name, l1 in [('Ridge  (l1=0)', 0.0), ('ElasticNet(l1=.5)', 0.5), ('Lasso  (l1=1)', 1.0)]:
+    beta = fit_elasticnet(Xtr, ytr, alpha, l1)
+    yhat = Xte @ beta
+    score = r2(yte, yhat)
+    nz = np.sum(np.abs(beta) > 0.01)
+    coef_str = ', '.join(f'{beta[j]:.2f}' for j in range(k))
+    print(f"{name:<20} {score:>8.4f}  {nz:>9}  [{coef_str}]")
+
+print()
+print("Notice with correlated x1,x2,x3:")
+print("  Lasso picks arbitrarily from correlated group")
+print("  Ridge spreads evenly (stable but no zeros)")
+print("  ElasticNet: stable AND produces some zeros")
+`}
+];
+
+var currentTab = 0, pyodide = null, pyLoading = false, cmEditor = null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML = SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab = i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){ b.classList.toggle('active', j===i); });
+  if(cmEditor){ cmEditor.setValue(SNIPPETS[i].code); cmEditor.refresh(); }
+  C('editor-filename').textContent = SNIPPETS[i].file;
+  C('editor-output').textContent = 'Click Run to execute...';
+  C('editor-output').className = 'editor-output idle';
+}
+
+function resetEditor(){ if(cmEditor) cmEditor.setValue(SNIPPETS[currentTab].code); }
+function clearOutput(){ C('editor-output').textContent = ''; C('editor-output').className = 'editor-output idle'; }
+
+async function runEditor(){
+  var btn = C('run-btn'), out = C('editor-output');
+  var code = cmEditor ? cmEditor.getValue() : '';
+  btn.disabled = true; btn.textContent = 'Running...';
+  out.className = 'editor-output'; out.textContent = 'Loading Python...';
+  var t0 = Date.now();
+
+  if(!pyodide){
+    var st = C('py-status'); st.textContent = 'Loading...';
+    try {
+      if(!pyLoading){
+        pyLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){ sc.onload=r; sc.onerror=j; });
+        pyodide = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading = false;
+      } else {
+        while(pyLoading) await new Promise(function(r){ setTimeout(r,100); });
+      }
+      st.textContent = 'Python ready';
+      st.className = 'py-status ready';
+    } catch(e) {
+      out.textContent = 'Failed to load Python runtime.';
+      out.className = 'editor-output error';
+      btn.disabled = false; btn.textContent = 'Run';
+      return;
+    }
+  }
+
+  out.textContent = 'Running...';
+  try {
+    pyodide.runPython('import sys, io as _io; _buf = _io.StringIO(); sys.stdout = _buf');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout = sys.__stdout__');
+    var result = pyodide.runPython('_buf.getvalue()');
+    out.textContent = result || '(no output)';
+    out.className = 'editor-output';
+    C('run-time').textContent = (Date.now() - t0) + 'ms';
+  } catch(e) {
+    try { pyodide.runPython('import sys; sys.stdout = sys.__stdout__'); } catch(ig){}
+    out.textContent = 'Error: ' + (e.message || String(e));
+    out.className = 'editor-output error';
+  }
+  btn.disabled = false; btn.textContent = 'Run';
+}
+
+/* ── Init ── */
+window.addEventListener('load', function(){
+  drawShapeCanvas(0.5);
+  coefData = makeDataset(80, 8, 4, 0.7, 1.0, 42);
+  onCoefAlphaChange(0.2);
+  onHPChange();
+
+  (function trySetup(){
+    if(typeof CodeMirror === 'undefined'){ setTimeout(trySetup, 60); return; }
+    buildTabs();
+    var mount = C('cm-editor-mount');
+    if(!mount) return;
+    cmEditor = CodeMirror(mount, {
+      value: SNIPPETS[0].code,
+      mode: 'python',
+      theme: 'one-dark',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      lineWrapping: false,
+      extraKeys: { Tab: function(cm){
+        if(cm.somethingSelected()) cm.indentSelection('add');
+        else cm.replaceSelection('    ', 'end');
+      }}
+    });
+    cmEditor.setSize('100%', null);
+    setTimeout(function(){ cmEditor.refresh(); }, 100);
+    setTimeout(function(){ cmEditor.refresh(); }, 500);
+  })();
+
+  new MutationObserver(function(){
+    drawShapeCanvas(parseFloat(C('l1-ratio-slider').value));
+    drawCoefCanvas(parseFloat(C('coef-alpha').value));
+    onHPChange();
+    if(cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

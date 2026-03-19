@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Web Scraping — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,146,60,0.09),rgba(240,165,0,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* HTML viewer */
+    .html-viewer{font-family:var(--font-mono);font-size:12.5px;line-height:1.7;padding:16px;overflow-x:auto;background:var(--bg-input);border-radius:var(--r-md);position:relative;}
+    .html-tag{color:#60a5fa;}
+    .html-attr{color:#fb923c;}
+    .html-val{color:#4ade80;}
+    .html-text{color:var(--text-2);}
+    .html-highlight{background:rgba(45,212,191,0.25);border-radius:3px;outline:2px solid var(--teal);}
+    /* Selector builder */
+    .selector-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:12px;font-family:var(--font-mono);cursor:pointer;transition:all .15s;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-2);}
+    .selector-pill:hover{border-color:var(--teal);color:var(--teal);}
+    .selector-pill.active{border-color:var(--teal);background:rgba(45,212,191,0.1);color:var(--teal);}
+    /* Pipeline flow */
+    .pipeline{display:flex;align-items:center;gap:0;margin:16px 0;overflow-x:auto;padding-bottom:4px;}
+    .pipe-step{background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--r-md);padding:12px 16px;min-width:130px;text-align:center;flex-shrink:0;}
+    .pipe-step.active{border-color:var(--teal);}
+    .pipe-arrow{color:var(--text-3);font-size:18px;padding:0 6px;flex-shrink:0;}
+    .pipe-title{font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:3px;}
+    .pipe-sub{font-size:10px;color:var(--text-3);}
+    /* Extracted table */
+    .extracted-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .extracted-table th{text-align:left;padding:8px 12px;border-bottom:2px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);}
+    .extracted-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text-2);}
+    .extracted-table tr:last-child td{border-bottom:none;}
+    .extracted-table tr:hover td{background:var(--bg-input);}
+    /* Ethics box */
+    .ethics-card{background:rgba(240,165,0,0.07);border:1.5px solid rgba(240,165,0,0.3);border-radius:var(--r-lg);padding:18px 22px;margin-bottom:16px;}
+    .ethics-title{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:10px;}
+    .ethics-list{list-style:none;padding:0;margin:0;}
+    .ethics-list li{padding:5px 0;font-size:13px;color:var(--text-2);display:flex;gap:8px;}
+    .ethics-list li::before{content:'⚠';flex-shrink:0;}
+    /* derive */
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:26px;height:26px;border-radius:50%;background:rgba(251,146,60,0.1);border:1.5px solid var(--orange);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--orange);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border-left:3px solid var(--orange);padding:10px 14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(251,146,60,0.15)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--orange);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.12);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+  </style>
+</head>
+<body data-topic-id="web-scraping">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Web Scraping</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Data Collection</a><span class="sep">/</span>
+            <span class="current">Web Scraping</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(251,146,60,.3);background:rgba(251,146,60,0.08);color:var(--orange);margin-bottom:14px;">Data Collection · BeautifulSoup · requests</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Web Scraping</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Most real-world data lives on websites — not in neat CSV files.
+              Web scraping lets you <strong>automatically extract data from web pages</strong>
+              by parsing their HTML. It is one of the most essential data collection skills in ML.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#8987; 20 min</span>
+              <span class="topic-meta-item">&#9670; Beginner</span>
+              <span class="topic-meta-item">requests · BeautifulSoup · pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — INTUITION -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">&#127758;</div>
+              What is web scraping?
+            </h2>
+            <p>
+              Every web page is just an HTML text file. Your browser reads that file and renders
+              it visually. Web scraping means writing code to <strong>read that same HTML file
+              and pull out the specific data you want</strong> — prices, headlines, reviews,
+              stock data, weather, anything.
+            </p>
+            <p>
+              The two most common Python tools are:
+            </p>
+            <ul style="margin:10px 0 16px 20px;line-height:2.2;color:var(--text-2);">
+              <li><strong>requests</strong> — downloads the HTML content of a URL (like a browser would)</li>
+              <li><strong>BeautifulSoup</strong> — parses that HTML and lets you search for tags, classes, IDs to extract specific data</li>
+            </ul>
+
+            <!-- SCRAPING PIPELINE VISUAL -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">The web scraping pipeline — click each step to learn more</span>
+              </div>
+              <div style="padding:18px;overflow-x:auto;">
+                <div class="pipeline">
+                  <div class="pipe-step active" id="ps-1" onclick="showPipeStep(1)" style="cursor:pointer;">
+                    <div class="pipe-title" style="color:var(--orange);">1. Request</div>
+                    <div class="pipe-sub">requests.get(url)</div>
+                  </div>
+                  <div class="pipe-arrow">&#8594;</div>
+                  <div class="pipe-step" id="ps-2" onclick="showPipeStep(2)" style="cursor:pointer;">
+                    <div class="pipe-title">2. Parse</div>
+                    <div class="pipe-sub">BeautifulSoup(html)</div>
+                  </div>
+                  <div class="pipe-arrow">&#8594;</div>
+                  <div class="pipe-step" id="ps-3" onclick="showPipeStep(3)" style="cursor:pointer;">
+                    <div class="pipe-title">3. Select</div>
+                    <div class="pipe-sub">find / select</div>
+                  </div>
+                  <div class="pipe-arrow">&#8594;</div>
+                  <div class="pipe-step" id="ps-4" onclick="showPipeStep(4)" style="cursor:pointer;">
+                    <div class="pipe-title">4. Extract</div>
+                    <div class="pipe-sub">.text / [attr]</div>
+                  </div>
+                  <div class="pipe-arrow">&#8594;</div>
+                  <div class="pipe-step" id="ps-5" onclick="showPipeStep(5)" style="cursor:pointer;">
+                    <div class="pipe-title">5. Store</div>
+                    <div class="pipe-sub">DataFrame / CSV</div>
+                  </div>
+                </div>
+                <div style="padding:12px 16px;background:var(--bg-input);border-radius:var(--r-md);font-size:13px;color:var(--text-2);min-height:56px;" id="pipe-info">
+                  Click any step above to see what it does and the code for that step.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — HTML STRUCTURE VISUALIZER -->
+          <section class="section" id="html-structure">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">&#60;/&#62;</div>
+              Understanding HTML — what you are parsing
+            </h2>
+            <p>
+              Before scraping, you need to understand the HTML structure.
+              HTML is a tree of <strong>tags</strong> (like &lt;div&gt;, &lt;p&gt;, &lt;a&gt;).
+              Each tag can have <strong>attributes</strong> (like class, id, href).
+              BeautifulSoup lets you find tags by name, class, id, or CSS selectors.
+            </p>
+
+            <!-- Interactive HTML viewer -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Click any element to see what selector finds it</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <span class="selector-pill active" id="sel-all" onclick="setSelector('all')">All</span>
+                  <span class="selector-pill" id="sel-h2" onclick="setSelector('h2')">h2</span>
+                  <span class="selector-pill" id="sel-price" onclick="setSelector('.price')">  .price</span>
+                  <span class="selector-pill" id="sel-link" onclick="setSelector('a')">a</span>
+                  <span class="selector-pill" id="sel-card" onclick="setSelector('.product-card')">.product-card</span>
+                  <span class="selector-pill" id="sel-id" onclick="setSelector('#featured')">#featured</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <div style="padding:14px 16px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:10px;">HTML Source</div>
+                  <div class="html-viewer" id="html-source"></div>
+                </div>
+                <div style="padding:14px 16px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:10px;">Extracted Data</div>
+                  <div id="html-result" style="font-size:13px;color:var(--text-2);line-height:1.8;"></div>
+                  <div style="margin-top:12px;padding:10px 12px;background:var(--bg-input);border-radius:var(--r-sm);font-family:var(--font-mono);font-size:12px;color:var(--teal);" id="html-code"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — CSS SELECTORS -->
+          <section class="section" id="selectors">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">&#9654;</div>
+              CSS Selectors — the most important skill
+            </h2>
+            <p>
+              The hardest part of web scraping is writing the right selector to find the element you want.
+              BeautifulSoup supports CSS selectors via <code>soup.select()</code>.
+              Here are all the patterns you need:
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">CSS selector reference — click any row to see it in action</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;" id="selector-table">
+                  <thead>
+                    <tr style="border-bottom:2px solid var(--border);">
+                      <th style="text-align:left;padding:10px 14px;color:var(--text-3);font-size:11px;text-transform:uppercase;">Selector</th>
+                      <th style="text-align:left;padding:10px 14px;color:var(--text-3);font-size:11px;text-transform:uppercase;">Finds</th>
+                      <th style="text-align:left;padding:10px 14px;color:var(--text-3);font-size:11px;text-transform:uppercase;">Example</th>
+                    </tr>
+                  </thead>
+                  <tbody id="selector-tbody"></tbody>
+                </table>
+              </div>
+              <div style="padding:10px 16px;background:var(--bg-input);border-top:1px solid var(--border);font-family:var(--font-mono);font-size:12px;color:var(--teal);min-height:36px;" id="selector-demo"></div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — LIVE SCRAPING SIMULATION -->
+          <section class="section" id="live-scrape">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">&#9889;</div>
+              Live scraping simulation — watch data get extracted
+            </h2>
+            <p>
+              Click <strong>Scrape</strong> to simulate scraping a product listing page.
+              Watch the HTML get parsed, the selectors run, and the data land in a clean table.
+              This is exactly what real scraping code does.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Simulated product page scraper</span>
+                <select class="ctrl-select" id="scrape-target">
+                  <option value="products">Product listings</option>
+                  <option value="news">News headlines</option>
+                  <option value="table">HTML table (stock data)</option>
+                </select>
+                <button class="ctrl-btn active" onclick="runScrape()">&#9654; Scrape</button>
+                <button class="ctrl-btn" onclick="clearScrape()">Clear</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:300px;">
+                <div style="padding:14px 16px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">HTML being parsed</div>
+                  <div class="html-viewer" style="font-size:11.5px;max-height:300px;overflow-y:auto;" id="scrape-html">Click Scrape to load HTML...</div>
+                </div>
+                <div style="padding:14px 16px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">Extracted data</div>
+                  <div id="scrape-result" style="font-size:12.5px;color:var(--text-3);">Results appear here after scraping...</div>
+                </div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="scrape-rows" style="color:var(--orange);">0</span><span class="stat-pill-lbl">Rows extracted</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="scrape-cols">0</span><span class="stat-pill-lbl">Columns</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="scrape-time" style="font-size:13px;">—</span><span class="stat-pill-lbl">Parse time</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — ETHICS & ROBOTS.TXT -->
+          <section class="section" id="ethics">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9888;</div>
+              Ethics and rules — always check before you scrape
+            </h2>
+            <div class="ethics-card">
+              <div class="ethics-title">&#9888; Always follow these rules</div>
+              <ul class="ethics-list">
+                <li>Check <strong>robots.txt</strong> (e.g. example.com/robots.txt). If a path is Disallowed, don't scrape it.</li>
+                <li>Check the site's <strong>Terms of Service</strong>. Many sites explicitly forbid scraping.</li>
+                <li>Add <strong>delays between requests</strong> (time.sleep(1–3)). Don't hammer servers.</li>
+                <li>Identify yourself with a proper <strong>User-Agent</strong> header so the server knows who is making requests.</li>
+                <li>Prefer <strong>official APIs</strong> when they exist — they are faster, more reliable, and always legal.</li>
+                <li>Never scrape <strong>personal data</strong> (names, emails, addresses) without explicit permission — GDPR applies.</li>
+              </ul>
+            </div>
+
+            <!-- robots.txt visualizer -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">robots.txt — interactive example</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <div style="padding:14px 16px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">robots.txt content</div>
+                  <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;color:var(--text-2);" id="robots-display"></div>
+                </div>
+                <div style="padding:14px 16px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">Can I scrape this URL?</div>
+                  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                    <input type="text" id="robots-url" placeholder="/products/list" value="/products/list"
+                      style="flex:1;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text-1);font-size:13px;font-family:var(--font-mono);" oninput="checkRobots()"/>
+                    <button class="ctrl-btn active" onclick="checkRobots()">Check</button>
+                  </div>
+                  <div id="robots-result" style="font-size:14px;font-weight:700;padding:12px 16px;border-radius:var(--r-md);"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 6 — HOW IT WORKS -->
+          <section class="section" id="how-it-works">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:var(--orange);">&#8721;</div>
+              Step-by-step — the complete scraping workflow
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Send an HTTP request to get the HTML</div>
+                  <div class="derive-desc">Use requests.get() to download the page. Always check the status code — 200 means OK, 404 means not found, 403 means forbidden. Set a User-Agent header so you look like a browser.</div>
+                  <div class="derive-formula">import requests
+
+headers = {'User-Agent': 'Mozilla/5.0 (educational scraper)'}
+response = requests.get('https://example.com', headers=headers)
+
+print(response.status_code)  # 200 = OK
+print(len(response.text))    # length of HTML string</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Parse the HTML with BeautifulSoup</div>
+                  <div class="derive-desc">BeautifulSoup turns the raw HTML string into a tree you can navigate. Always use 'html.parser' (built-in) or 'lxml' (faster, needs pip install).</div>
+                  <div class="derive-formula">from bs4 import BeautifulSoup
+
+soup = BeautifulSoup(response.text, 'html.parser')
+
+# Now soup is a navigable tree
+print(soup.title.text)        # page title
+print(soup.find('h1').text)   # first h1 heading</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Find elements with find / find_all / select</div>
+                  <div class="derive-desc">Three main ways to find elements. find() returns the first match. find_all() returns all matches as a list. select() takes a CSS selector (most powerful).</div>
+                  <div class="derive-formula">soup.find('h2')                   # first h2 tag
+soup.find('div', class_='price')  # div with class="price"
+soup.find(id='featured')          # element with id="featured"
+
+soup.find_all('a')                # all links
+soup.find_all('li', limit=5)      # first 5 list items
+
+soup.select('table tr td')        # CSS: all td in table rows
+soup.select('.product .price')    # CSS: .price inside .product</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Extract text and attributes</div>
+                  <div class="derive-desc">From a found element, get its text content or any attribute value. Always use .strip() to remove whitespace. Use try/except for missing elements.</div>
+                  <div class="derive-formula">element = soup.find('a')
+
+element.text          # all text inside the tag
+element.get_text()    # same, with optional separator
+element['href']       # value of the href attribute
+element.get('href')   # safer version (returns None if missing)
+element['class']      # returns a list of class names</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">5</div>
+                <div>
+                  <div class="derive-title">Store results in a DataFrame</div>
+                  <div class="derive-desc">Collect extracted data into a list of dictionaries, then convert to a pandas DataFrame. Save to CSV for later use in your ML pipeline.</div>
+                  <div class="derive-formula">import pandas as pd
+
+records = []
+for card in soup.select('.product-card'):
+    records.append({
+        'name':  card.select_one('h2').text.strip(),
+        'price': card.select_one('.price').text.strip(),
+        'url':   card.select_one('a').get('href', '')
+    })
+
+df = pd.DataFrame(records)
+df.to_csv('products.csv', index=False)
+print(df.head())</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">scrape_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Scraping JavaScript-rendered pages with requests.</strong> requests only downloads the initial HTML — it doesn't execute JavaScript. If the data loads after the page (via JS), you need Selenium or Playwright instead of requests+BeautifulSoup.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not handling errors.</strong> Websites go down, return 429 (rate limited), or change structure. Always check response.status_code and wrap selectors in try/except. Use time.sleep() and retry logic.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Scraping too fast.</strong> Sending hundreds of requests per second will get your IP banned and may harm the server. Always add time.sleep(1) to 3 seconds between requests. For large scrapes, use random delays.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not checking for an API first.</strong> Many sites have public APIs (Twitter, Reddit, Wikipedia, etc.) that give you cleaner, structured data faster and legally. Always search for "site_name API" before scraping.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Hardcoding selectors without handling missing elements.</strong> Sites change layout. Use .get() instead of [], and check if element is not None before accessing .text. Your scraper will break on the first missing element otherwise.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9733;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The basic pipeline: <strong>requests.get(url)</strong> downloads HTML → <strong>BeautifulSoup</strong> parses it → <strong>select/find</strong> locates elements → <strong>.text / ['attr']</strong> extracts data → <strong>DataFrame</strong> stores it.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Learn <strong>CSS selectors</strong>. soup.select() is the most powerful way to find elements. Use browser DevTools (right-click → Inspect) to find the right selector for any element.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always check <strong>robots.txt</strong> and Terms of Service. Add delays. Never scrape personal data without permission.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>If content loads via JavaScript, <strong>requests won't work</strong>. Use Selenium or Playwright for dynamic pages.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always use <strong>try/except</strong> and <strong>.get()</strong> for robust scrapers that don't crash on missing elements.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="api-fetching.html">
+              <span class="pn-dir">&#8592; Previous</span>
+              <span class="pn-title">API Fetching</span>
+            </a>
+            <a class="pn-card next" href="../phase2-eda/missing-values.html">
+              <span class="pn-dir">Next &#8594;</span>
+              <span class="pn-title">Missing Values (EDA)</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">What is web scraping?</a></li>
+            <li class="toc-item"><a href="#html-structure">Understanding HTML</a></li>
+            <li class="toc-item"><a href="#selectors">CSS Selectors</a></li>
+            <li class="toc-item"><a href="#live-scrape">Live scraping demo</a></li>
+            <li class="toc-item"><a href="#ethics">Ethics &amp; robots.txt</a></li>
+            <li class="toc-item"><a href="#how-it-works">Step-by-step workflow</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ─────────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────────── */
+function C(id){ return document.getElementById(id); }
+function isDark(){ return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ─────────────────────────────────────────────────
+   SECTION 1 — PIPELINE STEPS
+───────────────────────────────────────────────── */
+var PIPE_INFO = {
+  1: { title:'Step 1: Send an HTTP request',
+       text:'requests.get(url) downloads the page HTML, just like a browser.',
+       code:"response = requests.get('https://example.com',\n    headers={'User-Agent': 'Mozilla/5.0'})\nprint(response.status_code)  # 200 = OK" },
+  2: { title:'Step 2: Parse the HTML',
+       text:"BeautifulSoup turns the raw HTML string into a searchable tree. Use 'html.parser' (built-in).",
+       code:"from bs4 import BeautifulSoup\nsoup = BeautifulSoup(response.text, 'html.parser')\nprint(soup.title.text)" },
+  3: { title:'Step 3: Select elements',
+       text:'find() = first match. find_all() = all matches. select() uses CSS selectors.',
+       code:"soup.find('h1')                 # first h1\nsoup.find_all('.price')         # all .price elements\nsoup.select('table tr td')      # CSS selector" },
+  4: { title:'Step 4: Extract text and attributes',
+       text:"Use .text for content, .get('attr') for attributes. Always .strip() whitespace.",
+       code:"link = soup.find('a')\nprint(link.text.strip())    # link text\nprint(link.get('href'))     # URL (safe, returns None if missing)" },
+  5: { title:'Step 5: Store in a DataFrame',
+       text:'Collect dicts into a list, convert to DataFrame, save to CSV.',
+       code:"records = []\nfor item in soup.select('.product'):\n    records.append({'name': item.find('h2').text.strip(),\n                    'price': item.find('.price').text.strip()})\ndf = pd.DataFrame(records)\ndf.to_csv('data.csv', index=False)" }
+};
+
+function showPipeStep(n){
+  for(var i=1;i<=5;i++){
+    var el = C('ps-'+i);
+    if(el) el.classList.toggle('active', i===n);
+  }
+  var info = PIPE_INFO[n];
+  if(!info) return;
+  C('pipe-info').innerHTML =
+    '<strong style="color:var(--orange);">' + info.title + '</strong><br>' +
+    '<span style="color:var(--text-2);font-size:13px;">' + info.text + '</span><br>' +
+    '<pre style="margin-top:8px;font-family:var(--font-mono);font-size:12px;color:#2dd4bf;white-space:pre-wrap;">' + info.code + '</pre>';
+}
+
+/* ─────────────────────────────────────────────────
+   SECTION 2 — HTML VIEWER
+───────────────────────────────────────────────── */
+var currentSelector = 'all';
+
+/* The sample HTML as a data structure */
+var SAMPLE = {
+  tag:'div', id:'featured', cls:'',
+  children:[
+    { tag:'h2', cls:'section-title', text:'Featured Products' },
+    { tag:'div', cls:'product-card', children:[
+      { tag:'h2', cls:'product-name', text:'Wireless Headphones' },
+      { tag:'p',  cls:'price',        text:'$49.99' },
+      { tag:'a',  cls:'',  href:'/products/headphones', text:'View details' }
+    ]},
+    { tag:'div', cls:'product-card', children:[
+      { tag:'h2', cls:'product-name', text:'Mechanical Keyboard' },
+      { tag:'p',  cls:'price',        text:'$89.99' },
+      { tag:'a',  cls:'',  href:'/products/keyboard', text:'View details' }
+    ]},
+    { tag:'div', cls:'product-card', children:[
+      { tag:'h2', cls:'product-name', text:'USB-C Hub' },
+      { tag:'p',  cls:'price',        text:'$29.99' },
+      { tag:'a',  cls:'',  href:'/products/hub', text:'View details' }
+    ]}
+  ]
+};
+
+function nodeMatches(node, sel){
+  if(sel === 'all')            return false;
+  if(sel === 'h2')             return node.tag === 'h2';
+  if(sel === '.price')         return node.cls === 'price';
+  if(sel === 'a')              return node.tag === 'a';
+  if(sel === '.product-card')  return node.cls === 'product-card';
+  if(sel === '#featured')      return node.id  === 'featured';
+  return false;
+}
+
+function renderNode(node, indent, sel){
+  var sp = '';
+  for(var i=0;i<indent;i++) sp += '  ';
+  var matched = nodeMatches(node, sel);
+  var hlOpen  = matched ? '<span style="background:rgba(45,212,191,0.22);border-radius:2px;outline:1px solid #2dd4bf;">' : '';
+  var hlClose = matched ? '</span>' : '';
+
+  var attrs = '';
+  if(node.id)   attrs += ' <span style="color:#fb923c;">id</span>=<span style="color:#4ade80;">"'+esc(node.id)+'"</span>';
+  if(node.cls)  attrs += ' <span style="color:#fb923c;">class</span>=<span style="color:#4ade80;">"'+esc(node.cls)+'"</span>';
+  if(node.href) attrs += ' <span style="color:#fb923c;">href</span>=<span style="color:#4ade80;">"'+esc(node.href)+'"</span>';
+
+  var lines = '';
+  if(node.text !== undefined){
+    lines += esc(sp) + hlOpen +
+      '<span style="color:#60a5fa;">&lt;'+node.tag+attrs+'&gt;</span>' +
+      '<span style="color:var(--text-2);">'+esc(node.text)+'</span>' +
+      '<span style="color:#60a5fa;">&lt;/'+node.tag+'&gt;</span>' +
+      hlClose + '\n';
+  } else {
+    lines += esc(sp) + hlOpen +
+      '<span style="color:#60a5fa;">&lt;'+node.tag+attrs+'&gt;</span>' +
+      hlClose + '\n';
+    if(node.children){
+      node.children.forEach(function(c){ lines += renderNode(c, indent+1, sel); });
+    }
+    lines += esc(sp) + '<span style="color:#60a5fa;">&lt;/'+node.tag+'&gt;</span>\n';
+  }
+  return lines;
+}
+
+function renderHTMLSource(sel){
+  var src = C('html-source');
+  if(!src) return;
+  src.innerHTML = '<pre style="margin:0;font-size:12px;line-height:1.7;">' + renderNode(SAMPLE, 0, sel) + '</pre>';
+}
+
+var SEL_RESULTS = {
+  'all':          { result:'Select a filter above to highlight matching elements.', code:'# Choose a selector button to see matching code' },
+  'h2':           { result:'Found 4 &lt;h2&gt; tags:\n  • "Featured Products"\n  • "Wireless Headphones"\n  • "Mechanical Keyboard"\n  • "USB-C Hub"',
+                    code:'items = soup.find_all("h2")\nfor item in items:\n    print(item.text.strip())' },
+  '.price':       { result:'Found 3 elements with class="price":\n  • "$49.99"\n  • "$89.99"\n  • "$29.99"',
+                    code:'prices = soup.find_all(class_="price")\nfor p in prices:\n    print(p.text.strip())' },
+  'a':            { result:'Found 3 &lt;a&gt; links:\n  • "View details" → /products/headphones\n  • "View details" → /products/keyboard\n  • "View details" → /products/hub',
+                    code:'links = soup.find_all("a")\nfor a in links:\n    print(a.text.strip(), "->", a.get("href"))' },
+  '.product-card':{ result:'Found 3 &lt;div class="product-card"&gt; containers\n(each holds a name, price and link)',
+                    code:'cards = soup.find_all(class_="product-card")\nfor card in cards:\n    name  = card.find("h2").text.strip()\n    price = card.find(class_="price").text.strip()\n    print(name, price)' },
+  '#featured':    { result:'Found 1 element with id="featured"\n(the outer container div)',
+                    code:'featured = soup.find(id="featured")\nprint(featured.find("h2").text)' }
+};
+
+function setSelector(sel){
+  currentSelector = sel;
+  /* Update pill styles */
+  var pillMap = {'all':'sel-all','h2':'sel-h2','.price':'sel-price','a':'sel-link','.product-card':'sel-card','#featured':'sel-id'};
+  Object.keys(pillMap).forEach(function(s){
+    var el = C(pillMap[s]);
+    if(el) el.classList.toggle('active', s === sel);
+  });
+  renderHTMLSource(sel);
+  /* Show result */
+  var r = SEL_RESULTS[sel];
+  if(!r) return;
+  var res = C('html-result');
+  var cod = C('html-code');
+  if(res) res.innerHTML = '<pre style="white-space:pre-wrap;font-size:12.5px;color:var(--text-2);margin:0;">' + r.result + '</pre>';
+  if(cod) cod.innerHTML = '<pre style="margin:0;white-space:pre-wrap;font-size:12px;">' + esc(r.code) + '</pre>';
+}
+
+/* ─────────────────────────────────────────────────
+   SECTION 3 — SELECTOR TABLE
+───────────────────────────────────────────────── */
+var SELECTORS = [
+  { sel:'h1',               finds:'All h1 tags',                         ex:'soup.select("h1")',              demo:'# Finds: <h1>Page Title</h1>' },
+  { sel:'.class-name',      finds:'Elements with that CSS class',        ex:'soup.select(".price")',           demo:'# Finds: <p class="price">$9.99</p>' },
+  { sel:'#my-id',           finds:'Element with that exact id',          ex:'soup.select("#main")',            demo:'# Finds: <div id="main">...</div>' },
+  { sel:'div p',            finds:'All p inside any div (descendant)',   ex:'soup.select("div p")',            demo:'# Finds nested: <div><span><p>Text</p></span></div>' },
+  { sel:'div > p',          finds:'Only direct p children of div',       ex:'soup.select("div > p")',          demo:'# Skips deeper nesting — immediate children only' },
+  { sel:'a[href]',          finds:'All a tags that have an href attr',   ex:'soup.select("a[href]")',          demo:'# Finds: <a href="/page">Link</a>' },
+  { sel:'a[href*="login"]', finds:'Links whose href contains "login"',   ex:'soup.select(\'a[href*="login"]\')', demo:'# Finds: <a href="/user/login">Sign in</a>' },
+  { sel:'li:first-child',   finds:'First li in any list',                ex:'soup.select("li:first-child")',   demo:'# Finds the first item in every <ul> or <ol>' },
+  { sel:'tr:nth-child(2)',  finds:'Second row in each table',            ex:'soup.select("tr:nth-child(2)")',  demo:'# Finds the second <tr> inside each table' },
+  { sel:'.card .title',     finds:'.title elements inside .card',        ex:'soup.select(".card .title")',     demo:'# Finds: <div class="card"><h2 class="title">...' }
+];
+
+function buildSelectorTable(){
+  var tbody = C('selector-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  SELECTORS.forEach(function(row){
+    var tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.style.borderBottom = '1px solid var(--border)';
+    tr.innerHTML =
+      '<td style="padding:9px 14px;font-family:var(--font-mono);color:#2dd4bf;font-size:12.5px;">' + esc(row.sel) + '</td>' +
+      '<td style="padding:9px 14px;color:var(--text-2);font-size:13px;">' + esc(row.finds) + '</td>' +
+      '<td style="padding:9px 14px;font-family:var(--font-mono);color:#fb923c;font-size:12px;">' + esc(row.ex) + '</td>';
+    tr.addEventListener('mouseenter', function(){ tr.style.background='var(--bg-input)'; });
+    tr.addEventListener('mouseleave', function(){ tr.style.background=''; });
+    tr.addEventListener('click', function(){
+      var d = C('selector-demo');
+      if(d) d.innerHTML = '<pre style="margin:0;">' + esc(row.demo) + '</pre>';
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+/* ─────────────────────────────────────────────────
+   SECTION 4 — LIVE SCRAPING SIMULATION
+───────────────────────────────────────────────── */
+var SCRAPE_DATA = {
+  products: {
+    htmlText: [
+      '<div class="product-list">',
+      '  <div class="product-card">',
+      '    <h2>Laptop Pro 15</h2>',
+      '    <span class="price">$999</span>',
+      '    <span class="rating">4.5/5</span>',
+      '  </div>',
+      '  <div class="product-card">',
+      '    <h2>Wireless Mouse</h2>',
+      '    <span class="price">$29</span>',
+      '    <span class="rating">4.2/5</span>',
+      '  </div>',
+      '  <div class="product-card">',
+      '    <h2>USB-C Hub 7-in-1</h2>',
+      '    <span class="price">$39</span>',
+      '    <span class="rating">4.8/5</span>',
+      '  </div>',
+      '</div>'
+    ],
+    records: [
+      {Name:'Laptop Pro 15',   Price:'$999', Rating:'4.5/5'},
+      {Name:'Wireless Mouse',  Price:'$29',  Rating:'4.2/5'},
+      {Name:'USB-C Hub 7-in-1',Price:'$39',  Rating:'4.8/5'}
+    ],
+    selector: 'soup.select(".product-card")'
+  },
+  news: {
+    htmlText: [
+      '<ul class="news-feed">',
+      '  <li class="news-item">',
+      '    <h3>AI Model Beats Human Experts</h3>',
+      '    <span class="date">2025-03-15</span>',
+      '    <a href="/news/ai-model">Read more</a>',
+      '  </li>',
+      '  <li class="news-item">',
+      '    <h3>New Python 3.14 Released</h3>',
+      '    <span class="date">2025-03-10</span>',
+      '    <a href="/news/python">Read more</a>',
+      '  </li>',
+      '  <li class="news-item">',
+      '    <h3>Open Source LLM Tops Benchmark</h3>',
+      '    <span class="date">2025-03-08</span>',
+      '    <a href="/news/llm">Read more</a>',
+      '  </li>',
+      '</ul>'
+    ],
+    records: [
+      {Headline:'AI Model Beats Human Experts',  Date:'2025-03-15', URL:'/news/ai-model'},
+      {Headline:'New Python 3.14 Released',      Date:'2025-03-10', URL:'/news/python'},
+      {Headline:'Open Source LLM Tops Benchmark',Date:'2025-03-08', URL:'/news/llm'}
+    ],
+    selector: 'soup.select(".news-item")'
+  },
+  table: {
+    htmlText: [
+      '<table>',
+      '  <tr><th>Ticker</th><th>Price</th><th>Change</th></tr>',
+      '  <tr><td>AAPL</td><td>$182.50</td><td>+1.2%</td></tr>',
+      '  <tr><td>GOOGL</td><td>$141.80</td><td>-0.5%</td></tr>',
+      '  <tr><td>MSFT</td><td>$378.20</td><td>+0.8%</td></tr>',
+      '  <tr><td>NVDA</td><td>$875.40</td><td>+3.1%</td></tr>',
+      '</table>'
+    ],
+    records: [
+      {Ticker:'AAPL',  Price:'$182.50', Change:'+1.2%'},
+      {Ticker:'GOOGL', Price:'$141.80', Change:'-0.5%'},
+      {Ticker:'MSFT',  Price:'$378.20', Change:'+0.8%'},
+      {Ticker:'NVDA',  Price:'$875.40', Change:'+3.1%'}
+    ],
+    selector: 'pd.read_html(response.text)[0]'
+  }
+};
+
+function colorizeHTML(lines){
+  return lines.map(function(line){
+    return esc(line)
+      .replace(/&lt;(\/?[\w-]+)/g, '<span style="color:#60a5fa;">&lt;$1</span>')
+      .replace(/(\w+)=&quot;/g, '<span style="color:#fb923c;">$1</span>=<span style="color:#4ade80;">&quot;')
+      .replace(/&quot;(?=[^=]*(?:&lt;|$))/g, '&quot;</span>');
+  }).join('\n');
+}
+
+async function runScrape(){
+  var target = C('scrape-target').value;
+  var data   = SCRAPE_DATA[target];
+  var t0     = Date.now();
+
+  /* Show colourised HTML */
+  var htmlEl = C('scrape-html');
+  htmlEl.innerHTML = '<pre style="margin:0;font-size:11.5px;line-height:1.7;">' + colorizeHTML(data.htmlText) + '</pre>';
+
+  C('scrape-result').innerHTML = '<span style="color:var(--text-3);">Parsing HTML...</span>';
+  await new Promise(function(r){ setTimeout(r, 450); });
+
+  /* Build results table */
+  var records = data.records;
+  var keys    = Object.keys(records[0]);
+  var html = '<div style="margin-bottom:10px;font-size:12px;color:var(--text-3);">Selector: <code style="color:#2dd4bf;font-family:var(--font-mono);">' + esc(data.selector) + '</code></div>';
+  html += '<table class="extracted-table"><thead><tr>';
+  keys.forEach(function(k){ html += '<th>' + esc(k) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  records.forEach(function(rec){
+    html += '<tr>';
+    keys.forEach(function(k){
+      var v = rec[k];
+      var style = '';
+      if(k === 'Change')           style = v[0]==='+' ? 'color:var(--green);' : 'color:var(--red);';
+      else if(k === 'Price')       style = 'color:#fb923c;';
+      else if(k === 'Rating')      style = 'color:#f0a500;';
+      else if(k === 'URL')         style = 'color:var(--blue);font-family:var(--font-mono);font-size:11px;';
+      html += '<td style="' + style + '">' + esc(v) + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  C('scrape-result').innerHTML = html;
+  C('scrape-rows').textContent = records.length;
+  C('scrape-cols').textContent = keys.length;
+  C('scrape-time').textContent = (Date.now() - t0) + 'ms';
+}
+
+function clearScrape(){
+  C('scrape-html').textContent    = 'Click Scrape to load HTML...';
+  C('scrape-result').innerHTML    = '<span style="color:var(--text-3);">Results appear here after scraping...</span>';
+  C('scrape-rows').textContent    = '0';
+  C('scrape-cols').textContent    = '0';
+  C('scrape-time').textContent    = '—';
+}
+
+/* ─────────────────────────────────────────────────
+   SECTION 5 — ROBOTS.TXT
+───────────────────────────────────────────────── */
+function renderRobots(){
+  var el = C('robots-display');
+  if(!el) return;
+  el.innerHTML = [
+    '<span style="color:#4b4f5e;"># robots.txt for example.com</span>',
+    '',
+    '<span style="color:#fb923c;">User-agent: *</span>',
+    '<span style="color:#4ade80;">Allow: /</span>',
+    '<span style="color:#f06060;">Disallow: /admin/</span>',
+    '<span style="color:#f06060;">Disallow: /checkout/</span>',
+    '<span style="color:#f06060;">Disallow: /user/private/</span>',
+    '',
+    '<span style="color:#fb923c;">User-agent: Googlebot</span>',
+    '<span style="color:#4ade80;">Allow: /sitemap.xml</span>',
+    '',
+    '<span style="color:#fb923c;">User-agent: BadBot</span>',
+    '<span style="color:#f06060;">Disallow: /</span>'
+  ].join('<br>');
+}
+
+function checkRobots(){
+  var inp = C('robots-url');
+  if(!inp) return;
+  var url = inp.value.trim() || '/';
+  var blocked = ['/admin/', '/checkout/', '/user/private/'].some(function(d){
+    return url.startsWith(d);
+  });
+  var res = C('robots-result');
+  if(!res) return;
+  if(blocked){
+    res.style.cssText = 'background:rgba(240,96,96,0.1);border:1px solid rgba(240,96,96,0.4);border-radius:8px;padding:12px 16px;color:var(--red);';
+    res.innerHTML = '<span style="font-size:18px;">&#10005;</span> <strong>BLOCKED</strong> — robots.txt disallows <code style="font-family:monospace;">' + esc(url) + '</code><br><small style="font-weight:400;font-size:12px;">Do not scrape this path.</small>';
+  } else {
+    res.style.cssText = 'background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.4);border-radius:8px;padding:12px 16px;color:var(--green);';
+    res.innerHTML = '<span style="font-size:18px;">&#10003;</span> <strong>ALLOWED</strong> — <code style="font-family:monospace;">' + esc(url) + '</code> is not blocked<br><small style="font-weight:400;font-size:12px;">Still check Terms of Service and add delays.</small>';
+  }
+}
+
+/* ─────────────────────────────────────────────────
+   LIVE CODE EDITOR
+───────────────────────────────────────────────── */
+var SNIPPETS = [
+  { file:'scrape_basics.py', label:'BeautifulSoup basics', code:
+'from bs4 import BeautifulSoup\n\n# Simulate HTML (real code: response = requests.get(url))\nhtml = """\n<div class="product-list">\n  <div class="product-card">\n    <h2 class="name">Laptop Pro</h2>\n    <span class="price">$999</span>\n    <a href="/products/laptop">Details</a>\n  </div>\n  <div class="product-card">\n    <h2 class="name">Wireless Mouse</h2>\n    <span class="price">$29</span>\n    <a href="/products/mouse">Details</a>\n  </div>\n  <div class="product-card">\n    <h2 class="name">USB-C Hub</h2>\n    <span class="price">$39</span>\n    <a href="/products/hub">Details</a>\n  </div>\n</div>\n"""\n\nsoup = BeautifulSoup(html, "html.parser")\n\n# find() - first match only\nfirst = soup.find("h2", class_="name")\nprint("First product:", first.text.strip())\n\n# find_all() - all matches\nprices = soup.find_all("span", class_="price")\nprint("All prices:", [p.text for p in prices])\n\n# select() - CSS selectors (most powerful)\ncards = soup.select(".product-card")\nprint(f"\\nFound {len(cards)} products:")\nprint(f"{\'Name\':<20} {\'Price\':<10} URL")\nprint("-" * 45)\nfor card in cards:\n    name  = card.select_one(".name").text.strip()\n    price = card.select_one(".price").text.strip()\n    url   = card.select_one("a").get("href", "N/A")\n    print(f"{name:<20} {price:<10} {url}")\n'
+  },
+  { file:'real_scraper.py', label:'Real scraper pattern', code:
+'from bs4 import BeautifulSoup\nimport time, random\n\ndef scrape_page(html, page_num=1):\n    """Extract products from one page of HTML"""\n    soup = BeautifulSoup(html, "html.parser")\n    records = []\n\n    for card in soup.select(".product-card"):\n        try:\n            name   = card.select_one("h2").get_text(strip=True)\n            price  = card.select_one(".price").get_text(strip=True)\n            link   = card.select_one("a").get("href")       # safe\n            rating_el = card.select_one(".rating")\n            rating = rating_el.get_text(strip=True) if rating_el else "N/A"\n            records.append({"name":name,"price":price,"link":link,"rating":rating,"page":page_num})\n        except AttributeError:\n            continue   # skip broken cards\n\n    return records\n\n# Simulate multi-page scrape\nall_records = []\nfor page in range(1, 4):\n    fake_html = f"""\n    <div>\n      <div class="product-card">\n        <h2>Product {page*3-2}</h2>\n        <span class="price">${page*10+5}</span>\n        <a href="/p/{page*3-2}">View</a>\n        <span class="rating">4.{page}/5</span>\n      </div>\n    </div>"""\n    recs = scrape_page(fake_html, page)\n    all_records.extend(recs)\n    print(f"Page {page}: scraped {len(recs)} products")\n    # time.sleep(random.uniform(1, 3))  # ALWAYS delay in real code\n\nprint(f"\\nTotal: {len(all_records)} records")\nfor r in all_records:\n    print(f"  {r[\'name\']}: {r[\'price\']} — rating {r[\'rating\']} (page {r[\'page\']})")\n'
+  },
+  { file:'table_scraping.py', label:'HTML table → pandas', code:
+'import pandas as pd\n\n# pandas.read_html() reads <table> tags directly!\nhtml = """\n<table>\n  <thead>\n    <tr><th>Ticker</th><th>Price</th><th>Change</th><th>Volume</th></tr>\n  </thead>\n  <tbody>\n    <tr><td>AAPL</td><td>182.50</td><td>+1.2%</td><td>52M</td></tr>\n    <tr><td>GOOGL</td><td>141.80</td><td>-0.5%</td><td>18M</td></tr>\n    <tr><td>MSFT</td><td>378.20</td><td>+0.8%</td><td>21M</td></tr>\n    <tr><td>NVDA</td><td>875.40</td><td>+3.1%</td><td>45M</td></tr>\n    <tr><td>AMZN</td><td>191.10</td><td>-0.3%</td><td>35M</td></tr>\n  </tbody>\n</table>\n"""\n\n# In real code: tables = pd.read_html(response.text)\ntables = pd.read_html(html)\nprint(f"Tables found: {len(tables)}")\n\ndf = tables[0]\nprint("\\nAll stocks:")\nprint(df.to_string(index=False))\n\n# Filter gainers\ngainers = df[df["Change"].str.startswith("+")]\nprint("\\nGainers only:")\nprint(gainers.to_string(index=False))\n\nprint(f"\\nShape: {df.shape}")\n'
+  }
+];
+
+var currentTab = 0;
+var pyodide    = null;
+var pyLoading  = false;
+var cmEditor   = null;
+
+function buildTabs(){
+  var bar = C('editor-tabs');
+  if(!bar) return;
+  bar.innerHTML = SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab' + (i===0?' active':'') + '" onclick="switchTab('+i+')">' + s.label + '</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab = i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){ b.classList.toggle('active', j===i); });
+  if(cmEditor){ cmEditor.setValue(SNIPPETS[i].code); cmEditor.refresh(); }
+  C('editor-filename').textContent = SNIPPETS[i].file;
+  C('editor-output').textContent   = 'Click Run to execute...';
+  C('editor-output').className     = 'editor-output idle';
+}
+
+function resetEditor(){ if(cmEditor) cmEditor.setValue(SNIPPETS[currentTab].code); }
+function clearOutput(){
+  C('editor-output').textContent = '';
+  C('editor-output').className   = 'editor-output idle';
+}
+
+async function runEditor(){
+  var btn  = C('run-btn');
+  var out  = C('editor-output');
+  var code = cmEditor ? cmEditor.getValue() : '';
+  btn.disabled    = true;
+  btn.textContent = 'Running...';
+  out.className   = 'editor-output';
+  out.textContent = 'Loading Python...';
+  var t0 = Date.now();
+
+  if(!pyodide){
+    var st = C('py-status');
+    st.textContent = 'Loading Pyodide...';
+    try{
+      if(!pyLoading){
+        pyLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){ sc.onload=r; sc.onerror=j; });
+        pyodide = await window.loadPyodide({ indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+        await pyodide.loadPackage(['numpy','pandas']);
+        await pyodide.loadPackage('micropip');
+        await pyodide.runPythonAsync('import micropip; await micropip.install("beautifulsoup4")');
+        pyLoading = false;
+      } else {
+        while(pyLoading) await new Promise(function(r){ setTimeout(r,100); });
+      }
+      st.textContent = 'Python ready';
+      st.className   = 'py-status ready';
+    } catch(e){
+      out.textContent = 'Failed to load Python: ' + e.message;
+      out.className   = 'editor-output error';
+      btn.disabled    = false;
+      btn.textContent = 'Run';
+      return;
+    }
+  }
+
+  out.textContent = 'Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res = pyodide.runPython('_b.getvalue()');
+    out.textContent = res || '(no output)';
+    out.className   = 'editor-output';
+    C('run-time').textContent = (Date.now()-t0) + 'ms';
+  } catch(e){
+    try{ pyodide.runPython('import sys;sys.stdout=sys.__stdout__'); } catch(ig){}
+    out.textContent = 'Error: ' + (e.message || String(e));
+    out.className   = 'editor-output error';
+  }
+  btn.disabled    = false;
+  btn.textContent = 'Run';
+}
+
+/* ─────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────── */
+window.addEventListener('load', function(){
+  /* Pipeline */
+  showPipeStep(1);
+
+  /* HTML viewer */
+  renderHTMLSource('all');
+  setSelector('all');
+
+  /* Selector table */
+  buildSelectorTable();
+
+  /* Robots.txt */
+  renderRobots();
+  checkRobots();
+
+  /* CodeMirror */
+  (function trySetup(){
+    if(typeof CodeMirror === 'undefined'){ setTimeout(trySetup, 80); return; }
+    buildTabs();
+    var mount = C('cm-editor-mount');
+    if(!mount) return;
+    cmEditor = CodeMirror(mount, {
+      value:      SNIPPETS[0].code,
+      mode:       'python',
+      theme:      'one-dark',
+      lineNumbers: true,
+      indentUnit:  4,
+      tabSize:     4,
+      lineWrapping: false,
+      extraKeys:{ Tab: function(cm){
+        if(cm.somethingSelected()) cm.indentSelection('add');
+        else cm.replaceSelection('    ','end');
+      }}
+    });
+    cmEditor.setSize('100%', null);
+    setTimeout(function(){ cmEditor.refresh(); }, 150);
+  })();
+
+  /* Theme watcher */
+  new MutationObserver(function(){
+    renderHTMLSource(currentSelector);
+    if(cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+});
+</script>
+</body>
+</html>

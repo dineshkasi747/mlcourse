@@ -1,0 +1,1038 @@
+<!-- bivariate-analysis.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bivariate Analysis — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(62,207,142,0.09),rgba(75,150,255,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(62,207,142,0.1) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .corr-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+    .corr-type-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;cursor:pointer;transition:all .18s;text-align:center;}
+    .corr-type-card:hover,.corr-type-card.active{border-color:var(--green);background:var(--green-surf);}
+    .corr-type-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:3px;}
+    .corr-type-r{font-family:var(--font-mono);font-size:18px;font-weight:800;margin-bottom:2px;}
+    .corr-type-desc{font-size:11px;color:var(--text-3);}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--green);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.corr-type-grid{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="bivariate-analysis">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Bivariate Analysis</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">EDA</a><span class="sep">/</span>
+            <span class="current">Bivariate Analysis</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-2" style="border-color:rgba(62,207,142,.25);margin-bottom:14px;">Phase 2 &middot; EDA</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Bivariate Analysis</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Study the relationship between two variables. Discover correlations, compare group distributions, and find the patterns that tell you which features actually matter for your model.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">22 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">pandas &middot; scipy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: SCATTER PLOT + CORRELATION BUILDER -->
+          <section class="section" id="scatter-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">r</div>
+              Scatter plot &amp; correlation builder &mdash; draw your own data
+            </h2>
+            <p><strong>Click on the canvas</strong> to place points. Watch Pearson r, Spearman rho, and the regression line update instantly. Try placing a curved pattern to see where Pearson fails but Spearman succeeds.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Interactive scatter plot</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Load pattern:</span>
+                  <button class="ctrl-btn" onclick="loadPattern('positive')">+ Linear</button>
+                  <button class="ctrl-btn" onclick="loadPattern('negative')">- Linear</button>
+                  <button class="ctrl-btn" onclick="loadPattern('curve')">Curve</button>
+                  <button class="ctrl-btn" onclick="loadPattern('cluster')">Clusters</button>
+                  <button class="ctrl-btn" onclick="loadPattern('none')">No relation</button>
+                  <button class="ctrl-btn" onclick="loadPattern('outlier')">Outlier effect</button>
+                </div>
+                <button class="ctrl-btn" onclick="clearScatter()">Clear</button>
+              </div>
+              <canvas id="scatter-canvas" width="700" height="380" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="sc-pearson" style="color:var(--green);">--</span><span class="stat-pill-lbl">Pearson r</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sc-spearman" style="color:var(--teal);">--</span><span class="stat-pill-lbl">Spearman &rho;</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sc-r2" style="color:var(--blue);">--</span><span class="stat-pill-lbl">R&sup2;</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sc-strength" style="font-size:13px;">--</span><span class="stat-pill-lbl">Strength</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sc-n">0</span><span class="stat-pill-lbl">n points</span></div>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">!</span>
+              <p><strong>Pearson vs Spearman:</strong> Pearson measures <em>linear</em> correlation only. Load the "Curve" pattern — Pearson shows r&approx;0 (no linear relation) but Spearman detects the monotonic relationship. Always plot before computing correlation.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: CORRELATION PATTERN GALLERY -->
+          <section class="section" id="correlation-gallery">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">8</div>
+              Correlation pattern gallery &mdash; click to explore
+            </h2>
+            <p>Every correlation coefficient tells a story. Click each card to see what that correlation looks like — and when it can mislead you.</p>
+
+            <div class="corr-type-grid" id="corr-gallery-grid"></div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title" id="gallery-canvas-title">r = +1.0 — perfect positive linear correlation</span>
+              </div>
+              <canvas id="gallery-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 3: NUM vs CAT — BOX PLOT COMPARISON -->
+          <section class="section" id="num-cat">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">~</div>
+              Numerical vs Categorical &mdash; group comparison
+            </h2>
+            <p>When one variable is categorical, compare distributions across groups using box plots. <strong>Drag the overlap slider</strong> to simulate different levels of group separation and watch the statistical test update.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Box plots by group</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Group separation:</span>
+                  <input type="range" min="0" max="100" value="50" class="ctrl-slider" id="sep-slider" style="width:120px;" oninput="updateBoxGroups(this.value)"/>
+                  <span class="ctrl-value" id="sep-val" style="color:var(--purple);">50%</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Groups:</span>
+                  <select class="ctrl-select" id="group-dataset" onchange="updateBoxGroups(document.getElementById('sep-slider').value)">
+                    <option value="2">2 groups</option>
+                    <option value="3" selected>3 groups</option>
+                    <option value="4">4 groups</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="updateBoxGroups(document.getElementById('sep-slider').value)">Regenerate</button>
+              </div>
+              <canvas id="box-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="bg-f-stat">--</span><span class="stat-pill-lbl">F-statistic</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bg-p-val">--</span><span class="stat-pill-lbl">p-value</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bg-effect" style="font-size:13px;">--</span><span class="stat-pill-lbl">Effect size</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bg-verdict" style="font-size:12px;">--</span><span class="stat-pill-lbl">Significant?</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: CAT vs CAT — HEATMAP -->
+          <section class="section" id="cat-cat">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">X</div>
+              Categorical vs Categorical &mdash; contingency heatmap
+            </h2>
+            <p>A contingency table shows how two categorical variables co-occur. The heatmap colour intensity reveals which combinations are more or less frequent than expected by chance.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Contingency table heatmap</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="ct-dataset" onchange="drawContingency()">
+                    <option value="gender-product">Gender × Product</option>
+                    <option value="age-churn">Age group × Churn</option>
+                    <option value="city-rating">City × Rating</option>
+                    <option value="education-salary">Education × Salary band</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Show:</span>
+                  <button class="ctrl-btn active" id="ct-count-btn" onclick="setCTMode('count')">Count</button>
+                  <button class="ctrl-btn" id="ct-pct-btn" onclick="setCTMode('pct')">Row %</button>
+                  <button class="ctrl-btn" id="ct-exp-btn" onclick="setCTMode('expected')">Expected</button>
+                </div>
+              </div>
+              <canvas id="ct-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ct-chi2">--</span><span class="stat-pill-lbl">Chi&sup2;</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ct-pval">--</span><span class="stat-pill-lbl">p-value</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ct-cramers">--</span><span class="stat-pill-lbl">Cramer&apos;s V</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ct-assoc" style="font-size:13px;">--</span><span class="stat-pill-lbl">Association</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: ANSCOMBE'S QUARTET -->
+          <section class="section" id="anscombe">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Anscombe&apos;s Quartet &mdash; always plot your data
+            </h2>
+            <p>Four datasets with <strong>identical</strong> mean, variance, correlation (r=0.816), and regression line. But they look completely different. This is why you must always plot before computing statistics.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title">Anscombe&apos;s Quartet &mdash; same statistics, completely different patterns</span>
+              </div>
+              <canvas id="anscombe-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+            </div>
+            <div class="callout danger">
+              <span class="callout-icon">!</span>
+              <p><strong>The lesson:</strong> All four datasets have r=0.816, mean(x)=9, mean(y)&approx;7.5. Always visualise. Statistics without plots are dangerous.</p>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: scatter + correlation, box plots by group, chi-squared test, and Anscombe's quartet.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">bivariate_scatter.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Trusting Pearson r for non-linear relationships.</strong> Load the "Curve" pattern — a clear U-shape gives r&approx;0. Always plot first. Use Spearman for monotonic non-linear relationships.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Correlation = causation.</strong> High r between ice cream sales and drowning deaths is a real example. Both are caused by summer heat. Always ask: is there a plausible causal mechanism?</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not checking for outliers before correlation.</strong> A single outlier can make r go from 0.1 to 0.8. Always scatter-plot your data and check Cook's distance for influential points.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using Pearson on ordinal data.</strong> Rating 1-5 or Likert scales are ordinal, not interval. Use Spearman or Kendall's tau, not Pearson.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Chi-squared on small expected counts.</strong> Chi-squared is unreliable when any expected cell count is below 5. Use Fisher's exact test for 2x2 tables with small samples.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always scatter-plot numerical pairs before computing correlation. Anscombe's quartet proves why.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Pearson r = linear correlation only. Use Spearman rho for monotonic non-linear or ordinal data.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For numerical vs categorical: box plots + ANOVA F-test + effect size (Cohen's d or eta-squared).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For categorical vs categorical: contingency table + chi-squared test + Cramer's V for effect size.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Correlation is not causation. Always check for confounding variables and plausible mechanisms.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>A single outlier can dramatically change Pearson r. Robust alternatives: Spearman, Kendall, or winsorised Pearson.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="univariate-analysis.html"><span class="pn-dir">Previous</span><span class="pn-title">Univariate Analysis</span></a>
+            <a class="pn-card next" id="next-card" href="multivariate-analysis.html"><span class="pn-dir">Next</span><span class="pn-title">Multivariate Analysis</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#scatter-explorer">Scatter explorer</a></li>
+            <li class="toc-item"><a href="#correlation-gallery">Correlation gallery</a></li>
+            <li class="toc-item"><a href="#num-cat">Num vs Cat</a></li>
+            <li class="toc-item"><a href="#cat-cat">Cat vs Cat</a></li>
+            <li class="toc-item"><a href="#anscombe">Anscombe's quartet</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function normalRand(mu,sigma){
+  var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return mu+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+/* ══════════════════════════════════════
+   SECTION 1: SCATTER PLOT BUILDER
+══════════════════════════════════════ */
+var SC=C('scatter-canvas'),SX=SC.getContext('2d');
+var scPts=[];
+
+function pearson(pts){
+  if(pts.length<3)return NaN;
+  var n=pts.length,mx=pts.reduce(function(s,p){return s+p[0];},0)/n,my=pts.reduce(function(s,p){return s+p[1];},0)/n;
+  var num=pts.reduce(function(s,p){return s+(p[0]-mx)*(p[1]-my);},0);
+  var dx=Math.sqrt(pts.reduce(function(s,p){return s+(p[0]-mx)**2;},0));
+  var dy=Math.sqrt(pts.reduce(function(s,p){return s+(p[1]-my)**2;},0));
+  return(dx*dy===0)?0:num/(dx*dy);
+}
+
+function spearman(pts){
+  if(pts.length<3)return NaN;
+  var n=pts.length;
+  var rx=pts.map(function(p,i){return{v:p[0],i:i};}).sort(function(a,b){return a.v-b.v;}).map(function(x,r){return{rank:r,i:x.i};}).sort(function(a,b){return a.i-b.i;}).map(function(x){return x.rank;});
+  var ry=pts.map(function(p,i){return{v:p[1],i:i};}).sort(function(a,b){return a.v-b.v;}).map(function(x,r){return{rank:r,i:x.i};}).sort(function(a,b){return a.i-b.i;}).map(function(x){return x.rank;});
+  var d2=rx.reduce(function(s,r,i){return s+(r-ry[i])**2;},0);
+  return 1-6*d2/(n*(n*n-1));
+}
+
+function ols(pts){
+  if(pts.length<2)return null;
+  var n=pts.length,mx=pts.reduce(function(s,p){return s+p[0];},0)/n,my=pts.reduce(function(s,p){return s+p[1];},0)/n;
+  var num=pts.reduce(function(s,p){return s+(p[0]-mx)*(p[1]-my);},0);
+  var den=pts.reduce(function(s,p){return s+(p[0]-mx)**2;},0);
+  if(den===0)return null;
+  var w=num/den,b=my-w*mx;
+  return{w:w,b:b};
+}
+
+function corrStrength(r){
+  var a=Math.abs(r);
+  if(isNaN(r))return'--';
+  if(a<0.1)return'None';
+  if(a<0.3)return'Weak';
+  if(a<0.5)return'Moderate';
+  if(a<0.7)return'Strong';
+  return'Very strong';
+}
+
+function corrColor(r){
+  if(isNaN(r))return tc();
+  var a=Math.abs(r);
+  if(a>0.7)return r>0?'var(--green)':'var(--red)';
+  if(a>0.4)return'var(--accent)';
+  return'var(--text-3)';
+}
+
+function drawScatter(){
+  var W=SC.width,H=SC.height,pad=45;
+  SX.clearRect(0,0,W,H);SX.fillStyle=bg();SX.fillRect(0,0,W,H);
+
+  SX.strokeStyle=gc();SX.lineWidth=0.5;
+  for(var i=0;i<=8;i++){
+    var x=pad+i*(W-2*pad)/8,y=pad+i*(H-2*pad)/8;
+    SX.beginPath();SX.moveTo(x,pad);SX.lineTo(x,H-pad);SX.stroke();
+    SX.beginPath();SX.moveTo(pad,y);SX.lineTo(W-pad,y);SX.stroke();
+  }
+  SX.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.15)';SX.lineWidth=1;
+  SX.beginPath();SX.moveTo(pad,H-pad);SX.lineTo(W-pad,H-pad);SX.stroke();
+  SX.beginPath();SX.moveTo(pad,pad);SX.lineTo(pad,H-pad);SX.stroke();
+
+  if(!scPts.length){
+    SX.fillStyle=tc();SX.font='14px sans-serif';SX.textAlign='center';
+    SX.fillText('Click to add points, or load a pattern',W/2,H/2);
+    updateScStats(NaN,NaN);return;
+  }
+
+  // Regression line
+  var line=ols(scPts);
+  if(line){
+    var xs=scPts.map(function(p){return p[0];});
+    var x1=Math.min.apply(null,xs),x2=Math.max.apply(null,xs);
+    SX.beginPath();SX.strokeStyle='rgba(62,207,142,0.7)';SX.lineWidth=2;
+    SX.moveTo(x1,line.w*x1+line.b);SX.lineTo(x2,line.w*x2+line.b);SX.stroke();
+  }
+
+  // Points
+  scPts.forEach(function(p){
+    SX.beginPath();SX.arc(p[0],p[1],5,0,Math.PI*2);
+    SX.fillStyle='rgba(75,150,255,0.75)';SX.fill();
+    SX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.15)';SX.lineWidth=1;SX.stroke();
+  });
+
+  var r=pearson(scPts),rho=spearman(scPts);
+  updateScStats(r,rho);
+
+  // Axes labels
+  SX.fillStyle=tc();SX.font='11px sans-serif';SX.textAlign='center';SX.fillText('X',W/2,H-8);
+  SX.save();SX.translate(12,H/2);SX.rotate(-Math.PI/2);SX.fillText('Y',0,0);SX.restore();
+}
+
+function updateScStats(r,rho){
+  var r2=isNaN(r)?NaN:r*r;
+  C('sc-pearson').textContent=isNaN(r)?'--':r.toFixed(3);
+  C('sc-pearson').style.color=corrColor(r);
+  C('sc-spearman').textContent=isNaN(rho)?'--':rho.toFixed(3);
+  C('sc-spearman').style.color=corrColor(rho);
+  C('sc-r2').textContent=isNaN(r2)?'--':r2.toFixed(3);
+  C('sc-strength').textContent=corrStrength(r);
+  C('sc-n').textContent=scPts.length;
+}
+
+SC.addEventListener('click',function(e){
+  var r=SC.getBoundingClientRect(),sx=SC.width/r.width,sy=SC.height/r.height;
+  scPts.push([(e.clientX-r.left)*sx,(e.clientY-r.top)*sy]);
+  drawScatter();
+});
+
+function clearScatter(){scPts=[];drawScatter();}
+
+function loadPattern(type){
+  scPts=[];
+  var W=SC.width,H=SC.height,pad=55,iW=W-2*pad,iH=H-2*pad;
+  var n=60;
+  if(type==='positive'){
+    for(var i=0;i<n;i++){var x=pad+Math.random()*iW;scPts.push([x,(H-pad)-(x-pad)/iW*iH*0.8+(normalRand(0,1))*iH*0.06]);}
+  } else if(type==='negative'){
+    for(var i=0;i<n;i++){var x=pad+Math.random()*iW;scPts.push([x,pad+(x-pad)/iW*iH*0.8+(normalRand(0,1))*iH*0.06]);}
+  } else if(type==='curve'){
+    for(var i=0;i<n;i++){var t=(i/n)*2-1;var x=pad+(t+1)/2*iW;var yv=H/2-t*t*iH*0.8+(normalRand(0,1))*iH*0.04;scPts.push([x,yv]);}
+  } else if(type==='cluster'){
+    var centers=[[pad+iW*0.2,H-pad-iH*0.2],[pad+iW*0.5,H/2],[pad+iW*0.8,pad+iH*0.2]];
+    centers.forEach(function(c){for(var i=0;i<n/3;i++)scPts.push([c[0]+normalRand(0,1)*iW*0.06,c[1]+normalRand(0,1)*iH*0.06]);});
+  } else if(type==='none'){
+    for(var i=0;i<n;i++)scPts.push([pad+Math.random()*iW,pad+Math.random()*iH]);
+  } else if(type==='outlier'){
+    for(var i=0;i<n-3;i++){var x=pad+Math.random()*iW*0.4;scPts.push([x,pad+iH*0.7+Math.random()*iH*0.1]);}
+    scPts.push([pad+iW*0.85,pad+iH*0.1]);scPts.push([pad+iW*0.9,pad+iH*0.05]);scPts.push([pad+iW*0.92,pad+iH*0.15]);
+  }
+  drawScatter();
+}
+
+/* ══════════════════════════════════════
+   SECTION 2: CORRELATION GALLERY
+══════════════════════════════════════ */
+var GC=C('gallery-canvas'),GX=GC.getContext('2d');
+var currentGallery='+1.0';
+
+var GALLERY=[
+  {r:'+1.0',val:1.0,label:'Perfect positive',col:'#3ecf8e',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n;i++){var x=pad+i*(W-2*pad)/(n-1);pts.push([x,(H-pad)-(x-pad)/(W-2*pad)*(H-2*pad)]);}return pts;}},
+  {r:'+0.9',val:0.9,label:'Strong positive',col:'#4b96ff',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n;i++){var x=pad+Math.random()*(W-2*pad);pts.push([x,(H-pad)-(x-pad)/(W-2*pad)*(H-2*pad)*0.9+normalRand(0,1)*(H-2*pad)*0.06]);}return pts;}},
+  {r:'+0.5',val:0.5,label:'Moderate positive',col:'#f0a500',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n;i++){var x=pad+Math.random()*(W-2*pad);pts.push([x,(H-pad)-(x-pad)/(W-2*pad)*(H-2*pad)*0.5+normalRand(0,1)*(H-2*pad)*0.22]);}return pts;}},
+  {r:'0.0',val:0.0,label:'No correlation',col:'#a78bfa',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n;i++)pts.push([pad+Math.random()*(W-2*pad),pad+Math.random()*(H-2*pad)]);return pts;}},
+  {r:'-0.5',val:-0.5,label:'Moderate negative',col:'#fb8c40',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n;i++){var x=pad+Math.random()*(W-2*pad);pts.push([x,pad+(x-pad)/(W-2*pad)*(H-2*pad)*0.5+normalRand(0,1)*(H-2*pad)*0.22]);}return pts;}},
+  {r:'-0.9',val:-0.9,label:'Strong negative',col:'#f06060',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n;i++){var x=pad+Math.random()*(W-2*pad);pts.push([x,pad+(x-pad)/(W-2*pad)*(H-2*pad)*0.9+normalRand(0,1)*(H-2*pad)*0.06]);}return pts;}},
+  {r:'curved',val:0.0,label:'Curved (r=0!)',col:'#2dd4bf',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n;i++){var t=(i/n)*2-1;var x=pad+(t+1)/2*(W-2*pad);pts.push([x,H/2-t*t*(H-2*pad)*0.7+normalRand(0,1)*(H-2*pad)*0.04]);}return pts;}},
+  {r:'outlier',val:0.15,label:'Outlier effect',col:'#e879f9',gen:function(n,W,H,pad){var pts=[];for(var i=0;i<n-2;i++){var x=pad+Math.random()*(W-2*pad)*0.4;pts.push([x,H-pad-Math.random()*(H-2*pad)*0.2]);}pts.push([pad+(W-2*pad)*0.88,pad+10]);pts.push([pad+(W-2*pad)*0.92,pad+15]);return pts;}}
+];
+
+function buildGalleryGrid(){
+  var grid=C('corr-gallery-grid');
+  grid.innerHTML=GALLERY.map(function(g){
+    var color=g.val>0.6?'var(--green)':g.val<-0.6?'var(--red)':g.val===0?'var(--text-3)':'var(--accent)';
+    return '<div class="corr-type-card'+(g.r===currentGallery?' active':'')+'" id="gal-'+g.r.replace('.','_')+'" onclick="selectGallery(\''+g.r+'\')">'+
+      '<div class="corr-type-r" style="color:'+g.col+'">'+g.r+'</div>'+
+      '<div class="corr-type-name">'+g.label+'</div>'+
+      '<canvas id="mini-gal-'+g.r.replace('.','_')+'" width="80" height="50" style="width:100%;border-radius:4px;background:var(--bg-input);margin-top:4px;display:block;"></canvas>'+
+      '</div>';
+  }).join('');
+  GALLERY.forEach(function(g){drawMiniGallery(g);});
+}
+
+function drawMiniGallery(g){
+  var cv=C('mini-gal-'+g.r.replace('.','_'));if(!cv)return;
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad=5;
+  ctx.clearRect(0,0,W,H);
+  var pts=g.gen(30,W,H,pad);
+  pts.forEach(function(p){ctx.beginPath();ctx.arc(p[0],p[1],2,0,Math.PI*2);ctx.fillStyle=g.col+'aa';ctx.fill();});
+}
+
+function selectGallery(r){
+  currentGallery=r;
+  document.querySelectorAll('.corr-type-card').forEach(function(el){el.classList.remove('active');});
+  var el=C('gal-'+r.replace('.','_'));if(el)el.classList.add('active');
+  var g=GALLERY.find(function(x){return x.r===r;});
+  C('gallery-canvas-title').textContent='r = '+r+' \u2014 '+g.label;
+  drawGalleryCanvas(g);
+}
+
+function drawGalleryCanvas(g){
+  var W=GC.width,H=GC.height,pad=40;
+  GX.clearRect(0,0,W,H);GX.fillStyle=bg();GX.fillRect(0,0,W,H);
+  GX.strokeStyle=gc();GX.lineWidth=0.5;
+  for(var i=0;i<=6;i++){
+    var x=pad+i*(W-2*pad)/6,y=pad+i*(H-2*pad)/6;
+    GX.beginPath();GX.moveTo(x,pad);GX.lineTo(x,H-pad);GX.stroke();
+    GX.beginPath();GX.moveTo(pad,y);GX.lineTo(W-pad,y);GX.stroke();
+  }
+  var pts=g.gen(80,W,H,pad);
+  var line=ols(pts);
+  if(line){
+    var xs=pts.map(function(p){return p[0];});
+    GX.beginPath();GX.strokeStyle=g.col+'88';GX.lineWidth=2;
+    GX.moveTo(Math.min.apply(null,xs),line.w*Math.min.apply(null,xs)+line.b);
+    GX.lineTo(Math.max.apply(null,xs),line.w*Math.max.apply(null,xs)+line.b);GX.stroke();
+  }
+  pts.forEach(function(p){
+    GX.beginPath();GX.arc(p[0],p[1],5,0,Math.PI*2);GX.fillStyle=g.col+'aa';GX.fill();
+    GX.strokeStyle=g.col;GX.lineWidth=1;GX.stroke();
+  });
+  // Computed r label
+  var comp=pearson(pts),rhoComp=spearman(pts);
+  GX.fillStyle=tc();GX.font='11px monospace';GX.textAlign='right';
+  GX.fillText('Pearson r='+comp.toFixed(3)+'  Spearman='+rhoComp.toFixed(3),W-pad,pad-5);
+}
+
+/* ══════════════════════════════════════
+   SECTION 3: BOX PLOTS BY GROUP
+══════════════════════════════════════ */
+var BX=C('box-canvas'),BXC=BX.getContext('2d');
+var GROUP_COLORS=['#4b96ff','#3ecf8e','#f0a500','#a78bfa'];
+var GROUP_NAMES=[['Low','High'],['A','B','C'],['Q1','Q2','Q3','Q4']];
+
+function seededRng(seed){return function(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;};}
+
+function updateBoxGroups(sep){
+  sep=parseInt(sep);C('sep-val').textContent=sep+'%';
+  var nGroups=parseInt(C('group-dataset').value);
+  var names=GROUP_NAMES[nGroups-2]||GROUP_NAMES[0];
+  var rng=seededRng(42);
+  var groups=names.map(function(name,i){
+    var mu=30+i*(sep/100)*30;
+    var d=[];for(var j=0;j<60;j++)d.push(Math.max(0,normalRand(mu,8+(1-sep/100)*10)));
+    return{name:name,data:d};
+  });
+
+  // Draw box plots
+  var W=BX.width,H=BX.height,pad={l:40,r:20,t:30,b:40};
+  BXC.clearRect(0,0,W,H);BXC.fillStyle=bg();BXC.fillRect(0,0,W,H);
+
+  var allVals=groups.reduce(function(a,g){return a.concat(g.data);},[]); 
+  var minV=Math.min.apply(null,allVals),maxV=Math.max.apply(null,allVals),range=maxV-minV||1;
+  var yC=function(v){return H-pad.b-(v-minV)/range*(H-pad.t-pad.b);};
+  var bw=(W-pad.l-pad.r)/nGroups*0.6,gap=(W-pad.l-pad.r)/nGroups;
+
+  BXC.strokeStyle=gc();BXC.lineWidth=0.5;
+  for(var i=0;i<=5;i++){
+    var y=pad.t+(H-pad.t-pad.b)*i/5;
+    BXC.beginPath();BXC.moveTo(pad.l,y);BXC.lineTo(W-pad.r,y);BXC.stroke();
+    var lv=maxV-(i/5)*(maxV-minV);
+    BXC.fillStyle=tc();BXC.font='9px monospace';BXC.textAlign='right';BXC.fillText(lv.toFixed(0),pad.l-3,y+3);
+  }
+
+  var means=groups.map(function(g){return g.data.reduce(function(s,v){return s+v;},0)/g.data.length;});
+  var grandMean=means.reduce(function(s,m){return s+m;},0)/means.length;
+
+  groups.forEach(function(g,i){
+    var sorted=g.data.slice().sort(function(a,b){return a-b;}),n=sorted.length;
+    var q1=sorted[Math.floor(n*0.25)],q3=sorted[Math.floor(n*0.75)],med=sorted[Math.floor(n*0.5)];
+    var iqr=q3-q1,lo=q1-1.5*iqr,hi=q3+1.5*iqr;
+    var whisLo=sorted.find(function(v){return v>=lo;})||sorted[0];
+    var whisHi=sorted.slice().reverse().find(function(v){return v<=hi;})||sorted[n-1];
+    var col=GROUP_COLORS[i];
+    var cx=pad.l+i*gap+gap/2;
+    var bx=cx-bw/2;
+
+    // Whiskers
+    BXC.beginPath();BXC.strokeStyle=col;BXC.lineWidth=1.5;
+    BXC.moveTo(cx,yC(whisLo));BXC.lineTo(cx,yC(q1));BXC.stroke();
+    BXC.beginPath();BXC.moveTo(cx,yC(q3));BXC.lineTo(cx,yC(whisHi));BXC.stroke();
+    BXC.beginPath();BXC.moveTo(bx+bw*0.2,yC(whisLo));BXC.lineTo(bx+bw*0.8,yC(whisLo));BXC.stroke();
+    BXC.beginPath();BXC.moveTo(bx+bw*0.2,yC(whisHi));BXC.lineTo(bx+bw*0.8,yC(whisHi));BXC.stroke();
+
+    // Box
+    BXC.fillStyle=col+'30';BXC.fillRect(bx,yC(q3),bw,yC(q1)-yC(q3));
+    BXC.strokeStyle=col;BXC.lineWidth=1.5;BXC.strokeRect(bx,yC(q3),bw,yC(q1)-yC(q3));
+
+    // Median
+    BXC.beginPath();BXC.strokeStyle='#fff';BXC.lineWidth=2.5;
+    BXC.moveTo(bx,yC(med));BXC.lineTo(bx+bw,yC(med));BXC.stroke();
+
+    // Mean diamond
+    BXC.beginPath();var md=yC(means[i]);
+    BXC.moveTo(cx,md-7);BXC.lineTo(cx+7,md);BXC.lineTo(cx,md+7);BXC.lineTo(cx-7,md);BXC.closePath();
+    BXC.fillStyle='#f0a500';BXC.fill();
+
+    // Outliers
+    g.data.forEach(function(v){
+      if(v<lo||v>hi){BXC.beginPath();BXC.arc(cx+(Math.random()-0.5)*8,yC(v),3,0,Math.PI*2);BXC.fillStyle=col+'aa';BXC.fill();}
+    });
+
+    // Label
+    BXC.fillStyle=tc();BXC.font='11px sans-serif';BXC.textAlign='center';BXC.fillText(g.name,cx,H-pad.b+14);
+    BXC.fillStyle=col;BXC.font='10px monospace';BXC.fillText('m='+means[i].toFixed(1),cx,yC(q3)-6);
+  });
+
+  // Grand mean line
+  BXC.beginPath();BXC.strokeStyle='rgba(240,165,0,0.4)';BXC.lineWidth=1;BXC.setLineDash([5,5]);
+  BXC.moveTo(pad.l,yC(grandMean));BXC.lineTo(W-pad.r,yC(grandMean));BXC.stroke();BXC.setLineDash([]);
+
+  // ANOVA simulation
+  var ssBetween=groups.reduce(function(s,g,i){return s+g.data.length*(means[i]-grandMean)**2;},0);
+  var ssWithin=groups.reduce(function(s,g,i){return s+g.data.reduce(function(ss,v){return ss+(v-means[i])**2;},0);},0);
+  var dfBetween=nGroups-1,dfWithin=allVals.length-nGroups;
+  var F=(ssBetween/dfBetween)/(ssWithin/dfWithin);
+  // Approximate p-value
+  var p=Math.exp(-F*dfBetween*0.5);
+  p=Math.max(0.0001,Math.min(0.999,p));
+  var etaSq=ssBetween/(ssBetween+ssWithin);
+
+  C('bg-f-stat').textContent=F.toFixed(2);
+  C('bg-p-val').textContent=p<0.001?'<0.001':p.toFixed(3);
+  C('bg-p-val').style.color=p<0.05?'var(--green)':'var(--red)';
+  C('bg-effect').textContent='\u03b7\u00b2='+etaSq.toFixed(3)+' ('+(etaSq<0.06?'small':etaSq<0.14?'medium':'large')+')';
+  C('bg-verdict').textContent=p<0.05?'YES (p<0.05)':'NO (p\u22650.05)';
+  C('bg-verdict').style.color=p<0.05?'var(--green)':'var(--red)';
+}
+
+/* ══════════════════════════════════════
+   SECTION 4: CONTINGENCY HEATMAP
+══════════════════════════════════════ */
+var CTC=C('ct-canvas'),CTX=CTC.getContext('2d');
+var ctMode='count';
+
+var CT_DATA={
+  'gender-product':{
+    rows:['Male','Female','Other'],
+    cols:['Electronics','Fashion','Sports','Books'],
+    data:[[120,45,80,30],[55,140,20,60],[8,12,5,10]]
+  },
+  'age-churn':{
+    rows:['18-25','26-35','36-50','50+'],
+    cols:['Stayed','Churned'],
+    data:[[380,120],[420,80],[350,50],[200,30]]
+  },
+  'city-rating':{
+    rows:['Delhi','Mumbai','Bangalore','Chennai'],
+    cols:['1★','2★','3★','4★','5★'],
+    data:[[20,40,80,120,60],[15,30,70,130,80],[10,25,60,150,100],[25,50,90,110,40]]
+  },
+  'education-salary':{
+    rows:['High School','Bachelor','Master','PhD'],
+    cols:['<30k','30-60k','60-100k','>100k'],
+    data:[[200,150,40,10],[80,300,250,70],[20,100,300,180],[5,20,80,200]]
+  }
+};
+
+function setCTMode(m){
+  ctMode=m;
+  ['count','pct','expected'].forEach(function(k){
+    var el=C('ct-'+k+'-btn');if(el)el.classList.toggle('active',k===m);
+  });
+  drawContingency();
+}
+
+function drawContingency(){
+  var key=C('ct-dataset').value;
+  var raw=CT_DATA[key];
+  var rows=raw.rows,cols=raw.cols,data=raw.data;
+  var W=CTC.width,H=CTC.height;
+  var rowLabW=90,colLabH=36,pad=10;
+  var cw=(W-rowLabW-pad)/cols.length,ch=(H-colLabH-pad)/rows.length;
+
+  // Compute row totals, col totals, grand total
+  var rowTotals=data.map(function(r){return r.reduce(function(a,b){return a+b;},0);});
+  var colTotals=cols.map(function(_,j){return data.reduce(function(s,r){return s+r[j];},0);});
+  var grand=rowTotals.reduce(function(a,b){return a+b;},0);
+
+  // Expected values
+  var expected=data.map(function(r,i){return r.map(function(_,j){return rowTotals[i]*colTotals[j]/grand;});});
+
+  // Display data
+  var display=data.map(function(r,i){return r.map(function(v,j){
+    if(ctMode==='pct')return(v/rowTotals[i]*100).toFixed(1)+'%';
+    if(ctMode==='expected')return expected[i][j].toFixed(1);
+    return v;
+  });});
+
+  // Max for color scale
+  var flatData=data.reduce(function(a,r){return a.concat(r);},[]); 
+  var maxVal=Math.max.apply(null,flatData);
+
+  CTX.clearRect(0,0,W,H);CTX.fillStyle=bg();CTX.fillRect(0,0,W,H);
+
+  // Column headers
+  cols.forEach(function(col,j){
+    CTX.fillStyle=tc();CTX.font='11px sans-serif';CTX.textAlign='center';
+    CTX.fillText(col,rowLabW+j*cw+cw/2,colLabH-6);
+  });
+
+  // Rows
+  rows.forEach(function(row,i){
+    CTX.fillStyle=tc();CTX.font='11px sans-serif';CTX.textAlign='right';
+    CTX.fillText(row,rowLabW-6,colLabH+i*ch+ch/2+4);
+
+    cols.forEach(function(_,j){
+      var v=data[i][j],intensity=v/maxVal;
+      var x=rowLabW+j*cw,y=colLabH+i*ch;
+      // Colour cells
+      var r2=Math.round(isDark()?intensity*80:220-intensity*120);
+      var g2=Math.round(isDark()?30+intensity*120:240-intensity*80);
+      var b2=Math.round(isDark()?80+intensity*60:255-intensity*40);
+      CTX.fillStyle='rgb('+r2+','+g2+','+b2+')';
+      CTX.fillRect(x+1,y+1,cw-2,ch-2);
+      // Value label
+      CTX.fillStyle=intensity>0.6?'#fff':'var(--text-1)';
+      CTX.font='bold 11px monospace';CTX.textAlign='center';
+      CTX.fillText(display[i][j],x+cw/2,y+ch/2+4);
+    });
+  });
+
+  // Chi-squared
+  var chi2=0;
+  data.forEach(function(r,i){r.forEach(function(v,j){var e=expected[i][j];if(e>0)chi2+=(v-e)**2/e;});});
+  var df=(rows.length-1)*(cols.length-1);
+  var pval=Math.exp(-chi2*0.3);pval=Math.max(0.0001,Math.min(0.999,pval));
+  var cramersV=Math.sqrt(chi2/(grand*Math.min(rows.length-1,cols.length-1)));
+  var assoc=cramersV<0.1?'Negligible':cramersV<0.3?'Weak':cramersV<0.5?'Moderate':'Strong';
+
+  C('ct-chi2').textContent=chi2.toFixed(2);
+  C('ct-pval').textContent=pval<0.001?'<0.001':pval.toFixed(3);
+  C('ct-pval').style.color=pval<0.05?'var(--green)':'var(--red)';
+  C('ct-cramers').textContent=cramersV.toFixed(3);
+  C('ct-assoc').textContent=assoc;
+}
+
+/* ══════════════════════════════════════
+   SECTION 5: ANSCOMBE'S QUARTET
+══════════════════════════════════════ */
+var AC=C('anscombe-canvas'),AX=AC.getContext('2d');
+
+var ANSCOMBE=[
+  {label:'Dataset I\n(Linear)',x:[10,8,13,9,11,14,6,4,12,7,5],y:[8.04,6.95,7.58,8.81,8.33,9.96,7.24,4.26,10.84,4.82,5.68]},
+  {label:'Dataset II\n(Curved)',x:[10,8,13,9,11,14,6,4,12,7,5],y:[9.14,8.14,8.74,8.77,9.26,8.10,6.13,3.10,9.13,7.26,4.74]},
+  {label:'Dataset III\n(Outlier)',x:[10,8,13,9,11,14,6,4,12,7,5],y:[7.46,6.77,12.74,7.11,7.81,8.84,6.08,5.39,8.15,6.42,5.73]},
+  {label:'Dataset IV\n(Leverage)',x:[8,8,8,8,8,8,8,19,8,8,8],y:[6.58,5.76,7.71,8.84,8.47,7.04,5.25,12.50,5.56,7.91,6.89]}
+];
+
+function drawAnscombe(){
+  var W=AC.width,H=AC.height;
+  var qw=W/2,qh=H/2,pad=32;
+  AX.clearRect(0,0,W,H);AX.fillStyle=bg();AX.fillRect(0,0,W,H);
+
+  ANSCOMBE.forEach(function(ds,qi){
+    var qx=(qi%2)*qw,qy=Math.floor(qi/2)*qh;
+    var iw=qw-2*pad,ih=qh-2*pad;
+
+    // Border
+    AX.strokeStyle=gc();AX.lineWidth=1;AX.strokeRect(qx,qy,qw,qh);
+
+    var xs=ds.x,ys=ds.y;
+    var minX=Math.min.apply(null,xs)-1,maxX=Math.max.apply(null,xs)+1;
+    var minY=Math.min.apply(null,ys)-1,maxY=Math.max.apply(null,ys)+1;
+    var xC=function(v){return qx+pad+(v-minX)/(maxX-minX)*iw;};
+    var yC=function(v){return qy+pad+ih-(v-minY)/(maxY-minY)*ih;};
+
+    // Grid
+    AX.strokeStyle=gc();AX.lineWidth=0.5;
+    for(var i=0;i<=4;i++){
+      var gx=qx+pad+i*iw/4,gy=qy+pad+i*ih/4;
+      AX.beginPath();AX.moveTo(gx,qy+pad);AX.lineTo(gx,qy+pad+ih);AX.stroke();
+      AX.beginPath();AX.moveTo(qx+pad,gy);AX.lineTo(qx+pad+iw,gy);AX.stroke();
+    }
+
+    // OLS line (same for all: y = 3 + 0.5*x approximately)
+    var x1=minX,x2=maxX;
+    AX.beginPath();AX.strokeStyle='rgba(62,207,142,0.6)';AX.lineWidth=1.5;
+    AX.moveTo(xC(x1),yC(3+0.5*x1));AX.lineTo(xC(x2),yC(3+0.5*x2));AX.stroke();
+
+    // Points
+    var col=['#4b96ff','#f0a500','#f06060','#a78bfa'][qi];
+    xs.forEach(function(x,i){
+      AX.beginPath();AX.arc(xC(x),yC(ys[i]),4,0,Math.PI*2);
+      AX.fillStyle=col+'cc';AX.fill();
+      AX.strokeStyle=col;AX.lineWidth=1;AX.stroke();
+    });
+
+    // Label
+    AX.fillStyle=col;AX.font='bold 11px sans-serif';AX.textAlign='left';
+    AX.fillText(ds.label.split('\n')[0],qx+pad,qy+18);
+    AX.fillStyle=tc();AX.font='10px sans-serif';
+    AX.fillText(ds.label.split('\n')[1],qx+pad,qy+30);
+    AX.fillStyle=tc();AX.font='10px monospace';AX.textAlign='right';
+    AX.fillText('r=0.816',qx+qw-pad,qy+18);
+  });
+
+  // Stats label across bottom
+  AX.fillStyle=tc();AX.font='11px sans-serif';AX.textAlign='center';
+  AX.fillText('All 4 datasets: mean(x)=9, mean(y)\u22487.5, r=0.816, same regression line!',W/2,H-5);
+}
+
+/* ══════════════════════════════════════
+   LIVE EDITOR
+══════════════════════════════════════ */
+var SNIPPETS=[
+{file:'bivariate_scatter.py',label:'Scatter & correlation',code:`import numpy as np
+import pandas as pd
+from scipy import stats
+
+np.random.seed(42)
+n = 200
+age    = np.random.normal(35, 10, n).clip(18, 65)
+salary = 30000 + age * 1200 + np.random.normal(0, 8000, n)
+
+# Pearson correlation (linear)
+r, p_pearson = stats.pearsonr(age, salary)
+print(f"Pearson  r = {r:.4f}  p = {p_pearson:.4e}")
+
+# Spearman correlation (monotonic)
+rho, p_spearman = stats.spearmanr(age, salary)
+print(f"Spearman p = {rho:.4f}  p = {p_spearman:.4e}")
+
+# Kendall's tau (ordinal)
+tau, p_kendall = stats.kendalltau(age, salary)
+print(f"Kendall  t = {tau:.4f}  p = {p_kendall:.4e}")
+print()
+
+# Interpretation
+strength = (
+    "very strong" if abs(r) > 0.7 else
+    "strong" if abs(r) > 0.5 else
+    "moderate" if abs(r) > 0.3 else
+    "weak" if abs(r) > 0.1 else "negligible"
+)
+direction = "positive" if r > 0 else "negative"
+print(f"Relationship: {strength} {direction} linear correlation")
+print(f"R2 = {r**2:.4f} means age explains {r**2*100:.1f}% of salary variance")
+
+# Rolling correlation
+df = pd.DataFrame({'age': age, 'salary': salary}).sort_values('age')
+roll_corr = df['salary'].rolling(30).corr(df['age'])
+print(f"\\nCorrelation stable? std of rolling r = {roll_corr.std():.4f}")`},
+{file:'bivariate_boxplot.py',label:'Num vs Cat',code:`import numpy as np
+import pandas as pd
+from scipy import stats
+
+np.random.seed(0)
+groups = {
+    'Group A': np.random.normal(50, 10, 80),
+    'Group B': np.random.normal(58, 12, 80),
+    'Group C': np.random.normal(65, 9, 80),
+}
+
+print("Descriptive statistics per group:")
+print(f"{'Group':<10} {'Mean':>8} {'Median':>8} {'Std':>8} {'IQR':>8}")
+print("-" * 48)
+for name, data in groups.items():
+    q1, q3 = np.percentile(data, [25, 75])
+    print(f"{name:<10} {data.mean():>8.2f} {np.median(data):>8.2f} {data.std():>8.2f} {q3-q1:>8.2f}")
+
+# One-way ANOVA (tests if ANY group differs)
+f_stat, p_anova = stats.f_oneway(*groups.values())
+print(f"\\nOne-way ANOVA: F={f_stat:.3f}  p={p_anova:.4f}")
+print(f"Groups significantly different: {p_anova < 0.05}")
+
+# Effect size: eta-squared
+all_data = np.concatenate(list(groups.values()))
+grand_mean = all_data.mean()
+ss_between = sum(len(g)*(g.mean()-grand_mean)**2 for g in groups.values())
+ss_total = ((all_data - grand_mean)**2).sum()
+eta_sq = ss_between / ss_total
+print(f"Effect size eta^2 = {eta_sq:.4f} ({'small' if eta_sq<0.06 else 'medium' if eta_sq<0.14 else 'large'})")
+
+# Post-hoc: pairwise t-tests
+print("\\nPairwise comparisons:")
+names = list(groups.keys())
+for i in range(len(names)):
+    for j in range(i+1, len(names)):
+        t, p = stats.ttest_ind(groups[names[i]], groups[names[j]])
+        print(f"  {names[i]} vs {names[j]}: t={t:.3f} p={p:.4f} {'*' if p<0.05 else ''}")`},
+{file:'bivariate_chi2.py',label:'Chi-squared test',code:`import numpy as np
+import pandas as pd
+from scipy import stats
+
+np.random.seed(42)
+
+# Contingency table: Gender x Product preference
+observed = np.array([
+    [120, 45, 80, 30],   # Male
+    [ 55,140, 20, 60],   # Female
+    [  8, 12,  5, 10],   # Other
+])
+rows = ['Male', 'Female', 'Other']
+cols = ['Electronics', 'Fashion', 'Sports', 'Books']
+grand = observed.sum()
+
+# Chi-squared test
+chi2, p, dof, expected = stats.chi2_contingency(observed)
+print(f"Chi-squared = {chi2:.4f}")
+print(f"Degrees of freedom = {dof}")
+print(f"p-value = {p:.6f}")
+print(f"Significant association: {p < 0.05}")
+
+# Cramer's V (effect size, 0-1)
+n_categories = min(len(rows)-1, len(cols)-1)
+cramers_v = np.sqrt(chi2 / (grand * n_categories))
+strength = ("negligible" if cramers_v<0.1 else "weak" if cramers_v<0.3
+            else "moderate" if cramers_v<0.5 else "strong")
+print(f"\\nCramer's V = {cramers_v:.4f} ({strength} association)")
+
+# Show contribution of each cell
+print("\\nTop cells contributing to chi-squared:")
+contrib = (observed - expected)**2 / expected
+flat = [(contrib[i,j], rows[i], cols[j]) for i in range(len(rows)) for j in range(len(cols))]
+flat.sort(reverse=True)
+for c, r, col in flat[:5]:
+    print(f"  {r} x {col}: {c:.2f}")`},
+{file:'bivariate_anscombe.py',label:"Anscombe's quartet",code:`import numpy as np
+from scipy import stats
+
+# Anscombe's quartet - identical statistics, different patterns
+datasets = {
+    'I  (linear)' : {'x': [10,8,13,9,11,14,6,4,12,7,5], 'y': [8.04,6.95,7.58,8.81,8.33,9.96,7.24,4.26,10.84,4.82,5.68]},
+    'II (curved)' : {'x': [10,8,13,9,11,14,6,4,12,7,5], 'y': [9.14,8.14,8.74,8.77,9.26,8.10,6.13,3.10,9.13,7.26,4.74]},
+    'III (outlier)': {'x': [10,8,13,9,11,14,6,4,12,7,5], 'y': [7.46,6.77,12.74,7.11,7.81,8.84,6.08,5.39,8.15,6.42,5.73]},
+    'IV (leverage)': {'x': [8,8,8,8,8,8,8,19,8,8,8],     'y': [6.58,5.76,7.71,8.84,8.47,7.04,5.25,12.50,5.56,7.91,6.89]},
+}
+
+print(f"{'Dataset':<16} {'mean(x)':>8} {'mean(y)':>8} {'std(y)':>7} {'r':>7} {'slope':>7}")
+print("-" * 58)
+for name, d in datasets.items():
+    x, y = np.array(d['x']), np.array(d['y'])
+    r, _ = stats.pearsonr(x, y)
+    slope, intercept, *_ = stats.linregress(x, y)
+    print(f"{name:<16} {x.mean():>8.3f} {y.mean():>8.3f} {y.std():>7.3f} {r:>7.3f} {slope:>7.3f}")
+
+print()
+print("All datasets have IDENTICAL statistics!")
+print("Yet they look completely different when plotted.")
+print("ALWAYS visualise your data before computing statistics.")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scipy']);pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  loadPattern('positive');
+  buildGalleryGrid();
+  selectGallery('+1.0');
+  updateBoxGroups(50);
+  drawContingency();
+  drawAnscombe();
+  initEditor();
+  new MutationObserver(function(){
+    drawScatter();if(currentGallery)selectGallery(currentGallery);
+    updateBoxGroups(document.getElementById('sep-slider').value);
+    drawContingency();drawAnscombe();buildGalleryGrid();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

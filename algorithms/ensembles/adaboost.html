@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AdaBoost — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,96,96,0.09),rgba(251,140,64,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* ── Algorithm step cards ── */
+    .algo-steps{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;}
+    .algo-step{display:flex;gap:18px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px 22px;transition:border-color .2s;}
+    .algo-step:hover{border-color:rgba(240,96,96,0.4);}
+    .algo-step-num{width:40px;height:40px;border-radius:50%;background:rgba(240,96,96,0.12);border:2px solid #f06060;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;font-weight:800;color:#f06060;flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-title{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:6px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.65;margin-bottom:12px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid #f06060;border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:rgba(240,96,96,0.12);color:#f06060;margin-bottom:10px;letter-spacing:.04em;}
+
+    /* ── Accuracy dashboard ── */
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;margin-bottom:4px;transition:all .3s;}
+    .acc-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* ── CodeMirror ── */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:#f06060;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    /* ── Alpha visualiser ── */
+    .alpha-viz{display:flex;flex-direction:column;gap:8px;padding:18px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:20px;}
+    .alpha-row{display:flex;align-items:center;gap:12px;}
+    .alpha-label{font-family:var(--font-mono);font-size:12px;color:var(--text-3);width:100px;flex-shrink:0;}
+    .alpha-bar-track{flex:1;height:20px;background:var(--bg-input);border-radius:3px;overflow:hidden;position:relative;}
+    .alpha-bar{height:100%;border-radius:3px;transition:width .6s ease;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;min-width:40px;}
+    .alpha-val{font-family:var(--font-mono);font-size:12px;color:var(--text-1);width:52px;text-align:right;flex-shrink:0;}
+
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="adaboost">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">AdaBoost</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb"><a href="../../../index.html">Home</a><span class="sep">/</span><a href="../../../index.html#roadmap">Ensemble Methods</a><span class="sep">/</span><span class="current">AdaBoost</span></nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(240,96,96,.3);background:rgba(240,96,96,0.1);color:#f06060;margin-bottom:14px;">Ensemble &middot; Boosting &middot; Adaptive</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">AdaBoost</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;"><strong>Adaptive Boosting</strong> &mdash; the original boosting algorithm. Each round trains a weak learner on <strong>re-weighted samples</strong>. Misclassified points get higher weight so the next learner focuses on them. Final prediction = weighted vote of all stumps.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">25 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: WEIGHT ANIMATION -->
+          <section class="section" id="weight-viz">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.15);color:#f06060;">+</div>
+              Watch sample weights evolve
+            </h2>
+            <p>Point <strong>size = sample weight</strong>. After each round, misclassified points grow bigger so the next stump focuses on them. Click <em>Add stump</em> one at a time and watch the hard points grow.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">AdaBoost live &mdash; each click adds one weak learner</span>
+                <button class="ctrl-btn active" onclick="adaStep(1)">+ Add stump</button>
+                <button class="ctrl-btn" onclick="adaStep(10)">Run 10</button>
+                <button class="ctrl-btn" onclick="genAdaData()">Reset</button>
+                <div style="display:flex;gap:5px;">
+                  <button class="ctrl-btn active" id="ada-ds-moons" onclick="setAdaDs('moons')">Moons</button>
+                  <button class="ctrl-btn" id="ada-ds-circles" onclick="setAdaDs('circles')">Circles</button>
+                  <button class="ctrl-btn" id="ada-ds-xor" onclick="setAdaDs('xor')">XOR</button>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">lr:</span>
+                  <input type="range" min="0.1" max="2.0" value="1.0" step="0.1" class="ctrl-slider" id="ada-lr" style="width:80px;" oninput="C('ada-lr-val').textContent=parseFloat(this.value).toFixed(1)"/>
+                  <span class="ctrl-value" id="ada-lr-val" style="color:#f06060;">1.0</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <canvas id="ada-canvas" width="340" height="280" style="width:100%;display:block;border-right:1px solid var(--border);"></canvas>
+                <canvas id="weight-hist-canvas" width="340" height="280" style="width:100%;display:block;"></canvas>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ada-step-num" style="color:#f06060;">0</span><span class="stat-pill-lbl">Stumps</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ada-err">--</span><span class="stat-pill-lbl">Weighted err</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ada-alpha">--</span><span class="stat-pill-lbl">Alpha</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ada-max-w">--</span><span class="stat-pill-lbl">Max weight</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ada-train-acc" style="color:var(--green);">--</span><span class="stat-pill-lbl">Train acc</span></div>
+              </div>
+            </div>
+
+            <!-- Alpha visualiser -->
+            <div class="alpha-viz" id="alpha-viz-wrap">
+              <div style="font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Stump alpha (confidence) history</div>
+              <div id="alpha-bars"><div style="font-size:13px;color:var(--text-3);">Add stumps above to see their alpha values here.</div></div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Alpha = stump confidence.</strong> A stump with 40% weighted error gets alpha = 0.5 * ln(0.6/0.4) = 0.20. A near-perfect stump (5% error) gets alpha = 1.47. If error > 0.5, alpha is negative &mdash; it votes the opposite direction!</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: HP TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.15);color:#f06060;">HP</div>
+              Hyperparameter tuning &mdash; live accuracy
+            </h2>
+            <p>Drag any slider and watch the decision boundary and accuracy update instantly.</p>
+            <div class="acc-dashboard">
+              <div class="acc-card"><div class="acc-num" id="hp-train" style="color:var(--blue);">--</div><div class="acc-label">Train Acc</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-train-bar" style="background:var(--blue);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="hp-test" style="color:var(--green);">--</div><div class="acc-label">Test Acc</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-test-bar" style="background:var(--green);width:0%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="hp-status" style="font-size:16px;color:var(--accent);">--</div><div class="acc-label">Fit Status</div><div class="acc-bar-wrap"><div class="acc-bar-fill" style="background:var(--accent);width:60%"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="hp-ne-disp" style="color:#f06060;">50</div><div class="acc-label">Stumps</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-ne-bar" style="background:#f06060;width:50%"></div></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;">
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:600;color:var(--text-1);">n_estimators</span><span style="font-family:var(--font-mono);font-size:12px;color:#f06060;" id="hp-ne-val">50</span></div>
+                <input type="range" min="1" max="100" value="50" step="1" class="ctrl-slider" id="hp-ne" oninput="C('hp-ne-val').textContent=this.value;C('hp-ne-disp').textContent=this.value;C('hp-ne-bar').style.width=(parseInt(this.value))+'%';onAdaHPChange()" style="width:100%;"/>
+                <div style="font-size:11px;color:var(--text-3);">Number of stumps. More = lower bias, higher risk of overfitting.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:600;color:var(--text-1);">learning_rate</span><span style="font-family:var(--font-mono);font-size:12px;color:#f06060;" id="hp-lr-val">1.00</span></div>
+                <input type="range" min="0.1" max="2.0" value="1.0" step="0.1" class="ctrl-slider" id="hp-lr" oninput="C('hp-lr-val').textContent=parseFloat(this.value).toFixed(2);onAdaHPChange()" style="width:100%;"/>
+                <div style="font-size:11px;color:var(--text-3);">Scales alpha per stump. Lower lr + more stumps = better generalisation.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:600;color:var(--text-1);">max_depth</span><span style="font-family:var(--font-mono);font-size:12px;color:#f06060;" id="hp-md-val">1</span></div>
+                <input type="range" min="1" max="5" value="1" step="1" class="ctrl-slider" id="hp-md" oninput="C('hp-md-val').textContent=this.value;onAdaHPChange()" style="width:100%;"/>
+                <div style="font-size:11px;color:var(--text-3);">Deeper trees = stronger learners. Depth=1 (stump) is the classic choice.</div>
+              </div>
+            </div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;"><span class="canvas-title">Decision boundary &mdash; Moons dataset</span></div>
+              <canvas id="ada-hp-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 3: ALGORITHM STEPS (FIXED) -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.15);color:#f06060;">5</div>
+              The AdaBoost algorithm
+            </h2>
+            <p>AdaBoost runs T rounds. Each round trains a stump on the current sample weights, computes its confidence (alpha), then re-weights samples so the next stump focuses on what the current one got wrong.</p>
+
+            <div class="algo-steps">
+
+              <div class="algo-step">
+                <div class="algo-step-num">1</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Initialisation</div>
+                  <div class="algo-step-title">Uniform sample weights</div>
+                  <div class="algo-step-desc">Every sample starts with equal weight 1/n. Weights always sum to 1 throughout training. Think of them as a probability distribution over the training set.</div>
+                  <div class="algo-step-formula">w_i = 1/n   for i = 1 .. n</div>
+                </div>
+              </div>
+
+              <div class="algo-step">
+                <div class="algo-step-num">2</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Weak learner training</div>
+                  <div class="algo-step-title">Train a weighted decision stump</div>
+                  <div class="algo-step-desc">Fit a stump that minimises <em>weighted</em> misclassification error. Points with high weight dominate the split criterion &mdash; the stump must get them right.</div>
+                  <div class="algo-step-formula">h_t = argmin_h  sum_i  w_i * 1[ h(x_i) != y_i ]
+epsilon_t = sum_i  w_i * 1[ h_t(x_i) != y_i ]   # weighted error rate</div>
+                </div>
+              </div>
+
+              <div class="algo-step">
+                <div class="algo-step-num">3</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Stump confidence</div>
+                  <div class="algo-step-title">Compute alpha (voting weight)</div>
+                  <div class="algo-step-desc">Alpha measures how much this stump should count in the final vote. Better stumps (low error) get high alpha. A 50%-error stump gets alpha=0 and is ignored. A &gt;50% stump gets negative alpha &mdash; it votes backwards!</div>
+                  <div class="algo-step-formula">alpha_t = (lr / 2) * ln( (1 - epsilon_t) / epsilon_t )
+
+# Examples:
+# epsilon = 0.05  ->  alpha = +1.47  (very trusted)
+# epsilon = 0.30  ->  alpha = +0.42  (moderately trusted)
+# epsilon = 0.50  ->  alpha =  0.00  (ignored — no better than random)
+# epsilon = 0.70  ->  alpha = -0.42  (reversed — votes opposite)</div>
+                </div>
+              </div>
+
+              <div class="algo-step">
+                <div class="algo-step-num">4</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Weight update</div>
+                  <div class="algo-step-title">Boost misclassified, shrink correct</div>
+                  <div class="algo-step-desc">Misclassified samples get weight * e^alpha (&gt;1, grows). Correct samples get weight * e^-alpha (&lt;1, shrinks). Then renormalise so weights still sum to 1. Next stump inherits a harder problem.</div>
+                  <div class="algo-step-formula">w_i  :=  w_i * exp( -alpha_t * y_i * h_t(x_i) )
+# y_i, h_t in {-1, +1}
+# misclassified: y_i * h_t = -1  =>  multiply by e^(+alpha)  (BIGGER)
+# correct:       y_i * h_t = +1  =>  multiply by e^(-alpha)  (smaller)
+
+w_i  :=  w_i / sum(w)    # renormalise to sum = 1</div>
+                </div>
+              </div>
+
+              <div class="algo-step">
+                <div class="algo-step-num">5</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Final prediction</div>
+                  <div class="algo-step-title">Weighted majority vote</div>
+                  <div class="algo-step-desc">Each stump casts a vote weighted by its alpha. Take the sign of the sum. High-alpha stumps dominate; low-alpha stumps barely matter. The ensemble is much stronger than any individual stump.</div>
+                  <div class="algo-step-formula">H(x) = sign( sum_t  alpha_t * h_t(x) )
+
+# Repeat steps 2-4 for T rounds, then use this formula for all predictions.</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Interactive alpha calculator -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:18px;">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:12px;">Interactive alpha calculator</div>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                <div class="ctrl-group" style="flex:1;min-width:200px;">
+                  <span class="ctrl-label" style="white-space:nowrap;">Weighted error:</span>
+                  <input type="range" min="1" max="99" value="30" class="ctrl-slider" id="err-slider" style="flex:1;" oninput="updateAlphaCalc(this.value)"/>
+                  <span class="ctrl-value" id="err-display" style="color:#f06060;min-width:48px;">0.30</span>
+                </div>
+                <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);background:var(--bg-input);padding:10px 16px;border-radius:var(--r-md);white-space:nowrap;">
+                  alpha = <span id="alpha-result" style="color:#f06060;font-weight:700;">0.424</span>
+                </div>
+                <div style="font-size:13px;color:var(--text-2);" id="alpha-interp">Moderately trusted stump</div>
+              </div>
+              <div style="margin-top:14px;height:16px;background:var(--bg-input);border-radius:3px;overflow:hidden;position:relative;">
+                <div id="alpha-bar-fill" style="height:100%;background:#f06060;border-radius:3px;transition:width .3s,background .3s;width:40%;"></div>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-3);pointer-events:none;">alpha magnitude</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs from basic usage to comparing AdaBoost vs GBM side by side.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">adaboost_basic.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using AdaBoost with noisy/outlier data.</strong> Outliers are always misclassified, so they accumulate huge weights and dominate training. AdaBoost is far more sensitive to outliers than GBM. Use GBM or XGBoost with regularisation for noisy data.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not scaling features when using non-tree base estimators.</strong> AdaBoost with decision stumps doesn't need scaling. But if you change the base estimator to SVM or Logistic Regression, scale first.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using very deep trees as weak learners.</strong> AdaBoost works best with shallow trees (depth 1-3). Deep trees are strong learners and defeat the purpose of boosting. Use GBM if you need depth.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Expecting AdaBoost to match GBM/XGBoost.</strong> AdaBoost is simpler and often slightly weaker on real datasets. Use it to understand boosting, then switch to GBM/XGBoost for production.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>AdaBoost <strong>re-weights samples</strong> each round. Misclassified points get higher weight, forcing the next stump to focus on them.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Alpha</strong> measures stump quality. High for accurate stumps, zero for random, negative for worse-than-random. Final prediction = sign of alpha-weighted sum.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>AdaBoost is <strong>sensitive to outliers</strong>. Noisy points accumulate huge weights. GBM is more robust in practice.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>decision stumps</strong> (max_depth=1) as the base learner. Stumps are the classic and most interpretable choice.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For production accuracy, prefer <strong>GBM, XGBoost, or LightGBM</strong> over AdaBoost.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="ensemble-theory.html"><span class="pn-dir">Previous</span><span class="pn-title">Ensemble Theory</span></a>
+            <a class="pn-card next" id="next-card" href="gradient-boosting.html"><span class="pn-dir">Next</span><span class="pn-title">Gradient Boosting</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#weight-viz">Weight evolution</a></li>
+            <li class="toc-item"><a href="#hyperparameters">HP tuning</a></li>
+            <li class="toc-item"><a href="#math">The algorithm</a></li>
+            <li class="toc-item sub"><a href="#math">Alpha calculator</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function rng(seed){
+  return function(){
+    seed|=0;seed=seed+0x6D2B79F5|0;
+    var t=Math.imul(seed^seed>>>15,1|seed);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return((t^t>>>14)>>>0)/4294967296;
+  };
+}
+
+/* mini decision stump */
+function buildStump(pts,weights){
+  var best=-Infinity,bF=-1,bT=0,bDir=1;
+  [0,1].forEach(function(f){
+    var vals=pts.map(function(p){return f===0?p.x:p.y;}).sort(function(a,b){return a-b;});
+    for(var i=0;i<vals.length-1;i++){
+      var t=(vals[i]+vals[i+1])/2;
+      var w0L=0,w1L=0,w0R=0,w1R=0;
+      pts.forEach(function(p,pi){
+        var v=f===0?p.x:p.y;
+        if(v<=t){if(p.c===0)w0L+=weights[pi];else w1L+=weights[pi];}
+        else{if(p.c===0)w0R+=weights[pi];else w1R+=weights[pi];}
+      });
+      var acc1=w0L+w1R,acc2=w1L+w0R;
+      if(acc1>best){best=acc1;bF=f;bT=t;bDir=1;}
+      if(acc2>best){best=acc2;bF=f;bT=t;bDir=-1;}
+    }
+  });
+  return{feat:bF,thresh:bT,dir:bDir,predict:function(px,py){var v=bF===0?px:py;return(v<=bT)?bDir:-bDir;}};
+}
+
+function makeDs(name,n,r){
+  var pts=[];
+  if(name==='moons'){
+    for(var i=0;i<n;i++){
+      var c=i%2,a=Math.PI*r();
+      if(c===0)pts.push({x:Math.cos(a)+(r()-0.5)*0.4,y:Math.sin(a)+(r()-0.5)*0.4,c:0});
+      else pts.push({x:1-Math.cos(a)+(r()-0.5)*0.4,y:0.5-Math.sin(a)+(r()-0.5)*0.4,c:1});
+    }
+  } else if(name==='xor'){
+    for(var i=0;i<n;i++){var x=r()*2-1,y2=r()*2-1;pts.push({x:x+(r()-0.5)*0.2,y:y2+(r()-0.5)*0.2,c:x*y2>0?0:1});}
+  } else {
+    for(var i=0;i<n;i++){var c=i%2,rv=c===0?0.5:1,av=r()*Math.PI*2;pts.push({x:rv*Math.cos(av)+(r()-0.5)*0.3,y:rv*Math.sin(av)+(r()-0.5)*0.3,c:c});}
+  }
+  return pts;
+}
+
+function scalePts(pts,W,H){
+  return pts.map(function(p){return{x:(p.x+1.8)/3.6*W,y:(p.y+1.8)/3.6*H,c:p.c,w:p.w||1/pts.length};});
+}
+
+/* AdaBoost live demo */
+var adaData=null,adaStumps=[],adaAlphaArr=[],adaCurrentDs='moons';
+
+function genAdaData(){
+  var r=rng(77);
+  adaData=scalePts(makeDs(adaCurrentDs,80,r),340,280);
+  adaData.forEach(function(p){p.w=1/adaData.length;});
+  adaStumps=[];adaAlphaArr=[];
+  drawAdaCanvas();drawWeightCanvas();updateAlphaBars();
+  C('ada-step-num').textContent=0;C('ada-err').textContent='--';
+  C('ada-alpha').textContent='--';C('ada-max-w').textContent='--';C('ada-train-acc').textContent='--';
+}
+
+function setAdaDs(ds){
+  adaCurrentDs=ds;
+  ['moons','circles','xor'].forEach(function(d){C('ada-ds-'+d).classList.toggle('active',d===ds);});
+  genAdaData();
+}
+
+async function adaStep(n){
+  if(!adaData)return;
+  var lr=parseFloat(C('ada-lr').value);
+  for(var step=0;step<n;step++){
+    var weights=adaData.map(function(p){return p.w;});
+    var stump=buildStump(adaData,weights);
+    var err=adaData.reduce(function(s,p,i){return s+(stump.predict(p.x,p.y)!==(p.c===0?1:-1)?p.w:0);},0);
+    err=Math.max(err,1e-10);
+    var alpha=lr*0.5*Math.log((1-err)/err);
+    adaStumps.push(stump);adaAlphaArr.push(alpha);
+    var totalW=0;
+    adaData.forEach(function(p){
+      var pred=stump.predict(p.x,p.y),label=p.c===0?1:-1;
+      p.w*=Math.exp(-alpha*label*pred);totalW+=p.w;
+    });
+    adaData.forEach(function(p){p.w/=totalW;});
+    C('ada-step-num').textContent=adaStumps.length;
+    C('ada-err').textContent=err.toFixed(4);
+    C('ada-alpha').textContent=alpha.toFixed(3);
+    C('ada-max-w').textContent=Math.max.apply(null,adaData.map(function(p){return p.w;})).toFixed(4);
+    if(n>1)await delay(150);
+  }
+  drawAdaCanvas();drawWeightCanvas();updateAdaAccuracy();updateAlphaBars();
+}
+
+function adaPredict(px,py){
+  if(!adaStumps.length)return 0;
+  return adaStumps.reduce(function(s,st,i){return s+adaAlphaArr[i]*st.predict(px,py);},0)>0?1:-1;
+}
+
+function drawAdaCanvas(){
+  var cv=C('ada-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,res=5;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!adaData)return;
+  for(var px=0;px<W;px+=res){
+    for(var py=0;py<H;py+=res){
+      var p=adaPredict(px,py);
+      ctx.fillStyle=p>0?'rgba(75,150,255,0.12)':'rgba(240,96,96,0.12)';
+      ctx.fillRect(px,py,res,res);
+    }
+  }
+  /* stump line */
+  if(adaStumps.length){
+    var st=adaStumps[adaStumps.length-1];
+    ctx.beginPath();
+    if(st.feat===0){ctx.moveTo(st.thresh,0);ctx.lineTo(st.thresh,H);}
+    else{ctx.moveTo(0,st.thresh);ctx.lineTo(W,st.thresh);}
+    ctx.strokeStyle='rgba(240,165,0,0.7)';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+  }
+  /* points sized by weight */
+  adaData.forEach(function(p){
+    var r2=Math.min(4+p.w*adaData.length*10,18);
+    ctx.beginPath();ctx.arc(p.x,p.y,r2,0,Math.PI*2);
+    ctx.fillStyle=p.c===0?'rgba(75,150,255,0.75)':'rgba(240,96,96,0.75)';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.15)';ctx.lineWidth=1.5;ctx.stroke();
+  });
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Point size = sample weight',W/2,H-5);
+}
+
+function drawWeightCanvas(){
+  var cv=C('weight-hist-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  var pad={l:30,r:10,t:20,b:30};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!adaData)return;
+  var sorted=adaData.slice().sort(function(a,b){return b.w-a.w;});
+  var maxW=sorted[0].w;
+  var bw=(W-pad.l-pad.r)/sorted.length;
+  sorted.forEach(function(p,i){
+    var bh=(p.w/maxW)*(H-pad.t-pad.b);
+    ctx.fillStyle=p.c===0?'rgba(75,150,255,0.75)':'rgba(240,96,96,0.75)';
+    ctx.fillRect(pad.l+i*bw,H-pad.b-bh,Math.max(bw-1,1),bh);
+  });
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  for(var i=0;i<=4;i++){
+    var y=pad.t+(H-pad.t-pad.b)*i/4;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='9px monospace';ctx.textAlign='right';
+    ctx.fillText(((1-i/4)*maxW).toFixed(3),pad.l-2,y+3);
+  }
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Sample weights (sorted high to low)',W/2,H-5);
+}
+
+function updateAlphaBars(){
+  var el=C('alpha-bars');
+  if(!adaAlphaArr.length){el.innerHTML='<div style="font-size:13px;color:var(--text-3);">Add stumps above to see their alpha values here.</div>';return;}
+  var maxA=Math.max.apply(null,adaAlphaArr.map(Math.abs))||1;
+  el.innerHTML=adaAlphaArr.slice(-8).map(function(a,i){
+    var idx=adaAlphaArr.length>8?adaAlphaArr.length-8+i:i;
+    var pct=Math.min(Math.abs(a)/maxA*100,100);
+    var col=a>=0?'#3ecf8e':'#f06060';
+    return '<div class="alpha-row"><div class="alpha-label">Stump '+(idx+1)+'</div><div class="alpha-bar-track"><div class="alpha-bar" style="width:'+pct+'%;background:'+col+';">'+a.toFixed(3)+'</div></div><div class="alpha-val" style="color:'+col+'">'+a.toFixed(3)+'</div></div>';
+  }).join('');
+}
+
+function updateAdaAccuracy(){
+  if(!adaData||!adaStumps.length)return;
+  var correct=adaData.filter(function(p){return adaPredict(p.x,p.y)===(p.c===0?1:-1);}).length;
+  C('ada-train-acc').textContent=(correct/adaData.length*100).toFixed(0)+'%';
+}
+
+/* HP Tuning */
+var adaHPData=null;
+function genHPData(){
+  var r=rng(88),raw=makeDs('moons',160,r),r2=rng(89);
+  var sh=raw.slice().sort(function(){return r2()-0.5;});
+  adaHPData={train:scalePts(sh.slice(0,128),340,260),test:scalePts(sh.slice(128),340,260)};
+}
+
+function onAdaHPChange(){
+  if(!adaHPData)return;
+  var ne=Math.min(parseInt(C('hp-ne').value),60);
+  var lr2=parseFloat(C('hp-lr').value);
+  var pts=adaHPData.train;
+  var weights=pts.map(function(){return 1/pts.length;});
+  var stumps=[],alphas=[];
+  for(var t=0;t<ne;t++){
+    var stump=buildStump(pts,weights);
+    var err=pts.reduce(function(s,p,i){return s+(stump.predict(p.x,p.y)!==(p.c===0?1:-1)?weights[i]:0);},0);
+    err=Math.max(err,1e-10);
+    var alpha=lr2*0.5*Math.log((1-err)/err);
+    stumps.push(stump);alphas.push(alpha);
+    var totalW=0;
+    pts.forEach(function(p,i){var pred=stump.predict(p.x,p.y),label=p.c===0?1:-1;weights[i]*=Math.exp(-alpha*label*pred);totalW+=weights[i];});
+    weights=weights.map(function(w){return w/totalW;});
+  }
+  function predict(px,py){return stumps.reduce(function(s,st,i){return s+alphas[i]*st.predict(px,py);},0)>0?0:1;}
+  function acc(data){return data.filter(function(p){return predict(p.x,p.y)===p.c;}).length/data.length;}
+  var trA=acc(adaHPData.train),teA=acc(adaHPData.test),gap=trA-teA;
+  var status=gap>0.12?'Overfitting':gap<-0.05?'Underfitting':'Good fit';
+  C('hp-train').textContent=(trA*100).toFixed(0)+'%';
+  C('hp-test').textContent=(teA*100).toFixed(0)+'%';
+  C('hp-train-bar').style.width=(trA*100)+'%';
+  C('hp-test-bar').style.width=(teA*100)+'%';
+  C('hp-status').textContent=status;
+  C('hp-status').style.color=status==='Good fit'?'var(--green)':status==='Overfitting'?'var(--red)':'var(--orange)';
+
+  /* boundary canvas - use full 700px width */
+  var cv=C('ada-hp-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,res=5;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  /* scale stumps to full canvas */
+  var scaleX=W/340,scaleY=H/260;
+  function predictFull(px,py){
+    return stumps.reduce(function(s,st,i){
+      var v=st.feat===0?px/scaleX:py/scaleY;
+      var vote=(v<=st.thresh)?st.dir:-st.dir;
+      return s+alphas[i]*vote;
+    },0)>0?0:1;
+  }
+  for(var px=0;px<W;px+=res){
+    for(var py=0;py<H;py+=res){
+      var p=predictFull(px,py);
+      ctx.fillStyle=p===0?'rgba(75,150,255,0.13)':'rgba(240,96,96,0.13)';
+      ctx.fillRect(px,py,res,res);
+    }
+  }
+  adaHPData.train.forEach(function(pt){
+    ctx.beginPath();ctx.arc(pt.x*scaleX,pt.y*scaleY,4,0,Math.PI*2);
+    ctx.fillStyle=pt.c===0?'#4b96ff':'#f06060';ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';ctx.lineWidth=1;ctx.stroke();
+  });
+}
+
+/* Alpha calculator */
+function updateAlphaCalc(v){
+  var err=parseInt(v)/100;
+  C('err-display').textContent=err.toFixed(2);
+  var alpha=0.5*Math.log((1-err)/err);
+  C('alpha-result').textContent=alpha.toFixed(3);
+  var pct=Math.min(Math.abs(alpha)/2*100,100);
+  var col=alpha>0?'#3ecf8e':alpha<0?'#f06060':'var(--text-3)';
+  C('alpha-bar-fill').style.width=pct+'%';
+  C('alpha-bar-fill').style.background=col;
+  C('alpha-result').style.color=col;
+  var interp=alpha>1?'Very trusted stump':alpha>0.3?'Moderately trusted':alpha>0?'Weakly trusted':alpha===0?'Ignored (random)':'Reversed vote!';
+  C('alpha-interp').textContent=interp;
+  C('alpha-interp').style.color=col;
+}
+
+/* Code snippets */
+var SNIPPETS=[
+  {file:'adaboost_basic.py',label:'AdaBoost basics',code:`from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test  = sc.transform(X_test)
+
+ada = AdaBoostClassifier(
+    estimator     = DecisionTreeClassifier(max_depth=1),
+    n_estimators  = 200,
+    learning_rate = 1.0,
+    random_state  = 42,
+)
+ada.fit(X_train, y_train)
+print(f"AdaBoost accuracy : {ada.score(X_test, y_test):.4f}")
+print(f"Number of stumps  : {len(ada.estimators_)}")
+
+stump = DecisionTreeClassifier(max_depth=1)
+stump.fit(X_train, y_train)
+print(f"Single stump      : {stump.score(X_test, y_test):.4f}")
+
+print("\\nn_estimators sweep:")
+for n in [5, 10, 25, 50, 100, 200]:
+    m = AdaBoostClassifier(n_estimators=n, random_state=42)
+    m.fit(X_train, y_train)
+    print(f"  n={n:<4}: {m.score(X_test, y_test):.4f}")`},
+  {file:'adaboost_weights.py',label:'Sample weights',code:`import numpy as np
+from sklearn.datasets import make_moons
+from sklearn.tree import DecisionTreeClassifier
+
+X, y = make_moons(n_samples=20, noise=0.3, random_state=42)
+y_ada = np.where(y == 0, -1, 1)   # AdaBoost uses -1/+1
+
+n = len(X)
+weights = np.ones(n) / n
+
+print(f"{'Round':<6}  {'Error':<10}  {'Alpha':<8}  {'MaxW':<10}  {'MinW'}")
+print("-" * 52)
+
+for t in range(8):
+    stump = DecisionTreeClassifier(max_depth=1)
+    stump.fit(X, y_ada, sample_weight=weights)
+    y_pred = stump.predict(X)
+    wrong = (y_pred != y_ada)
+    err = max(weights[wrong].sum(), 1e-10)
+    alpha = 0.5 * np.log((1 - err) / err)
+    weights *= np.exp(-alpha * y_ada * y_pred)
+    weights /= weights.sum()
+    print(f"{t+1:<6}  {err:<10.4f}  {alpha:<8.4f}  {weights.max():<10.4f}  {weights.min():.6f}")
+
+print("\\nWeights concentrate on hard examples each round.")`},
+  {file:'adaboost_lr.py',label:'Learning rate',code:`from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import AdaBoostClassifier
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test  = sc.transform(X_test)
+
+print(f"{'lr':<8}  {'n_est':<8}  {'Train':>8}  {'Test':>8}")
+print("-" * 38)
+
+for lr, n in [(2.0, 50), (1.0, 100), (0.5, 200), (0.1, 500)]:
+    m = AdaBoostClassifier(n_estimators=n, learning_rate=lr, random_state=42)
+    m.fit(X_train, y_train)
+    print(f"{lr:<8.2f}  {n:<8}  {m.score(X_train,y_train):>8.4f}  {m.score(X_test,y_test):>8.4f}")
+
+print("\\nLower lr + more estimators = better generalisation")`},
+  {file:'adaboost_vs_gbm.py',label:'AdaBoost vs GBM',code:`from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+sc = StandardScaler()
+X_s = sc.fit_transform(X)
+
+models = {
+    "AdaBoost (stumps)" : AdaBoostClassifier(n_estimators=100, random_state=42),
+    "AdaBoost (depth=3)": AdaBoostClassifier(
+        estimator=DecisionTreeClassifier(max_depth=3),
+        n_estimators=100, random_state=42),
+    "GBM (standard)"    : GradientBoostingClassifier(
+        n_estimators=100, max_depth=3, random_state=42),
+    "GBM (tuned)"       : GradientBoostingClassifier(
+        n_estimators=500, learning_rate=0.05, max_depth=3, random_state=42),
+}
+
+print(f"{'Model':<25}  {'5-fold CV':>9}  {'Std':>7}")
+print("-" * 47)
+for name, m in models.items():
+    s = cross_val_score(m, X_s, y, cv=5)
+    print(f"{name:<25}  {s.mean():>9.4f}  {s.std():>7.4f}")
+
+print("\\nAdaBoost: re-weights samples  |  GBM: fits residuals")
+print("AdaBoost: sensitive to outliers |  GBM: more robust")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){
+      out.textContent='Failed to load Python.';out.className='editor-output error';
+      btn.disabled=false;btn.textContent='Run';return;
+    }
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){
+        if(cm.somethingSelected())cm.indentSelection('add');
+        else cm.replaceSelection('    ','end');
+      }}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  genAdaData();genHPData();onAdaHPChange();updateAlphaCalc(30);initEditor();
+  new MutationObserver(function(){
+    drawAdaCanvas();drawWeightCanvas();onAdaHPChange();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CSV Loading — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(52,211,153,0.09),rgba(96,165,250,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:#34d399;line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* CSV editor */
+    .csv-editor-wrap{background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--r-md);margin-bottom:12px;}
+    .csv-input{width:100%;min-height:140px;background:transparent;border:none;padding:14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);resize:vertical;box-sizing:border-box;line-height:1.6;}
+    .csv-input:focus{outline:none;}
+    /* Table preview */
+    .csv-table-wrap{overflow-x:auto;border-radius:var(--r-md);border:1px solid var(--border);}
+    .csv-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .csv-table th{text-align:left;padding:8px 14px;background:var(--bg-input);border-bottom:2px solid var(--border-md);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);white-space:nowrap;}
+    .csv-table td{padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text-2);white-space:nowrap;}
+    .csv-table tr:last-child td{border-bottom:none;}
+    .csv-table tr:hover td{background:var(--bg-input);}
+    .dtype-badge{display:inline-block;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:700;font-family:var(--font-mono);}
+    .dtype-int{background:rgba(96,165,250,0.15);color:#60a5fa;}
+    .dtype-float{background:rgba(251,146,60,0.15);color:#fb923c;}
+    .dtype-str{background:rgba(52,211,153,0.15);color:#34d399;}
+    .dtype-bool{background:rgba(45,212,191,0.15);color:#2dd4bf;}
+    .dtype-date{background:rgba(232,121,249,0.15);color:#e879f9;}
+    /* param cards */
+    .param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:20px;}
+    .param-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;}
+    .param-name{font-family:var(--font-mono);font-size:12px;color:#34d399;font-weight:700;margin-bottom:4px;}
+    .param-type{font-size:10px;color:var(--text-3);margin-bottom:6px;font-family:var(--font-mono);}
+    .param-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+    .param-example{font-family:var(--font-mono);font-size:11px;color:var(--orange);background:var(--bg-input);padding:3px 7px;border-radius:4px;margin-top:5px;display:inline-block;}
+    /* derive */
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:26px;height:26px;border-radius:50%;background:rgba(52,211,153,0.1);border:1.5px solid #34d399;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#34d399;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border-left:3px solid #34d399;padding:10px 14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(52,211,153,.15)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#059669;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+  </style>
+</head>
+<body data-topic-id="csv-loading">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">CSV Loading</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Collection</a><span class="sep">/</span>
+            <span class="current">CSV Loading</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(52,211,153,.3);background:rgba(52,211,153,0.08);color:#34d399;margin-bottom:14px;">Data Collection · File Formats</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">CSV Loading</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              CSV (Comma-Separated Values) is the most common format for tabular ML datasets.
+              <code>pd.read_csv()</code> is the most-used pandas function — but it has
+              <strong>50+ parameters</strong> that handle messy real-world files.
+              This page covers everything you actually need.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#8987; 18 min</span>
+              <span class="topic-meta-item">&#9670; Beginner</span>
+              <span class="topic-meta-item">pandas · csv</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — LIVE CSV PARSER -->
+          <section class="section" id="live-parser">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#9654;</div>
+              Live CSV parser — paste your own data
+            </h2>
+            <p>
+              Paste any CSV text below. The parser auto-detects the delimiter, counts rows and columns,
+              infers data types, and generates the exact <code>pd.read_csv()</code> call you need.
+            </p>
+
+            <div class="csv-editor-wrap">
+              <textarea class="csv-input" id="csv-input" spellcheck="false"
+                oninput="parseCSV()" placeholder="Paste CSV here or click a preset below..."></textarea>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+              <button class="ctrl-btn active" onclick="loadPreset('basic')">Basic</button>
+              <button class="ctrl-btn" onclick="loadPreset('semicolon')">Semicolon sep</button>
+              <button class="ctrl-btn" onclick="loadPreset('messy')">Messy headers</button>
+              <button class="ctrl-btn" onclick="loadPreset('missing')">Missing values</button>
+              <button class="ctrl-btn" onclick="loadPreset('quoted')">Quoted fields</button>
+              <button class="ctrl-btn" onclick="loadPreset('noheader')">No header</button>
+            </div>
+
+            <div id="parse-output" style="display:none;">
+              <!-- Detection banner -->
+              <div id="detect-banner" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 16px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:16px;font-size:13px;"></div>
+
+              <!-- Table preview -->
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">DataFrame preview</div>
+              <div class="csv-table-wrap" style="margin-bottom:14px;">
+                <table class="csv-table" id="csv-table-preview"></table>
+              </div>
+
+              <!-- Dtypes row -->
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">Inferred column types</div>
+              <div id="dtype-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+              <!-- Generated code -->
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">Generated read_csv() call</div>
+              <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;font-family:var(--font-mono);font-size:13px;color:#34d399;white-space:pre-wrap;margin-bottom:8px;" id="generated-code"></div>
+
+              <div class="stat-row" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);">
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-rows">0</span><span class="stat-pill-lbl">Data rows</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-cols">0</span><span class="stat-pill-lbl">Columns</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-delim" style="font-size:20px;">—</span><span class="stat-pill-lbl">Delimiter</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-missing" style="color:var(--red);">0</span><span class="stat-pill-lbl">Missing cells</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — HOW CSV PARSING WORKS -->
+          <section class="section" id="how-it-works">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#8721;</div>
+              How pd.read_csv() parses a file
+            </h2>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">The parsing pipeline — from raw text to DataFrame</span>
+                <select class="ctrl-select" id="pipeline-step" onchange="drawPipelineCanvas(parseInt(this.value))">
+                  <option value="0">All steps</option>
+                  <option value="1">1. Read bytes</option>
+                  <option value="2">2. Detect encoding</option>
+                  <option value="3">3. Split lines</option>
+                  <option value="4">4. Parse header</option>
+                  <option value="5">5. Infer dtypes</option>
+                </select>
+              </div>
+              <canvas id="pipeline-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — KEY PARAMETERS -->
+          <section class="section" id="parameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#9881;</div>
+              The most important read_csv() parameters
+            </h2>
+            <p>
+              <code>pd.read_csv()</code> has 50+ parameters but you only need about 10 regularly.
+              Here are the ones that solve 90% of real-world CSV problems.
+            </p>
+
+            <div class="param-grid" id="param-grid"></div>
+
+            <!-- Interactive parameter builder -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Parameter builder — toggle options and see the call update</span>
+              </div>
+              <div style="padding:16px 18px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;" id="param-toggles"></div>
+                <div style="background:var(--bg-input);border-radius:var(--r-md);padding:12px 16px;font-family:var(--font-mono);font-size:13px;color:#34d399;white-space:pre-wrap;" id="param-code-output"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — COMMON PROBLEMS -->
+          <section class="section" id="common-problems">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#128270;</div>
+              Common CSV problems and fixes
+            </h2>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Click a problem to see the fix</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:260px;">
+                <div style="border-right:1px solid var(--border);">
+                  <div id="problem-list" style="padding:8px;"></div>
+                </div>
+                <div style="padding:16px;">
+                  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:10px;">Fix</div>
+                  <div id="problem-fix" style="font-size:13px;color:var(--text-2);line-height:1.7;"></div>
+                  <div id="problem-code" style="margin-top:10px;background:var(--bg-input);border-radius:var(--r-md);padding:12px;font-family:var(--font-mono);font-size:12px;color:#34d399;white-space:pre-wrap;display:none;"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — DTYPE CANVAS -->
+          <section class="section" id="dtypes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#128202;</div>
+              Data types — what pandas infers and why it matters
+            </h2>
+            <p>
+              After loading, always check <code>df.dtypes</code>. Pandas sometimes
+              guesses wrong — a column of years becomes float64 instead of int, or a boolean column
+              becomes object. Fixing dtypes saves memory and prevents silent errors in your ML pipeline.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Type inference — same data, different pandas dtypes</span>
+                <button class="ctrl-btn active" onclick="drawDtypeCanvas()">&#8635; Redraw</button>
+              </div>
+              <canvas id="dtype-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">csv_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not checking dtypes after loading.</strong> Always run <code>df.info()</code> immediately. A column you expect to be numeric might be object (string) if it has a single bad value like "N/A". This silently breaks all math on that column.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Ignoring encoding errors.</strong> Files from Windows often use latin-1 or cp1252 encoding. If you get a UnicodeDecodeError, try <code>encoding='latin-1'</code> or <code>encoding_errors='replace'</code>.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Loading huge files all at once.</strong> For files larger than your RAM, use <code>chunksize=10000</code> to process in chunks, or use <code>usecols=[...]</code> to load only the columns you need.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Assuming index_col=0 is always right.</strong> Some CSVs have a saved DataFrame index as the first column (called "Unnamed: 0"). Use <code>index_col=0</code> in that case. For regular CSVs, leave it as default.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not handling missing value strings.</strong> Your CSV might use "NA", "N/A", "null", "None", "-", or "" for missing data. Pass <code>na_values=['NA','N/A','null','None','-']</code> to catch them all.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9733;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The basic call is just <code>df = pd.read_csv("file.csv")</code>. Add parameters only when you have a specific problem to solve.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always run <code>df.info()</code> and <code>df.head()</code> after loading. Check shapes, dtypes, and missing value counts before anything else.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <code>sep=';'</code> or <code>sep='\t'</code> for non-comma delimiters. Use <code>sep=None, engine='python'</code> to auto-detect.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <code>dtype={'col': str}</code> to prevent pandas from guessing wrong types. Use <code>parse_dates=['date_col']</code> for datetime columns.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For large files use <code>usecols</code> to load only needed columns, and <code>chunksize</code> to process in batches without filling RAM.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="../../index.html">
+              <span class="pn-dir">&#8592; Back</span>
+              <span class="pn-title">Roadmap</span>
+            </a>
+            <a class="pn-card next" href="json-loading.html">
+              <span class="pn-dir">Next &#8594;</span>
+              <span class="pn-title">JSON Loading</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#live-parser">Live CSV parser</a></li>
+            <li class="toc-item"><a href="#how-it-works">How parsing works</a></li>
+            <li class="toc-item"><a href="#parameters">Key parameters</a></li>
+            <li class="toc-item"><a href="#common-problems">Common problems</a></li>
+            <li class="toc-item"><a href="#dtypes">Data types</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+function C(id){ return document.getElementById(id); }
+function isDark(){ return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg(){ return isDark() ? '#18181d' : '#e9e7e1'; }
+function bgIn(){ return isDark() ? '#1e1e25' : '#e2e0d9'; }
+function tc(){ return isDark() ? '#a09e98' : '#5c5a54'; }
+function gc(){ return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ══════════════════════════════
+   SECTION 1 — LIVE CSV PARSER
+══════════════════════════════ */
+var PRESETS = {
+  basic: 'name,age,salary,city\nAlice,30,75000,London\nBob,25,62000,Paris\nCarol,35,88000,Berlin\nDave,28,71000,Madrid',
+  semicolon: 'name;age;salary;city\nAlice;30;75000;London\nBob;25;62000;Paris\nCarol;35;88000;Berlin',
+  messy: '  Name  , Age , Salary , City  \n  Alice  , 30 , 75000 , London\n  Bob    , 25 , 62000 , Paris ',
+  missing: 'name,age,salary,city\nAlice,30,,London\nBob,,62000,Paris\nCarol,35,88000,\nDave,28,71000,Madrid',
+  quoted: 'name,description,price\nLaptop,"High performance, 16GB RAM",999\nMouse,"Wireless, ergonomic design",29\nKeyboard,"Mechanical, RGB backlit",89',
+  noheader: '1,Alice,30,London\n2,Bob,25,Paris\n3,Carol,35,Berlin'
+};
+
+function loadPreset(key){
+  C('csv-input').value = PRESETS[key];
+  parseCSV();
+}
+
+function detectDelimiter(text){
+  var lines = text.trim().split('\n');
+  if(!lines.length) return ',';
+  var line = lines[0];
+  var counts = {
+    ',': (line.match(/,/g)||[]).length,
+    ';': (line.match(/;/g)||[]).length,
+    '\t': (line.match(/\t/g)||[]).length,
+    '|': (line.match(/\|/g)||[]).length
+  };
+  var best = ',', bestCount = 0;
+  Object.keys(counts).forEach(function(d){
+    if(counts[d] > bestCount){ bestCount = counts[d]; best = d; }
+  });
+  return best;
+}
+
+function inferType(values){
+  var nonEmpty = values.filter(function(v){ return v !== '' && v !== 'NA' && v !== 'N/A' && v !== 'null' && v !== 'None' && v !== '-'; });
+  if(!nonEmpty.length) return 'object';
+  if(nonEmpty.every(function(v){ return v==='True'||v==='False'||v==='true'||v==='false'; })) return 'bool';
+  if(nonEmpty.every(function(v){ return /^-?\d+$/.test(v.trim()); })) return 'int64';
+  if(nonEmpty.every(function(v){ return /^-?\d*\.?\d+$/.test(v.trim()); })) return 'float64';
+  if(nonEmpty.every(function(v){ return /^\d{4}-\d{2}-\d{2}/.test(v.trim()); })) return 'datetime';
+  return 'object';
+}
+
+function parseCSVText(text, delim){
+  var lines = text.trim().split('\n');
+  var rows = lines.map(function(line){
+    // Handle quoted fields
+    var result = [], cur = '', inQ = false;
+    for(var i=0;i<line.length;i++){
+      var ch = line[i];
+      if(ch==='"'){ inQ=!inQ; continue; }
+      if(ch===delim && !inQ){ result.push(cur.trim()); cur=''; continue; }
+      cur += ch;
+    }
+    result.push(cur.trim());
+    return result;
+  });
+  return rows;
+}
+
+function parseCSV(){
+  var raw = C('csv-input').value.trim();
+  if(!raw){ C('parse-output').style.display='none'; return; }
+  C('parse-output').style.display='';
+
+  var delim = detectDelimiter(raw);
+  var rows  = parseCSVText(raw, delim);
+  if(rows.length < 2){ return; }
+
+  var headers = rows[0].map(function(h){ return h.trim(); });
+  var dataRows = rows.slice(1).filter(function(r){ return r.some(function(c){return c!==''}); });
+  var numCols  = headers.length;
+
+  // Count missing
+  var missing = 0;
+  var MISS = ['','NA','N/A','null','None','-'];
+  dataRows.forEach(function(r){
+    r.forEach(function(c){ if(MISS.indexOf(c.trim())>-1) missing++; });
+  });
+
+  // Infer types per column
+  var types = headers.map(function(_,ci){
+    var vals = dataRows.map(function(r){ return r[ci]||''; });
+    return inferType(vals);
+  });
+
+  // Detection banner
+  var delimLabel = delim===','?'comma (,)':delim===';'?'semicolon (;)':delim==='\t'?'tab (\\t)':delim==='|'?'pipe (|)':delim;
+  C('detect-banner').innerHTML = [
+    '<span>&#128269; <strong>Delimiter:</strong> <code>'+esc(delimLabel)+'</code></span>',
+    '<span>&#128200; <strong>Rows:</strong> '+dataRows.length+'</span>',
+    '<span>&#128203; <strong>Columns:</strong> '+numCols+'</span>',
+    missing ? '<span style="color:var(--red);">&#9888; <strong>Missing cells:</strong> '+missing+'</span>' : '<span style="color:var(--green);">&#10003; No missing values</span>'
+  ].join('');
+
+  // Table preview (first 5 rows)
+  var tbl = '<thead><tr>';
+  headers.forEach(function(h){ tbl += '<th>'+esc(h)+'</th>'; });
+  tbl += '</tr></thead><tbody>';
+  var previewRows = dataRows.slice(0,5);
+  previewRows.forEach(function(row){
+    tbl += '<tr>';
+    for(var ci=0;ci<numCols;ci++){
+      var v = row[ci]||'';
+      var isMiss = MISS.indexOf(v.trim())>-1 && v!=='';
+      tbl += '<td'+(isMiss?' style="color:var(--red);"':'')+'>'+esc(v)+'</td>';
+    }
+    tbl += '</tr>';
+  });
+  tbl += '</tbody>';
+  C('csv-table-preview').innerHTML = tbl;
+
+  // Dtype badges
+  var dtypeMap = {'int64':'dtype-int','float64':'dtype-float','object':'dtype-str','bool':'dtype-bool','datetime':'dtype-date'};
+  C('dtype-row').innerHTML = headers.map(function(h,i){
+    var t = types[i];
+    return '<span><code style="font-size:12px;color:var(--text-2);">'+esc(h)+'</code> <span class="dtype-badge '+dtypeMap[t]+'">'+t+'</span></span>';
+  }).join('');
+
+  // Generate code
+  var params = ['filepath_or_buffer="data.csv"'];
+  if(delim!==',') params.push('sep="'+esc(delim==='\t'?'\\t':delim)+'"');
+  var hasHeader = headers.some(function(h){ return isNaN(parseInt(h)); });
+  if(!hasHeader) params.push('header=None');
+  var needsNA = missing>0;
+  if(needsNA) params.push('na_values=["NA","N/A","null","None","-"]');
+  var dateCols = headers.filter(function(h,i){ return types[i]==='datetime'; });
+  if(dateCols.length) params.push('parse_dates='+JSON.stringify(dateCols));
+  var code = 'import pandas as pd\n\ndf = pd.read_csv(\n    '+params.join(',\n    ')+'\n)\n\nprint(df.shape)     # (rows, cols)\nprint(df.dtypes)    # column types\nprint(df.head())    # first 5 rows';
+  C('generated-code').textContent = code;
+
+  // Stats
+  C('stat-rows').textContent = dataRows.length;
+  C('stat-cols').textContent = numCols;
+  C('stat-delim').textContent = delim==='\t'?'\\t':delim;
+  C('stat-missing').textContent = missing;
+}
+
+/* ══════════════════════════════
+   SECTION 2 — PIPELINE CANVAS
+══════════════════════════════ */
+var PIPELINE_STEPS = [
+  { label:'Read bytes', color:'#34d399', desc:'Open file, read raw bytes from disk into memory buffer' },
+  { label:'Detect encoding', color:'#60a5fa', desc:'Detect UTF-8 / latin-1 / cp1252 — or use encoding= param' },
+  { label:'Split lines', color:'#fb923c', desc:'Split buffer at newline characters (\\n or \\r\\n)' },
+  { label:'Parse header', color:'#a78bfa', desc:'First line becomes column names (unless header=None)' },
+  { label:'Infer dtypes', color:'#f0a500', desc:'For each column: try int64, float64, then fall back to object' }
+];
+
+function drawPipelineCanvas(highlight){
+  var cv = C('pipeline-canvas'), ctx = cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  var n = PIPELINE_STEPS.length;
+  var boxW = 110, boxH = 60, gapX = (W - n*boxW) / (n+1);
+  var startY = H/2 - boxH/2;
+
+  PIPELINE_STEPS.forEach(function(step, i){
+    var x = gapX + i*(boxW+gapX);
+    var isHL = (highlight===0 || highlight===i+1);
+    var alpha = isHL ? 1 : 0.3;
+
+    // Arrow from previous
+    if(i>0){
+      var prevX = gapX + (i-1)*(boxW+gapX) + boxW;
+      ctx.save();
+      ctx.globalAlpha = isHL && (highlight===0||highlight===i) ? 1 : 0.25;
+      ctx.strokeStyle = step.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(prevX+4, H/2);
+      ctx.lineTo(x-4, H/2);
+      ctx.stroke();
+      // Arrowhead
+      ctx.fillStyle = step.color;
+      ctx.beginPath();
+      ctx.moveTo(x-4, H/2-5);
+      ctx.lineTo(x-4, H/2+5);
+      ctx.lineTo(x+4, H/2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Box
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = isDark() ? step.color+'22' : step.color+'18';
+    ctx.strokeStyle = step.color;
+    ctx.lineWidth = isHL ? 2.5 : 1.5;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(x, startY, boxW, boxH, 8);
+    else ctx.rect(x, startY, boxW, boxH);
+    ctx.fill(); ctx.stroke();
+    // Step number
+    ctx.fillStyle = step.color;
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(i+1+'.', x+boxW/2, startY+16);
+    // Label
+    ctx.fillStyle = isDark() ? '#e2e0d9' : '#1a1916';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(step.label, x+boxW/2, startY+32);
+    ctx.restore();
+
+    // Description below (only when highlighted or all)
+    if(highlight===i+1){
+      ctx.save();
+      ctx.fillStyle = step.color;
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      var words = step.desc.split(' ');
+      var line='', lines=[], maxW=W-40;
+      words.forEach(function(w){
+        var test = line + (line?' ':'')+w;
+        if(ctx.measureText(test).width > maxW){ lines.push(line); line=w; }
+        else line=test;
+      });
+      lines.push(line);
+      lines.forEach(function(l,li){ ctx.fillText(l, W/2, startY+boxH+20+li*18); });
+      ctx.restore();
+    }
+  });
+
+  if(highlight===0){
+    ctx.save();
+    ctx.fillStyle=tc(); ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Select a step above to see details', W/2, startY+boxH+22);
+    ctx.restore();
+  }
+  ctx.textAlign='start';
+}
+
+/* ══════════════════════════════
+   SECTION 3 — PARAMETERS
+══════════════════════════════ */
+var PARAMS = [
+  { name:'sep', type:'str, default=","', desc:'Delimiter character. Use sep=None with engine="python" to auto-detect.', ex:'sep=";"' },
+  { name:'header', type:'int|None, default=0', desc:'Row number(s) for column labels. Use header=None if there is no header row.', ex:'header=None' },
+  { name:'index_col', type:'int|str|False', desc:'Column to use as row index. Use index_col=0 when first column is a saved index.', ex:'index_col=0' },
+  { name:'usecols', type:'list', desc:'Load only specific columns — much faster for wide datasets with hundreds of columns.', ex:'usecols=["name","age"]' },
+  { name:'dtype', type:'dict', desc:'Force column types instead of letting pandas infer. Prevents silent type errors.', ex:'dtype={"id":str}' },
+  { name:'na_values', type:'list', desc:'Additional strings to recognise as NaN. Default already handles empty string, NA, NaN.', ex:'na_values=["-","N/A"]' },
+  { name:'parse_dates', type:'list|bool', desc:'Columns to parse as datetime. Much more convenient than converting after loading.', ex:'parse_dates=["date"]' },
+  { name:'encoding', type:'str', desc:'File encoding. Try latin-1 or cp1252 if you get a UnicodeDecodeError.', ex:'encoding="latin-1"' },
+  { name:'skiprows', type:'int|list', desc:'Skip N rows at top (metadata/comments), or skip specific row numbers.', ex:'skiprows=3' },
+  { name:'nrows', type:'int', desc:'Only load the first N rows. Great for previewing huge files quickly.', ex:'nrows=1000' },
+  { name:'chunksize', type:'int', desc:'Return an iterator of DataFrames with N rows each. For files bigger than RAM.', ex:'chunksize=10000' },
+  { name:'thousands', type:'str', desc:'Character used as thousands separator (e.g. "1,000" vs "1.000" in European format).', ex:'thousands=","' }
+];
+
+function buildParamGrid(){
+  C('param-grid').innerHTML = PARAMS.map(function(p){
+    return '<div class="param-card">' +
+      '<div class="param-name">'+esc(p.name)+'</div>' +
+      '<div class="param-type">'+esc(p.type)+'</div>' +
+      '<div class="param-desc">'+esc(p.desc)+'</div>' +
+      '<span class="param-example">'+esc(p.ex)+'</span>' +
+      '</div>';
+  }).join('');
+}
+
+/* Parameter toggles */
+var PARAM_TOGGLES = [
+  { label:'header=None', key:'noheader', val:'header=None' },
+  { label:'index_col=0', key:'idx', val:'index_col=0' },
+  { label:'sep=";"', key:'semi', val:'sep=";"' },
+  { label:'usecols=[...]', key:'usecols', val:'usecols=["name","age","salary"]' },
+  { label:'dtype fix', key:'dtype', val:'dtype={"id": str, "age": int}' },
+  { label:'na_values', key:'na', val:'na_values=["NA","N/A","-","null"]' },
+  { label:'parse_dates', key:'dates', val:'parse_dates=["created_at","updated_at"]' },
+  { label:'encoding', key:'enc', val:'encoding="latin-1"' },
+  { label:'skiprows=2', key:'skip', val:'skiprows=2' },
+  { label:'nrows=1000', key:'nrows', val:'nrows=1000' }
+];
+
+var toggleState = {};
+
+function buildParamToggles(){
+  var grid = C('param-toggles');
+  grid.innerHTML = PARAM_TOGGLES.map(function(t){
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2);">' +
+      '<input type="checkbox" id="tog-'+t.key+'" onchange="updateParamCode()" style="accent-color:#34d399;width:14px;height:14px;"/>' +
+      '<code style="font-size:12px;">'+esc(t.label)+'</code></label>';
+  }).join('');
+  updateParamCode();
+}
+
+function updateParamCode(){
+  var active = PARAM_TOGGLES.filter(function(t){
+    var el = C('tog-'+t.key);
+    return el && el.checked;
+  });
+  var params = ['filepath_or_buffer="data.csv"'];
+  active.forEach(function(t){ params.push(t.val); });
+  var code = 'df = pd.read_csv(\n    ' + params.join(',\n    ') + '\n)';
+  C('param-code-output').textContent = code;
+}
+
+/* ══════════════════════════════
+   SECTION 4 — COMMON PROBLEMS
+══════════════════════════════ */
+var PROBLEMS = [
+  { label:'UnicodeDecodeError', icon:'&#128520;',
+    fix:'The file uses a non-UTF-8 encoding (common with Excel exports from Windows). Try latin-1 first, then cp1252.',
+    code:'df = pd.read_csv("data.csv", encoding="latin-1")\n# or:\ndf = pd.read_csv("data.csv", encoding="cp1252")\n# Nuclear option:\ndf = pd.read_csv("data.csv", encoding_errors="replace")' },
+  { label:'Wrong delimiter detected', icon:'&#128203;',
+    fix:'Pandas assumes comma. Specify the delimiter explicitly, or use sep=None with engine="python" to auto-detect.',
+    code:'# Semicolon-separated:\ndf = pd.read_csv("data.csv", sep=";")\n# Tab-separated:\ndf = pd.read_csv("data.csv", sep="\\t")\n# Auto-detect:\ndf = pd.read_csv("data.csv", sep=None, engine="python")' },
+  { label:'Unnamed: 0 column', icon:'&#128269;',
+    fix:'This appears when a DataFrame was saved with df.to_csv() and the index was included. Use index_col=0 or save with index=False.',
+    code:'# Loading fix:\ndf = pd.read_csv("data.csv", index_col=0)\n\n# Saving fix (prevent it happening):\ndf.to_csv("data.csv", index=False)' },
+  { label:'Numeric column read as object', icon:'&#128202;',
+    fix:'One bad value (like "N/A" or "1,000" with thousands comma) prevents numeric inference. Fix the bad values or specify dtype.',
+    code:'# Fix 1: tell pandas what NA strings to recognise\ndf = pd.read_csv("data.csv", na_values=["N/A","na","–","-"])\n\n# Fix 2: force the column type\ndf = pd.read_csv("data.csv", dtype={"salary": float})\n\n# Fix 3: handle thousands separator\ndf = pd.read_csv("data.csv", thousands=",")' },
+  { label:'Date column is object dtype', icon:'&#128197;',
+    fix:'Pandas does not automatically parse dates. Tell it which columns to parse, or specify the format.',
+    code:'# Auto-parse (works for ISO format: 2024-01-15)\ndf = pd.read_csv("data.csv", parse_dates=["created_at"])\n\n# Custom format:\ndf = pd.read_csv("data.csv")\ndf["date"] = pd.to_datetime(df["date"], format="%d/%m/%Y")' },
+  { label:'File too large for RAM', icon:'&#128190;',
+    fix:'Use chunksize to process in batches, or usecols to load only the columns you need.',
+    code:'# Load only needed columns:\ndf = pd.read_csv("data.csv", usecols=["id","label","feature1"])\n\n# Process in chunks:\nfor chunk in pd.read_csv("data.csv", chunksize=10000):\n    # process each chunk\n    print(chunk.shape)' },
+  { label:'Metadata rows at top', icon:'&#128221;',
+    fix:'Some exports include metadata lines before the real header. Use skiprows to skip them.',
+    code:'# Skip first 3 lines:\ndf = pd.read_csv("data.csv", skiprows=3)\n\n# Skip specific rows (e.g. rows 0, 2, 5):\ndf = pd.read_csv("data.csv", skiprows=[0, 2, 5])' }
+];
+
+function buildProblemList(){
+  var list = C('problem-list');
+  list.innerHTML = PROBLEMS.map(function(p,i){
+    return '<div onclick="showProblem('+i+')" id="prob-'+i+'" style="padding:9px 12px;cursor:pointer;border-radius:var(--r-sm);font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:8px;">'+
+      '<span>'+p.icon+'</span><span>'+esc(p.label)+'</span></div>';
+  }).join('');
+  showProblem(0);
+}
+
+function showProblem(i){
+  PROBLEMS.forEach(function(_,j){
+    var el = C('prob-'+j);
+    if(el) el.style.background = j===i ? 'rgba(52,211,153,0.1)' : '';
+    if(el) el.style.color = j===i ? '#34d399' : 'var(--text-2)';
+  });
+  var p = PROBLEMS[i];
+  C('problem-fix').textContent = p.fix;
+  C('problem-code').textContent = p.code;
+  C('problem-code').style.display = 'block';
+}
+
+/* ══════════════════════════════
+   SECTION 5 — DTYPE CANVAS
+══════════════════════════════ */
+function drawDtypeCanvas(){
+  var cv = C('dtype-canvas'), ctx = cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  var columns = [
+    { name:'id', raw:'1,2,3,4', inferred:'int64', color:'#60a5fa', note:'clean integers' },
+    { name:'price', raw:'"$1,200","$850"', inferred:'object', color:'#f06060', note:'$ + commas = object!' },
+    { name:'score', raw:'0.9,0.85,null', inferred:'float64', color:'#fb923c', note:'NaN promotes to float' },
+    { name:'active', raw:'True,False,True', inferred:'bool', color:'#2dd4bf', note:'boolean detected' },
+    { name:'created', raw:'2024-01-15,...', inferred:'object', color:'#f06060', note:'needs parse_dates=' },
+    { name:'amount', raw:'"1,000","2,500"', inferred:'object', color:'#f06060', note:'needs thousands=","' }
+  ];
+
+  var n = columns.length;
+  var colW = (W-40) / n;
+  var pad = 20;
+  var titleY = pad + 18;
+  var rawY   = titleY + 30;
+  var badgeY = rawY + 50;
+  var noteY  = badgeY + 32;
+
+  // Header labels
+  ctx.fillStyle=tc(); ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Column', pad, titleY-10);
+
+  columns.forEach(function(col, i){
+    var cx = pad + i*colW + colW/2;
+    var isGood = col.inferred !== 'object';
+
+    // Column name box
+    ctx.save();
+    ctx.fillStyle = isDark() ? '#1e1e28' : '#dddbd5';
+    ctx.strokeStyle = isGood ? col.color : '#f06060';
+    ctx.lineWidth = isGood ? 1.5 : 2;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(pad+i*colW+4, pad, colW-8, 26, 6);
+    else ctx.rect(pad+i*colW+4, pad, colW-8, 26);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col.color;
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(col.name, cx, pad+17);
+    ctx.restore();
+
+    // Raw values preview
+    ctx.save();
+    ctx.fillStyle = tc();
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    var rawLines = col.raw.split(',');
+    rawLines.slice(0,3).forEach(function(v,li){
+      ctx.fillText(v.trim(), cx, rawY + li*15);
+    });
+    ctx.restore();
+
+    // Inferred dtype badge
+    ctx.save();
+    var badgeColor = isGood ? col.color : '#f06060';
+    ctx.fillStyle = badgeColor + '28';
+    ctx.strokeStyle = badgeColor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(pad+i*colW+6, badgeY-14, colW-12, 20, 10);
+    else ctx.rect(pad+i*colW+6, badgeY-14, colW-12, 20);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = badgeColor;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(col.inferred, cx, badgeY);
+    ctx.restore();
+
+    // Note
+    ctx.save();
+    ctx.fillStyle = isGood ? '#34d399' : '#f06060';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    // Word wrap note into 2 lines max
+    var words = col.note.split(' ');
+    var line1='', line2='';
+    words.forEach(function(w){
+      if((line1+' '+w).length < 16 || !line1) line1 += (line1?' ':'')+w;
+      else line2 += (line2?' ':'')+w;
+    });
+    ctx.fillText(line1, cx, noteY);
+    if(line2) ctx.fillText(line2, cx, noteY+14);
+    ctx.restore();
+  });
+
+  // Legend
+  ctx.save();
+  ctx.fillStyle='#34d399'; ctx.font='11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText('&#10003; Correct inference', pad, H-10);
+  ctx.fillStyle='#f06060';
+  ctx.fillText('&#10007; Needs help', pad+140, H-10);
+  ctx.restore();
+
+  // Bottom note
+  ctx.save();
+  ctx.fillStyle=tc(); ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Green border = correctly inferred   Red border = needs dtype= or thousands= or parse_dates=', W/2, H-10);
+  ctx.restore();
+  ctx.textAlign='start';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'csv_basics.py', label:'CSV basics', code:`import pandas as pd
+import io
+
+# Simulate a CSV file in memory (normally: pd.read_csv("file.csv"))
+csv_content = """name,age,salary,city,active
+Alice,30,75000,London,True
+Bob,25,62000,Paris,False
+Carol,35,88000,Berlin,True
+Dave,28,71000,Madrid,True
+Eve,32,,London,False"""
+
+df = pd.read_csv(io.StringIO(csv_content))
+
+print("=== Basic info ===")
+print("Shape:", df.shape)
+print()
+print("Column types:")
+print(df.dtypes)
+print()
+print("First 3 rows:")
+print(df.head(3))
+print()
+print("Missing values per column:")
+print(df.isnull().sum())
+print()
+print("Basic stats:")
+print(df.describe())
+`},
+{file:'csv_params.py', label:'Key parameters', code:`import pandas as pd
+import io
+
+# ── Semicolon delimiter ──────────────────────────────────
+csv_semi = """name;age;salary
+Alice;30;75000
+Bob;25;62000"""
+df1 = pd.read_csv(io.StringIO(csv_semi), sep=";")
+print("=== Semicolon delimiter ===")
+print(df1)
+print()
+
+# ── No header row ────────────────────────────────────────
+csv_noheader = """1,Alice,30,London
+2,Bob,25,Paris
+3,Carol,35,Berlin"""
+df2 = pd.read_csv(io.StringIO(csv_noheader),
+                  header=None,
+                  names=["id","name","age","city"])
+print("=== No header (names= provided) ===")
+print(df2)
+print()
+
+# ── Missing value strings ────────────────────────────────
+csv_missing = """name,age,salary
+Alice,30,75000
+Bob,N/A,62000
+Carol,35,NA
+Dave,-,71000"""
+df3 = pd.read_csv(io.StringIO(csv_missing),
+                  na_values=["N/A","NA","-","null","None"])
+print("=== Custom NA values ===")
+print(df3)
+print("Missing per col:", df3.isnull().sum().to_dict())
+print()
+
+# ── Force dtype to prevent wrong inference ───────────────
+csv_ids = """id,name,score
+001,Alice,0.92
+002,Bob,0.85
+003,Carol,0.78"""
+# Without dtype: id becomes int (001 -> 1), losing the zero padding
+df4 = pd.read_csv(io.StringIO(csv_ids), dtype={"id": str})
+print("=== dtype forced (id kept as string) ===")
+print(df4)
+print("id dtype:", df4["id"].dtype)
+`},
+{file:'csv_large.py', label:'Large files', code:`import pandas as pd
+import io
+
+# Simulate a wide CSV with many columns
+# In reality this could be gigabytes
+cols = ["id","name","age"] + ["feature_"+str(i) for i in range(20)]
+rows = [str(i)+",user_"+str(i)+","+str(20+i%40)] + ["0."+str(i%100)]*20
+big_csv = ",".join(cols) + "\\n"
+for i in range(1, 101):
+    big_csv += str(i)+",user_"+str(i)+","+str(20+i%40)+","+",".join([str(round(i*0.01,3))]*20)+"\\n"
+
+# Tip 1: Load only the columns you need (much faster)
+df_small = pd.read_csv(io.StringIO(big_csv),
+                       usecols=["id","name","age","feature_0","feature_1"])
+print("=== usecols: only load 5 columns ===")
+print("Shape:", df_small.shape)
+print(df_small.head(3))
+print()
+
+# Tip 2: Load only first N rows to preview
+df_preview = pd.read_csv(io.StringIO(big_csv), nrows=5)
+print("=== nrows=5: preview only ===")
+print("Shape:", df_preview.shape)
+print(df_preview[["id","name","age"]].to_string(index=False))
+print()
+
+# Tip 3: Process in chunks (simulated)
+print("=== chunksize: process in batches ===")
+total_rows = 0
+chunk_count = 0
+for chunk in pd.read_csv(io.StringIO(big_csv), chunksize=25):
+    total_rows += len(chunk)
+    chunk_count += 1
+    print(f"  Chunk {chunk_count}: {len(chunk)} rows, avg age = {chunk['age'].mean():.1f}")
+print(f"Total processed: {total_rows} rows in {chunk_count} chunks")
+`},
+{file:'csv_cleaning.py', label:'Post-load cleaning', code:`import pandas as pd
+import io
+
+# Real-world CSV with typical problems
+messy_csv = """  Name  ,  Age  ,  Salary  ,  Date Joined
+  Alice  ,  30  ,  $75,000  ,  01/15/2022
+  Bob  ,  25  ,  $62,000  ,  03/20/2021
+  Carol  ,  35  ,  $88,000  ,  07/01/2023
+  Dave  ,  28  ,  N/A  ,  11/30/2022
+"""
+
+# Step 1: Load it
+df = pd.read_csv(io.StringIO(messy_csv))
+print("=== Raw after loading ===")
+print(df.dtypes)
+print(df)
+print()
+
+# Step 2: Clean column names (strip whitespace, lowercase, replace spaces)
+df.columns = df.columns.str.strip().str.lower().str.replace(' ','_')
+print("Cleaned columns:", df.columns.tolist())
+
+# Step 3: Strip whitespace from string values
+df = df.apply(lambda col: col.str.strip() if col.dtype == 'object' else col)
+
+# Step 4: Fix salary — remove $ and commas, convert to float
+df['salary'] = df['salary'].str.replace('$','',regex=False)\\
+                            .str.replace(',','',regex=False)\\
+                            .pipe(pd.to_numeric, errors='coerce')
+
+# Step 5: Parse dates
+df['date_joined'] = pd.to_datetime(df['date_joined'], format='%m/%d/%Y', errors='coerce')
+
+print()
+print("=== After cleaning ===")
+print(df.dtypes)
+print(df)
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas']);
+        pyLoading=false;
+      } else {
+        while(pyLoading) await new Promise(function(r){setTimeout(r,100);});
+      }
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){
+      out.textContent='Failed to load Python.';out.className='editor-output error';
+      btn.disabled=false;btn.textContent='Run';return;
+    }
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    await pyodide.runPythonAsync(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+/* ── INIT ── */
+window.addEventListener('load', function(){
+  loadPreset('basic');
+  drawPipelineCanvas(0);
+  buildParamGrid();
+  buildParamToggles();
+  buildProblemList();
+  drawDtypeCanvas();
+
+  (function poll(){
+    if(typeof CodeMirror==='undefined'){setTimeout(poll,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){
+        if(cm.somethingSelected())cm.indentSelection('add');
+        else cm.replaceSelection('    ','end');
+      }}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    parseCSV();
+    drawPipelineCanvas(parseInt(C('pipeline-step').value));
+    drawDtypeCanvas();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

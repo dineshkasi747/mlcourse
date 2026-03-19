@@ -1,0 +1,1466 @@
+<!-- regression-metrics.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Regression Metrics — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,140,64,.09),rgba(240,165,0,.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(251,140,64,.12) 0%,transparent 70%);pointer-events:none;}
+
+    /* metric cards grid */
+    .metric-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px;}
+    .metric-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:18px;cursor:pointer;transition:all .2s;}
+    .metric-card:hover{border-color:var(--border-hi);transform:translateY(-2px);}
+    .metric-card.active{border-color:var(--orange);background:var(--orange-surf);}
+    .mc-abbr{font-family:var(--font-display);font-size:28px;font-weight:700;line-height:1;margin-bottom:6px;}
+    .mc-name{font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:4px;}
+    .mc-formula{font-family:var(--font-mono);font-size:11px;color:var(--text-3);background:var(--bg-input);padding:4px 8px;border-radius:var(--r-xs);margin-bottom:6px;}
+    .mc-range{font-size:11.5px;color:var(--text-3);}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* live playground */
+    .playground{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .pg-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .pg-sub{font-size:12.5px;color:var(--text-3);margin-bottom:16px;}
+    .pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:16px;}
+    .pg-row{display:flex;flex-direction:column;gap:4px;}
+    .pg-label{display:flex;justify-content:space-between;font-size:12.5px;}
+    .pg-name{font-weight:600;color:var(--text-1);}
+    .pg-val{font-family:var(--font-mono);font-size:12px;color:var(--orange);font-weight:700;}
+    .pg-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+
+    /* metrics result row */
+    .metrics-result{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+    .mr-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;text-align:center;}
+    .mr-val{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:3px;transition:color .3s;}
+    .mr-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .mr-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;}
+    .mr-bar{height:100%;border-radius:2px;transition:width .5s ease,background .5s;}
+
+    /* comparison table */
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:18px;}
+    .cmp-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:9px 14px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:left;}
+    .cmp-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;line-height:1.5;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-hover);}
+    .badge{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;}
+    .badge-g{background:var(--green-surf);color:var(--green);}
+    .badge-y{background:var(--accent-surface);color:var(--accent);}
+    .badge-r{background:var(--red-surf);color:var(--red);}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}.cm-s-one-dark .cm-operator{color:#94a3b8;}.cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(251,140,64,.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--orange);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.metrics-result{grid-template-columns:repeat(3,1fr);}.metric-cards{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="regression-metrics">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">Regression Metrics</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Regression</a><span class="sep">/</span>
+            <span class="current">Regression Metrics</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(251,140,64,.3);background:var(--orange-surf);color:var(--orange);margin-bottom:14px;">Regression · Model Evaluation</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Regression Metrics</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              How do you know if your regression model is good? You need a number that
+              summarises prediction quality. Different metrics punish errors differently —
+              choosing the right one matters as much as choosing the right model.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 18 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — METRIC CARDS ═══ -->
+          <section class="section" id="overview">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">📏</div>
+              Five key metrics — click to explore each
+            </h2>
+            <p>Each metric answers a different question about your predictions. Click any card to see a detailed visual explanation below.</p>
+
+            <div class="metric-cards">
+              <div class="metric-card active" id="card-mae" onclick="selectMetric('mae')">
+                <div class="mc-abbr" style="color:var(--orange);">MAE</div>
+                <div class="mc-name">Mean Absolute Error</div>
+                <div class="mc-formula">mean(|y - ŷ|)</div>
+                <div class="mc-range">Range: 0 → ∞ (lower = better)</div>
+              </div>
+              <div class="metric-card" id="card-mse" onclick="selectMetric('mse')">
+                <div class="mc-abbr" style="color:var(--red);">MSE</div>
+                <div class="mc-name">Mean Squared Error</div>
+                <div class="mc-formula">mean((y - ŷ)²)</div>
+                <div class="mc-range">Range: 0 → ∞ (lower = better)</div>
+              </div>
+              <div class="metric-card" id="card-rmse" onclick="selectMetric('rmse')">
+                <div class="mc-abbr" style="color:var(--blue);">RMSE</div>
+                <div class="mc-name">Root Mean Squared Error</div>
+                <div class="mc-formula">sqrt(mean((y - ŷ)²))</div>
+                <div class="mc-range">Same unit as y (lower = better)</div>
+              </div>
+              <div class="metric-card" id="card-r2" onclick="selectMetric('r2')">
+                <div class="mc-abbr" style="color:var(--green);">R²</div>
+                <div class="mc-name">R-Squared (CoD)</div>
+                <div class="mc-formula">1 - SS_res / SS_tot</div>
+                <div class="mc-range">Range: −∞ → 1 (higher = better)</div>
+              </div>
+              <div class="metric-card" id="card-mape" onclick="selectMetric('mape')">
+                <div class="mc-abbr" style="color:var(--purple);">MAPE</div>
+                <div class="mc-name">Mean Absolute % Error</div>
+                <div class="mc-formula">mean(|y-ŷ|/|y|) × 100</div>
+                <div class="mc-range">Range: 0% → ∞ (lower = better)</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — INTERACTIVE METRIC EXPLAINER ═══ -->
+          <section class="section" id="metric-detail">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);" id="detail-icon">📐</div>
+              <span id="detail-title">MAE — Mean Absolute Error</span>
+            </h2>
+            <div id="detail-text">
+              <p>MAE measures the <strong>average absolute difference</strong> between predictions and actual values. Every error is treated equally — a miss of 10 is exactly twice as bad as a miss of 5. It is in the <em>same units as your target variable</em>, so easy to interpret.</p>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="metric-canvas-title">MAE — each residual contributes equally</span>
+                <button class="ctrl-btn" onclick="addOutlier()">+ Add outlier</button>
+                <button class="ctrl-btn" onclick="resetPoints()">Reset points</button>
+                <button class="ctrl-btn" onclick="generateData()">New data</button>
+              </div>
+              <canvas id="metric-canvas" width="700" height="320" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div style="padding:8px 18px;font-size:12px;color:var(--text-3);" id="canvas-hint">
+                Click to add data points. Watch how each metric responds differently to the same predictions.
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-mae" style="color:var(--orange);">—</span><span class="stat-pill-lbl">MAE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-mse" style="color:var(--red);">—</span><span class="stat-pill-lbl">MSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-rmse" style="color:var(--blue);">—</span><span class="stat-pill-lbl">RMSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-r2" style="color:var(--green);">—</span><span class="stat-pill-lbl">R²</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sm-mape" style="color:var(--purple);">—</span><span class="stat-pill-lbl">MAPE</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — LIVE PLAYGROUND ═══ -->
+          <section class="section" id="playground">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Live playground — adjust predictions and see all metrics update
+            </h2>
+            <p>
+              Drag any slider to change a prediction value. All five metrics update instantly.
+              This shows you <em>exactly</em> how each metric responds to the same change — and why
+              they can disagree about which model is "better".
+            </p>
+
+            <div class="playground">
+              <div class="pg-title">Prediction values — drag to adjust</div>
+              <div class="pg-sub">Actual values (y): [10, 20, 30, 40, 50] — fixed. Move the predicted values below.</div>
+              <div class="pg-grid" id="pred-sliders"></div>
+            </div>
+
+            <!-- Live metrics result -->
+            <div class="metrics-result">
+              <div class="mr-card">
+                <div class="mr-val" id="pg-mae" style="color:var(--orange);">—</div>
+                <div class="mr-lbl">MAE</div>
+                <div class="mr-bar-wrap"><div class="mr-bar" id="pg-mae-bar" style="background:var(--orange);width:0%;"></div></div>
+              </div>
+              <div class="mr-card">
+                <div class="mr-val" id="pg-mse" style="color:var(--red);">—</div>
+                <div class="mr-lbl">MSE</div>
+                <div class="mr-bar-wrap"><div class="mr-bar" id="pg-mse-bar" style="background:var(--red);width:0%;"></div></div>
+              </div>
+              <div class="mr-card">
+                <div class="mr-val" id="pg-rmse" style="color:var(--blue);">—</div>
+                <div class="mr-lbl">RMSE</div>
+                <div class="mr-bar-wrap"><div class="mr-bar" id="pg-rmse-bar" style="background:var(--blue);width:0%;"></div></div>
+              </div>
+              <div class="mr-card">
+                <div class="mr-val" id="pg-r2" style="color:var(--green);">—</div>
+                <div class="mr-lbl">R²</div>
+                <div class="mr-bar-wrap"><div class="mr-bar" id="pg-r2-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+              <div class="mr-card">
+                <div class="mr-val" id="pg-mape" style="color:var(--purple);">—</div>
+                <div class="mr-lbl">MAPE</div>
+                <div class="mr-bar-wrap"><div class="mr-bar" id="pg-mape-bar" style="background:var(--purple);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Error visualiser — see what each metric "sees"</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Show errors for:</span>
+                  <select class="ctrl-select" id="vis-metric" onchange="drawErrorVis()">
+                    <option value="mae">MAE (absolute bars)</option>
+                    <option value="mse">MSE (squared area)</option>
+                    <option value="rmse">RMSE (same as MSE)</option>
+                    <option value="r2">R² (vs mean baseline)</option>
+                    <option value="mape">MAPE (% error)</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="error-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — OUTLIER EFFECT ═══ -->
+          <section class="section" id="outlier-effect">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Outlier sensitivity — why MAE vs MSE matters
+            </h2>
+            <p>
+              The most important practical difference: <strong>MSE/RMSE punish large errors much harder than MAE</strong>.
+              Squaring a big error (e.g. 100) gives 10,000 — it dominates the metric.
+              MAE treats every error proportionally. Drag the outlier below and watch how each metric reacts.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Outlier sensitivity — drag the outlier prediction</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outlier error:</span>
+                  <input type="range" min="0" max="80" value="0" step="1" class="ctrl-slider"
+                    id="outlier-slider" oninput="updateOutlier(this.value)" style="width:120px;"/>
+                  <span class="ctrl-value" id="outlier-val" style="color:var(--red);">0</span>
+                </div>
+              </div>
+              <canvas id="outlier-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="out-mae" style="color:var(--orange);">—</span><span class="stat-pill-lbl">MAE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="out-rmse" style="color:var(--blue);">—</span><span class="stat-pill-lbl">RMSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="out-mse" style="color:var(--red);">—</span><span class="stat-pill-lbl">MSE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="out-r2" style="color:var(--green);">—</span><span class="stat-pill-lbl">R²</span></div>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>Rule of thumb:</strong> If outliers are real and important (e.g. fraud, safety), use RMSE — it will punish those big misses hard. If outliers are noise or not meaningful (e.g. sensor glitches), use MAE — it ignores outlier severity.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — R² EXPLAINED ═══ -->
+          <section class="section" id="r2-explained">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">R²</div>
+              R² explained — what does "coefficient of determination" mean?
+            </h2>
+            <p>
+              R² answers: <em>"How much better is my model than just always predicting the mean?"</em>
+              R² = 1 means perfect predictions. R² = 0 means your model is no better than the mean baseline.
+              R² can be negative — meaning your model is <em>worse</em> than the mean!
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">R² visual decomposition — SS_res vs SS_tot</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Model quality:</span>
+                  <input type="range" min="0" max="100" value="70" step="1" class="ctrl-slider"
+                    id="r2-quality" oninput="updateR2Viz(this.value)" style="width:130px;"/>
+                  <span class="ctrl-value" id="r2-quality-val" style="color:var(--green);">70%</span>
+                </div>
+              </div>
+              <canvas id="r2-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="r2-ss-res" style="color:var(--red);">—</span><span class="stat-pill-lbl">SS_residual</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="r2-ss-tot" style="color:var(--blue);">—</span><span class="stat-pill-lbl">SS_total</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="r2-score" style="color:var(--green);">—</span><span class="stat-pill-lbl">R² score</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="r2-interp" style="font-size:11px;color:var(--accent);">—</span><span class="stat-pill-lbl">Interpretation</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Adjusted R²</strong> penalises adding useless features. Regular R² always increases when you add more features — even random noise. Adjusted R² decreases if a new feature doesn't actually help. Always use Adjusted R² when comparing models with different numbers of features.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — WHEN TO USE WHICH ═══ -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">?</div>
+              When to use which metric
+            </h2>
+            <table class="cmp-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Best when</th>
+                  <th>Avoid when</th>
+                  <th>Outlier sensitive?</th>
+                  <th>Interpretable?</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong style="color:var(--orange);">MAE</strong></td>
+                  <td>Outliers are noise, median errors matter</td>
+                  <td>Large errors are critical to penalise</td>
+                  <td><span class="badge badge-g">Low</span></td>
+                  <td><span class="badge badge-g">Yes — same unit as y</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--red);">MSE</strong></td>
+                  <td>Penalising large errors heavily, math convenience</td>
+                  <td>You need results in original units</td>
+                  <td><span class="badge badge-r">High</span></td>
+                  <td><span class="badge badge-y">Units are y²</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--blue);">RMSE</strong></td>
+                  <td>Large errors are important, want same units as y</td>
+                  <td>Outliers are not meaningful</td>
+                  <td><span class="badge badge-r">High</span></td>
+                  <td><span class="badge badge-g">Yes — same unit as y</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--green);">R²</strong></td>
+                  <td>Comparing models on same dataset, % explained</td>
+                  <td>Different datasets, small n, comparing features</td>
+                  <td><span class="badge badge-y">Medium</span></td>
+                  <td><span class="badge badge-g">Yes — 0 to 1 scale</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--purple);">MAPE</strong></td>
+                  <td>Comparing across different scales (e.g. prices)</td>
+                  <td>y can be zero (division by zero!)</td>
+                  <td><span class="badge badge-y">Medium</span></td>
+                  <td><span class="badge badge-g">Yes — percentage</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor — beginner-friendly implementations
+            </h2>
+            <p>All code is written in plain Python with detailed comments so you can follow every step.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">metrics_from_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using R² alone to judge a model.</strong> R² = 0.95 sounds great, but if your model always predicts the mean shifted by a constant, R² can still be high. Always also look at a residual plot and MAE/RMSE.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using MAPE when y can be zero or near-zero.</strong> MAPE divides by the actual value — if y = 0, you get a division by zero. If y = 0.001, one small prediction error becomes 10,000%. Use MAE or RMSE instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Comparing MSE across different datasets.</strong> MSE depends on the scale of y. A model with MSE = 100 on house prices (in thousands) might be excellent, while MSE = 100 on test scores (0-100) is terrible. Use R² or normalised metrics to compare across datasets.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Ignoring residual plots.</strong> A single number metric can look fine while hiding systematic patterns (heteroscedasticity, non-linearity). Always plot actual vs predicted and residuals vs predicted.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>MAE</strong> = average absolute error. Same unit as y. Not sensitive to outliers. Easy to explain to stakeholders.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>MSE</strong> = average squared error. Heavily penalises large errors. Useful as a loss function during training.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>RMSE</strong> = square root of MSE. Same unit as y. Best for evaluation when large errors are costly.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>R²</strong> = how much variance is explained (0 to 1). Use for model comparison. Use Adjusted R² when comparing different numbers of features.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>MAPE</strong> = percentage error. Scale-independent. Never use when y can be zero.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always pair any metric with a <strong>residual plot</strong> — metrics alone can hide serious model problems.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="elasticnet-regression.html">
+              <span class="pn-dir">← Previous</span><span class="pn-title">ElasticNet Regression</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="../classification/logistic-regression.html">
+              <span class="pn-dir">Next →</span><span class="pn-title">Logistic Regression</span>
+            </a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#overview">Five metrics</a></li>
+            <li class="toc-item"><a href="#metric-detail">Interactive explainer</a></li>
+            <li class="toc-item"><a href="#playground">Live playground</a></li>
+            <li class="toc-item"><a href="#outlier-effect">Outlier sensitivity</a></li>
+            <li class="toc-item"><a href="#r2-explained">R² explained</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use which</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ════════ HELPERS ════════ */
+function C(id) { return document.getElementById(id); }
+function isDark() { return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg() { return isDark() ? '#18181d' : '#e9e7e1'; }
+function gc() { return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'; }
+function tc() { return isDark() ? '#a09e98' : '#5c5a54'; }
+
+/* ════════ METRIC MATH — simple, step by step ════════ */
+function calcMAE(actual, predicted) {
+  var total = 0;
+  for (var i = 0; i < actual.length; i++) {
+    total += Math.abs(actual[i] - predicted[i]); // absolute difference
+  }
+  return total / actual.length; // average
+}
+
+function calcMSE(actual, predicted) {
+  var total = 0;
+  for (var i = 0; i < actual.length; i++) {
+    var diff = actual[i] - predicted[i];
+    total += diff * diff; // squared difference
+  }
+  return total / actual.length;
+}
+
+function calcRMSE(actual, predicted) {
+  return Math.sqrt(calcMSE(actual, predicted));
+}
+
+function calcR2(actual, predicted) {
+  // Mean of actual values
+  var mean = 0;
+  for (var i = 0; i < actual.length; i++) mean += actual[i];
+  mean = mean / actual.length;
+
+  // SS_total = how much actual values vary from the mean
+  var ssTot = 0;
+  for (var i = 0; i < actual.length; i++) {
+    var d = actual[i] - mean;
+    ssTot += d * d;
+  }
+
+  // SS_residual = how much predictions differ from actual
+  var ssRes = 0;
+  for (var i = 0; i < actual.length; i++) {
+    var d = actual[i] - predicted[i];
+    ssRes += d * d;
+  }
+
+  if (ssTot === 0) return 1;
+  return 1 - ssRes / ssTot;
+}
+
+function calcMAPE(actual, predicted) {
+  var total = 0;
+  var count = 0;
+  for (var i = 0; i < actual.length; i++) {
+    if (actual[i] !== 0) {
+      total += Math.abs((actual[i] - predicted[i]) / actual[i]);
+      count++;
+    }
+  }
+  return count > 0 ? (total / count) * 100 : 0;
+}
+
+function allMetrics(actual, predicted) {
+  return {
+    mae:  calcMAE(actual, predicted),
+    mse:  calcMSE(actual, predicted),
+    rmse: calcRMSE(actual, predicted),
+    r2:   calcR2(actual, predicted),
+    mape: calcMAPE(actual, predicted)
+  };
+}
+
+/* ════════ DATA ════════ */
+var pts = []; // {x, actual, predicted}
+var currentMetric = 'mae';
+
+function generateData() {
+  pts = [];
+  for (var i = 0; i < 12; i++) {
+    var x = 50 + i * 50;
+    var actual = 40 + i * 20 + (Math.random() - 0.5) * 30;
+    var predicted = actual + (Math.random() - 0.5) * 40;
+    pts.push({ x: x, actual: actual, predicted: predicted });
+  }
+  drawMetricCanvas();
+  updateAllStats();
+}
+
+function resetPoints() {
+  generateData();
+}
+
+function addOutlier() {
+  var x = 150 + Math.random() * 400;
+  var actual = 100 + Math.random() * 100;
+  var predicted = actual + (Math.random() > 0.5 ? 1 : -1) * (60 + Math.random() * 60);
+  pts.push({ x: x, actual: actual, predicted: predicted, isOutlier: true });
+  drawMetricCanvas();
+  updateAllStats();
+}
+
+/* ════════ SECTION 1 — METRIC CARDS ════════ */
+var metricDetails = {
+  mae: {
+    title: 'MAE — Mean Absolute Error',
+    icon: '📐',
+    text: '<p>MAE measures the <strong>average absolute difference</strong> between predictions and actual values. Every error contributes equally — a miss of 10 is exactly twice as bad as a miss of 5. It is in the same units as your target, making it easy to explain to anyone.</p>'
+  },
+  mse: {
+    title: 'MSE — Mean Squared Error',
+    icon: '²',
+    text: '<p>MSE squares each error before averaging. This means <strong>large errors are penalised much more than small ones</strong>. An error of 10 contributes 100 to MSE, while an error of 1 contributes only 1. MSE is the most common training loss function.</p>'
+  },
+  rmse: {
+    title: 'RMSE — Root Mean Squared Error',
+    icon: '√',
+    text: '<p>RMSE is simply the square root of MSE — bringing it back to <strong>the same units as y</strong>. It still punishes large errors more than MAE. Think of it as "the typical error, weighted towards big misses".</p>'
+  },
+  r2: {
+    title: 'R² — Coefficient of Determination',
+    icon: 'R²',
+    text: '<p>R² answers: <strong>"How much better is my model than always predicting the mean?"</strong> R²=1 means perfect, R²=0 means no better than the mean, R²<0 means worse than the mean. It explains what fraction of the variance your model captures.</p>'
+  },
+  mape: {
+    title: 'MAPE — Mean Absolute Percentage Error',
+    icon: '%',
+    text: '<p>MAPE expresses errors as a <strong>percentage of the actual value</strong>. This makes it scale-independent — you can compare models across different datasets. Watch out: it explodes when actual values are near zero.</p>'
+  }
+};
+
+function selectMetric(m) {
+  currentMetric = m;
+  // Update card highlight
+  ['mae','mse','rmse','r2','mape'].forEach(function(k) {
+    C('card-' + k).classList.toggle('active', k === m);
+  });
+  // Update detail text
+  var d = metricDetails[m];
+  C('detail-icon').textContent = d.icon;
+  C('detail-title').textContent = d.title;
+  C('detail-text').innerHTML = d.text;
+  C('metric-canvas-title').textContent = d.title + ' — visual';
+  drawMetricCanvas();
+}
+
+/* ════════ SECTION 2 — METRIC CANVAS ════════ */
+function drawMetricCanvas() {
+  var cv = C('metric-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 20, b: 40 };
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = bg();
+  ctx.fillRect(0, 0, W, H);
+
+  if (pts.length < 2) {
+    ctx.fillStyle = tc();
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Click "New data" to generate sample points', W / 2, H / 2);
+    ctx.textAlign = 'start';
+    return;
+  }
+
+  // Find ranges
+  var allY = [];
+  pts.forEach(function(p) { allY.push(p.actual, p.predicted); });
+  var minY = Math.min.apply(null, allY) - 20;
+  var maxY = Math.max.apply(null, allY) + 20;
+  var minX = 30, maxX = W - pad.r - pad.l;
+
+  function toCanvasX(x) { return pad.l + (x - 30) / (650 - 30) * (W - pad.l - pad.r); }
+  function toCanvasY(y) { return H - pad.b - (y - minY) / (maxY - minY) * (H - pad.t - pad.b); }
+
+  // Grid
+  ctx.strokeStyle = gc();
+  ctx.lineWidth = 0.5;
+  for (var i = 0; i <= 4; i++) {
+    var y = minY + (maxY - minY) * i / 4;
+    var cy = toCanvasY(y);
+    ctx.beginPath(); ctx.moveTo(pad.l, cy); ctx.lineTo(W - pad.r, cy); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(y.toFixed(0), pad.l - 4, cy + 4);
+  }
+
+  var actual = pts.map(function(p) { return p.actual; });
+  var predicted = pts.map(function(p) { return p.predicted; });
+
+  // Draw errors depending on selected metric
+  pts.forEach(function(p) {
+    var ax = toCanvasX(p.x), ay = toCanvasY(p.actual);
+    var px2 = toCanvasX(p.x), py2 = toCanvasY(p.predicted);
+    var errAbs = Math.abs(p.actual - p.predicted);
+
+    if (currentMetric === 'mae') {
+      // Vertical bar = absolute error
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(px2, py2);
+      ctx.strokeStyle = p.isOutlier ? '#f0a500' : 'rgba(251,140,64,0.6)';
+      ctx.lineWidth = 2; ctx.stroke();
+
+    } else if (currentMetric === 'mse' || currentMetric === 'rmse') {
+      // Square proportional to error²
+      var sqSize = Math.min(60, errAbs * 0.4);
+      ctx.fillStyle = p.isOutlier ? 'rgba(240,165,0,0.2)' : 'rgba(240,96,96,0.15)';
+      ctx.fillRect(ax - sqSize / 2, Math.min(ay, py2), sqSize, Math.abs(ay - py2) + sqSize * 0.3);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(px2, py2);
+      ctx.strokeStyle = 'rgba(240,96,96,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+
+    } else if (currentMetric === 'r2') {
+      // Show vs mean line
+      var meanActual = actual.reduce(function(s, v) { return s + v; }, 0) / actual.length;
+      var meanY = toCanvasY(meanActual);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax, meanY);
+      ctx.strokeStyle = 'rgba(75,150,255,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(px2, py2);
+      ctx.strokeStyle = 'rgba(240,96,96,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+
+    } else if (currentMetric === 'mape') {
+      // Bar height = % error
+      var pct = p.actual !== 0 ? Math.abs(p.actual - p.predicted) / Math.abs(p.actual) * 100 : 0;
+      var barH = Math.min(H - pad.t - pad.b, pct * 0.8);
+      ctx.fillStyle = 'rgba(167,139,250,0.2)';
+      ctx.fillRect(ax - 6, H - pad.b - barH, 12, barH);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(px2, py2);
+      ctx.strokeStyle = 'rgba(167,139,250,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+    }
+  });
+
+  // R² — draw mean line
+  if (currentMetric === 'r2') {
+    var meanActual = actual.reduce(function(s, v) { return s + v; }, 0) / actual.length;
+    var meanY = toCanvasY(meanActual);
+    ctx.beginPath(); ctx.moveTo(pad.l, meanY); ctx.lineTo(W - pad.r, meanY);
+    ctx.strokeStyle = 'rgba(75,150,255,0.4)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(75,150,255,0.7)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Mean baseline', pad.l + 4, meanY - 5);
+  }
+
+  // Draw actual points
+  pts.forEach(function(p) {
+    var ax = toCanvasX(p.x), ay = toCanvasY(p.actual);
+    ctx.beginPath(); ctx.arc(ax, ay, 7, 0, Math.PI * 2);
+    ctx.fillStyle = p.isOutlier ? '#f0a500' : '#3ecf8e';
+    ctx.fill();
+    ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+  });
+
+  // Draw predicted points
+  pts.forEach(function(p) {
+    var px2 = toCanvasX(p.x), py2 = toCanvasY(p.predicted);
+    ctx.beginPath(); ctx.arc(px2, py2, 6, 0, Math.PI * 2);
+    ctx.fillStyle = p.isOutlier ? 'rgba(240,165,0,0.5)' : 'rgba(75,150,255,0.5)';
+    ctx.fill();
+    ctx.strokeStyle = p.isOutlier ? '#f0a500' : '#4b96ff';
+    ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  // Legend
+  ctx.beginPath(); ctx.arc(pad.l + 8, H - 8, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#3ecf8e'; ctx.fill();
+  ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Actual (y)', pad.l + 18, H - 4);
+  ctx.beginPath(); ctx.arc(pad.l + 100, H - 8, 5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(75,150,255,0.5)'; ctx.fill();
+  ctx.strokeStyle = '#4b96ff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = tc(); ctx.fillText('Predicted (ŷ)', pad.l + 110, H - 4);
+
+  ctx.textAlign = 'start';
+  updateAllStats();
+}
+
+function updateAllStats() {
+  if (pts.length < 2) return;
+  var actual = pts.map(function(p) { return p.actual; });
+  var predicted = pts.map(function(p) { return p.predicted; });
+  var m = allMetrics(actual, predicted);
+  C('sm-mae').textContent = m.mae.toFixed(2);
+  C('sm-mse').textContent = m.mse.toFixed(1);
+  C('sm-rmse').textContent = m.rmse.toFixed(2);
+  C('sm-r2').textContent = m.r2.toFixed(3);
+  C('sm-mape').textContent = m.mape.toFixed(1) + '%';
+}
+
+C('metric-canvas').addEventListener('click', function(e) {
+  var r = C('metric-canvas').getBoundingClientRect();
+  var sx = C('metric-canvas').width / r.width;
+  var sy = C('metric-canvas').height / r.height;
+  var px = (e.clientX - r.left) * sx;
+  var py = (e.clientY - r.top) * sy;
+  // Add a point with some noise
+  var actual = 200 - py * 0.5 + Math.random() * 20;
+  var predicted = actual + (Math.random() - 0.5) * 50;
+  pts.push({ x: px, actual: actual, predicted: predicted });
+  drawMetricCanvas();
+});
+
+/* ════════ SECTION 3 — LIVE PLAYGROUND ════════ */
+var pgActual = [10, 20, 30, 40, 50];
+var pgPred   = [10, 20, 30, 40, 50]; // starts as perfect
+
+function buildPlayground() {
+  var html = '';
+  pgActual.forEach(function(a, i) {
+    html += '<div class="pg-row">'
+      + '<div class="pg-label">'
+      + '<span class="pg-name">Point ' + (i+1) + ' (y=' + a + ')</span>'
+      + '<span class="pg-val" id="pg-pred-val-' + i + '">' + pgPred[i].toFixed(1) + '</span>'
+      + '</div>'
+      + '<input type="range" min="' + (a-30) + '" max="' + (a+30) + '" value="' + pgPred[i]
+      + '" step="0.5" class="ctrl-slider" id="pg-slider-' + i + '" oninput="updatePG(' + i + ',this.value)" style="width:100%;"/>'
+      + '<div class="pg-desc">Actual = ' + a + ' | Error = <span id="pg-err-' + i + '">0.0</span></div>'
+      + '</div>';
+  });
+  C('pred-sliders').innerHTML = html;
+  updateAllPG();
+}
+
+function updatePG(i, v) {
+  pgPred[i] = parseFloat(v);
+  C('pg-pred-val-' + i).textContent = parseFloat(v).toFixed(1);
+  var err = (pgActual[i] - pgPred[i]).toFixed(1);
+  C('pg-err-' + i).textContent = err;
+  updateAllPG();
+}
+
+function updateAllPG() {
+  var m = allMetrics(pgActual, pgPred);
+
+  C('pg-mae').textContent = m.mae.toFixed(2);
+  C('pg-mse').textContent = m.mse.toFixed(1);
+  C('pg-rmse').textContent = m.rmse.toFixed(2);
+  C('pg-r2').textContent = m.r2.toFixed(3);
+  C('pg-mape').textContent = m.mape.toFixed(1) + '%';
+
+  // Color code R² — green if good, red if bad
+  var r2col = m.r2 > 0.8 ? 'var(--green)' : m.r2 > 0.5 ? 'var(--accent)' : 'var(--red)';
+  C('pg-r2').style.color = r2col;
+
+  // Bars — normalise to max reasonable value
+  var maxMAE = 30, maxMSE = 900, maxRMSE = 30, maxMAPE = 100;
+  C('pg-mae-bar').style.width = Math.min(100, m.mae / maxMAE * 100) + '%';
+  C('pg-mse-bar').style.width = Math.min(100, m.mse / maxMSE * 100) + '%';
+  C('pg-rmse-bar').style.width = Math.min(100, m.rmse / maxRMSE * 100) + '%';
+  C('pg-r2-bar').style.width = Math.max(0, m.r2 * 100) + '%';
+  C('pg-mape-bar').style.width = Math.min(100, m.mape / maxMAPE * 100) + '%';
+
+  drawErrorVis();
+}
+
+function drawErrorVis() {
+  var cv = C('error-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 30, b: 40 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  var metric = C('vis-metric').value;
+  var n = pgActual.length;
+  var bw = (W - pad.l - pad.r) / (n * 2);
+
+  // Mean line for R²
+  var mean = pgActual.reduce(function(s,v){return s+v;},0) / n;
+
+  // Find max error for scaling
+  var errors = pgActual.map(function(a, i) {
+    var diff = a - pgPred[i];
+    if (metric === 'mae') return Math.abs(diff);
+    if (metric === 'mse' || metric === 'rmse') return diff * diff;
+    if (metric === 'r2') return Math.abs(diff);
+    if (metric === 'mape') return pgActual[i] !== 0 ? Math.abs(diff / pgActual[i]) * 100 : 0;
+    return Math.abs(diff);
+  });
+  var maxErr = Math.max.apply(null, errors);
+  if (maxErr < 0.001) maxErr = 1;
+
+  var COLORS = { mae: '#fb8c40', mse: '#f06060', rmse: '#4b96ff', r2: '#3ecf8e', mape: '#a78bfa' };
+  var col = COLORS[metric] || '#fb8c40';
+
+  pgActual.forEach(function(a, i) {
+    var cx = pad.l + i * (W - pad.l - pad.r) / n + bw / 2;
+    var err = errors[i];
+    var barH = (err / maxErr) * (H - pad.t - pad.b - 20);
+
+    // Error bar
+    ctx.fillStyle = col + '30';
+    ctx.fillRect(cx - bw * 0.4, pad.t + 20, bw * 0.8, H - pad.t - pad.b - 20);
+    ctx.fillStyle = col;
+    ctx.fillRect(cx - bw * 0.4, H - pad.b - barH, bw * 0.8, barH);
+
+    // Value label
+    ctx.fillStyle = col; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(err.toFixed(1), cx, H - pad.b - barH - 4);
+
+    // X label
+    ctx.fillStyle = tc(); ctx.font = '10px sans-serif';
+    ctx.fillText('P' + (i+1), cx, H - pad.b + 14);
+    ctx.fillText('y=' + a, cx, H - pad.b + 26);
+  });
+
+  // Title
+  var titles = {
+    mae: 'MAE: each bar = |actual - predicted|',
+    mse: 'MSE: each bar = (actual - predicted)²  (big errors dominate!)',
+    rmse: 'RMSE: same as MSE but sqrt at the end',
+    r2: 'R²: red bars = model error, compare to variance from mean',
+    mape: 'MAPE: each bar = |error| / |actual| × 100%'
+  };
+  ctx.fillStyle = tc(); ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(titles[metric] || '', W / 2, 18);
+  ctx.textAlign = 'start';
+}
+
+/* ════════ SECTION 4 — OUTLIER SENSITIVITY ════════ */
+var baseActual  = [20, 35, 28, 42, 31, 38, 25, 44, 36, 29];
+var basePred    = [22, 33, 30, 40, 33, 36, 27, 42, 38, 31];
+var outlierErr  = 0;
+
+function updateOutlier(v) {
+  outlierErr = parseFloat(v);
+  C('outlier-val').textContent = v;
+  drawOutlierCanvas();
+}
+
+function drawOutlierCanvas() {
+  var cv = C('outlier-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 30, b: 50 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  // Build dataset with outlier
+  var actual = baseActual.slice();
+  var predicted = basePred.slice();
+  actual.push(50);
+  predicted.push(50 - outlierErr); // the outlier prediction is off by outlierErr
+
+  var m = allMetrics(actual, predicted);
+  C('out-mae').textContent = m.mae.toFixed(2);
+  C('out-rmse').textContent = m.rmse.toFixed(2);
+  C('out-mse').textContent = m.mse.toFixed(1);
+  C('out-r2').textContent = m.r2.toFixed(3);
+
+  // Draw points
+  var n = actual.length;
+  var xStep = (W - pad.l - pad.r) / (n - 1);
+  var allY = actual.concat(predicted);
+  var minY = Math.min.apply(null, allY) - 10;
+  var maxY = Math.max.apply(null, allY) + 10;
+  function toX(i) { return pad.l + i * xStep; }
+  function toY(y) { return H - pad.b - (y - minY) / (maxY - minY) * (H - pad.t - pad.b); }
+
+  // Grid
+  ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+  for (var g = 0; g <= 4; g++) {
+    var gy = minY + (maxY - minY) * g / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, toY(gy)); ctx.lineTo(W - pad.r, toY(gy)); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'right';
+    ctx.fillText(gy.toFixed(0), pad.l - 4, toY(gy) + 4);
+  }
+
+  // Error lines
+  for (var i = 0; i < n; i++) {
+    var isOut = i === n - 1;
+    ctx.beginPath();
+    ctx.moveTo(toX(i), toY(actual[i]));
+    ctx.lineTo(toX(i), toY(predicted[i]));
+    ctx.strokeStyle = isOut ? '#f06060' : 'rgba(251,140,64,0.4)';
+    ctx.lineWidth = isOut ? 3 : 1.5;
+    ctx.stroke();
+  }
+
+  // Actual points (green)
+  for (var i = 0; i < n; i++) {
+    var isOut = i === n - 1;
+    ctx.beginPath(); ctx.arc(toX(i), toY(actual[i]), isOut ? 9 : 6, 0, Math.PI * 2);
+    ctx.fillStyle = isOut ? '#f0a500' : '#3ecf8e'; ctx.fill();
+    ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  // Predicted points (blue)
+  for (var i = 0; i < n; i++) {
+    var isOut = i === n - 1;
+    ctx.beginPath(); ctx.arc(toX(i), toY(predicted[i]), isOut ? 8 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = isOut ? 'rgba(240,96,96,0.4)' : 'rgba(75,150,255,0.5)'; ctx.fill();
+    ctx.strokeStyle = isOut ? '#f06060' : '#4b96ff'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  // Outlier label
+  var lastI = n - 1;
+  ctx.fillStyle = '#f06060'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('OUTLIER  error=' + outlierErr, toX(lastI), pad.t + 10);
+
+  // Metric comparison bars at bottom
+  var metrics = [
+    { label: 'MAE', val: m.mae, max: 20, color: '#fb8c40' },
+    { label: 'RMSE', val: m.rmse, max: 30, color: '#4b96ff' }
+  ];
+  ctx.textAlign = 'start';
+}
+
+/* ════════ SECTION 5 — R² VISUALISATION ════════ */
+function updateR2Viz(quality) {
+  C('r2-quality-val').textContent = quality + '%';
+  drawR2Canvas(parseFloat(quality) / 100);
+}
+
+function drawR2Canvas(quality) {
+  var cv = C('r2-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 20, b: 40 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  // Generate data with controllable quality
+  var n = 15;
+  var r2Actual = [], r2Pred = [];
+  for (var i = 0; i < n; i++) {
+    var a = 20 + i * 15 + (Math.random() - 0.5) * 20;
+    // Noise level controls R²: low noise = high R²
+    var noise = (1 - quality) * 80;
+    var p = a + (Math.random() - 0.5) * noise;
+    r2Actual.push(a); r2Pred.push(p);
+  }
+
+  var mean = r2Actual.reduce(function(s,v){return s+v;},0) / n;
+  var allY2 = r2Actual.concat(r2Pred);
+  var minY = Math.min.apply(null, allY2) - 15;
+  var maxY = Math.max.apply(null, allY2) + 15;
+
+  function toX2(i) { return pad.l + i * (W - pad.l - pad.r) / (n - 1); }
+  function toY2(y) { return H - pad.b - (y - minY) / (maxY - minY) * (H - pad.t - pad.b); }
+
+  // Grid
+  ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+  for (var g = 0; g <= 4; g++) {
+    var gy = minY + (maxY - minY) * g / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, toY2(gy)); ctx.lineTo(W - pad.r, toY2(gy)); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'right';
+    ctx.fillText(gy.toFixed(0), pad.l - 4, toY2(gy) + 4);
+  }
+
+  var meanY = toY2(mean);
+
+  // Draw SS_total (blue) — distance from each point to mean
+  for (var i = 0; i < n; i++) {
+    ctx.beginPath(); ctx.moveTo(toX2(i), toY2(r2Actual[i])); ctx.lineTo(toX2(i), meanY);
+    ctx.strokeStyle = 'rgba(75,150,255,0.35)'; ctx.lineWidth = 2; ctx.setLineDash([2, 2]);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Draw SS_residual (red) — distance from predicted to actual
+  for (var i = 0; i < n; i++) {
+    ctx.beginPath(); ctx.moveTo(toX2(i), toY2(r2Actual[i])); ctx.lineTo(toX2(i), toY2(r2Pred[i]));
+    ctx.strokeStyle = 'rgba(240,96,96,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  // Mean line
+  ctx.beginPath(); ctx.moveTo(pad.l, meanY); ctx.lineTo(W - pad.r, meanY);
+  ctx.strokeStyle = 'rgba(75,150,255,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(75,150,255,0.7)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('Mean', W - pad.r - 4, meanY - 4);
+
+  // Actual points
+  for (var i = 0; i < n; i++) {
+    ctx.beginPath(); ctx.arc(toX2(i), toY2(r2Actual[i]), 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#3ecf8e'; ctx.fill();
+    ctx.strokeStyle = isDark() ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  // Predicted points
+  for (var i = 0; i < n; i++) {
+    ctx.beginPath(); ctx.arc(toX2(i), toY2(r2Pred[i]), 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(240,96,96,0.5)'; ctx.fill();
+    ctx.strokeStyle = '#f06060'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  // Compute and show R²
+  var r2 = calcR2(r2Actual, r2Pred);
+  var ssTot = 0, ssRes = 0;
+  for (var i = 0; i < n; i++) {
+    ssTot += (r2Actual[i] - mean) * (r2Actual[i] - mean);
+    ssRes += (r2Actual[i] - r2Pred[i]) * (r2Actual[i] - r2Pred[i]);
+  }
+
+  C('r2-ss-res').textContent = ssRes.toFixed(0);
+  C('r2-ss-tot').textContent = ssTot.toFixed(0);
+  C('r2-score').textContent = r2.toFixed(3);
+  var interp = r2 > 0.9 ? 'Excellent' : r2 > 0.7 ? 'Good' : r2 > 0.5 ? 'Moderate' : r2 > 0 ? 'Weak' : 'Worse than mean!';
+  C('r2-interp').textContent = interp;
+  C('r2-score').style.color = r2 > 0.7 ? 'var(--green)' : r2 > 0.4 ? 'var(--accent)' : 'var(--red)';
+
+  // Legend
+  ctx.textAlign = 'left';
+  ctx.beginPath(); ctx.moveTo(pad.l, H - 5); ctx.lineTo(pad.l + 25, H - 5);
+  ctx.strokeStyle = 'rgba(75,150,255,0.5)'; ctx.lineWidth = 2; ctx.setLineDash([2, 2]);
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tc(); ctx.font = '11px sans-serif';
+  ctx.fillText('SS_total (vs mean)', pad.l + 30, H - 2);
+  ctx.beginPath(); ctx.moveTo(pad.l + 170, H - 5); ctx.lineTo(pad.l + 195, H - 5);
+  ctx.strokeStyle = 'rgba(240,96,96,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillText('SS_residual (prediction errors)', pad.l + 200, H - 2);
+  ctx.textAlign = 'start';
+}
+
+/* ════════ LIVE EDITOR ════════ */
+var SNIPPETS = [
+  {
+    file: 'metrics_from_scratch.py',
+    label: 'From scratch',
+    code: `# Regression Metrics — written from scratch, step by step
+# No complex functions — just basic Python loops
+
+# Our data
+actual    = [10, 20, 30, 40, 50]
+predicted = [12, 18, 35, 38, 53]
+
+print("Actual values:   ", actual)
+print("Predicted values:", predicted)
+print()
+
+# ── MAE: Mean Absolute Error ──────────────────────
+# Step 1: Calculate each absolute error
+abs_errors = []
+for i in range(len(actual)):
+    error = abs(actual[i] - predicted[i])   # absolute = always positive
+    abs_errors.append(error)
+    print(f"  Point {i+1}: |{actual[i]} - {predicted[i]}| = {error}")
+
+# Step 2: Average them
+mae = sum(abs_errors) / len(abs_errors)
+print(f"\\nMAE = {mae:.2f}")
+print("  Meaning: on average, predictions are off by {:.2f} units".format(mae))
+
+# ── MSE: Mean Squared Error ───────────────────────
+print()
+squared_errors = []
+for i in range(len(actual)):
+    error = (actual[i] - predicted[i]) ** 2   # squared error
+    squared_errors.append(error)
+
+mse = sum(squared_errors) / len(squared_errors)
+print(f"MSE = {mse:.2f}")
+print("  Note: units are squared — harder to interpret directly")
+
+# ── RMSE: Root Mean Squared Error ─────────────────
+import math
+rmse = math.sqrt(mse)    # just take the square root of MSE
+print(f"RMSE = {rmse:.2f}")
+print(f"  Meaning: typical error ≈ {rmse:.2f} units (same unit as y)")
+
+# ── R²: Coefficient of Determination ─────────────
+print()
+mean_actual = sum(actual) / len(actual)
+print(f"Mean of actual values: {mean_actual}")
+
+# SS_total: how much actual values vary from the mean
+ss_total = 0
+for val in actual:
+    ss_total += (val - mean_actual) ** 2
+
+# SS_residual: how much predictions differ from actual
+ss_residual = 0
+for i in range(len(actual)):
+    ss_residual += (actual[i] - predicted[i]) ** 2
+
+r2 = 1 - (ss_residual / ss_total)
+print(f"SS_total (variance in data):   {ss_total:.2f}")
+print(f"SS_residual (prediction error): {ss_residual:.2f}")
+print(f"R² = 1 - {ss_residual:.2f}/{ss_total:.2f} = {r2:.4f}")
+print(f"  Meaning: model explains {r2*100:.1f}% of variance in y")
+
+# ── MAPE: Mean Absolute Percentage Error ──────────
+print()
+pct_errors = []
+for i in range(len(actual)):
+    if actual[i] != 0:    # avoid division by zero!
+        pct_error = abs(actual[i] - predicted[i]) / abs(actual[i]) * 100
+        pct_errors.append(pct_error)
+
+mape = sum(pct_errors) / len(pct_errors)
+print(f"MAPE = {mape:.2f}%")
+print(f"  Meaning: predictions are off by {mape:.1f}% on average")
+`
+  },
+  {
+    file: 'metrics_sklearn.py',
+    label: 'Using sklearn',
+    code: `# Regression Metrics using sklearn
+# sklearn has all metrics built-in so you don't have to write them
+
+from sklearn.metrics import (
+    mean_absolute_error,       # MAE
+    mean_squared_error,        # MSE
+    root_mean_squared_error,   # RMSE (sklearn >= 1.4)
+    r2_score,                  # R²
+    mean_absolute_percentage_error  # MAPE
+)
+
+# Simple example data
+actual    = [10, 20, 30, 40, 50]
+predicted = [12, 18, 35, 38, 53]
+
+# Calculate all metrics with one line each
+mae  = mean_absolute_error(actual, predicted)
+mse  = mean_squared_error(actual, predicted)
+rmse = mse ** 0.5   # or root_mean_squared_error() in newer sklearn
+r2   = r2_score(actual, predicted)
+mape = mean_absolute_percentage_error(actual, predicted) * 100
+
+print("=== Regression Metrics ===")
+print(f"MAE  = {mae:.4f}   (average absolute error)")
+print(f"MSE  = {mse:.4f}   (average squared error)")
+print(f"RMSE = {rmse:.4f}   (root of MSE, same unit as y)")
+print(f"R²   = {r2:.4f}   (fraction of variance explained)")
+print(f"MAPE = {mape:.2f}%  (average % error)")
+
+# Compare a perfect model vs a bad model
+print()
+print("=== Perfect predictions ===")
+perfect = actual[:]   # same as actual
+print(f"MAE={mean_absolute_error(actual,perfect):.1f}  MSE={mean_squared_error(actual,perfect):.1f}  R²={r2_score(actual,perfect):.1f}")
+
+print()
+print("=== Bad predictions (always predict the mean) ===")
+mean_val = sum(actual) / len(actual)
+baseline = [mean_val] * len(actual)  # always predict the mean
+print(f"MAE={mean_absolute_error(actual,baseline):.2f}  MSE={mean_squared_error(actual,baseline):.2f}  R²={r2_score(actual,baseline):.1f}")
+print("Note: R²=0.0 when predicting the mean — this is the baseline!")
+
+print()
+print("=== Worse than the mean ===")
+terrible = [v + 30 for v in baseline]  # biased predictions
+print(f"MAE={mean_absolute_error(actual,terrible):.2f}  MSE={mean_squared_error(actual,terrible):.2f}  R²={r2_score(actual,terrible):.3f}")
+print("Note: R² can be negative! Model is worse than just using mean.")
+`
+  },
+  {
+    file: 'outlier_effect.py',
+    label: 'Outlier effect',
+    code: `# How outliers affect MAE vs MSE vs RMSE differently
+import math
+
+def mae(actual, predicted):
+    total = 0
+    for a, p in zip(actual, predicted):
+        total += abs(a - p)
+    return total / len(actual)
+
+def mse(actual, predicted):
+    total = 0
+    for a, p in zip(actual, predicted):
+        total += (a - p) ** 2
+    return total / len(actual)
+
+def rmse(actual, predicted):
+    return math.sqrt(mse(actual, predicted))
+
+# Base dataset — predictions are pretty good
+actual    = [10, 20, 30, 40, 50, 60]
+predicted = [11, 19, 31, 39, 51, 59]  # small errors
+
+print("Base dataset (small, consistent errors):")
+print(f"  MAE  = {mae(actual,predicted):.2f}")
+print(f"  RMSE = {rmse(actual,predicted):.2f}")
+print()
+
+# Now add a big outlier to predictions
+outlier_sizes = [0, 5, 10, 20, 50, 100]
+
+print(f"{'Outlier error':>14}  {'MAE':>8}  {'RMSE':>8}  {'RMSE/MAE ratio':>14}")
+print("-" * 50)
+
+for err_size in outlier_sizes:
+    # Change the last prediction by err_size
+    pred_with_outlier = predicted[:-1] + [predicted[-1] - err_size]
+    m = mae(actual, pred_with_outlier)
+    r = rmse(actual, pred_with_outlier)
+    ratio = r / m if m > 0 else 0
+
+    print(f"{err_size:>14}  {m:>8.3f}  {r:>8.3f}  {ratio:>14.2f}")
+
+print()
+print("Key insight:")
+print("  - MAE grows linearly with the outlier error")
+print("  - RMSE grows much faster (it squares the error first)")
+print("  - When RMSE >> MAE, there are large outlier errors")
+print("  - This ratio tells you how 'outlier-y' your errors are")
+`
+  },
+  {
+    file: 'choose_metric.py',
+    label: 'Choosing a metric',
+    code: `# When to use which metric — practical examples
+
+from sklearn.metrics import (
+    mean_absolute_error, mean_squared_error, r2_score
+)
+import math
+
+# Scenario 1: House price prediction
+# Prices in thousands. A $20k error might be acceptable.
+# Large errors are costly but not catastrophic.
+actual_houses    = [200, 350, 150, 420, 280, 190, 610, 310]
+predicted_houses = [210, 330, 160, 400, 290, 175, 580, 325]
+
+mae  = mean_absolute_error(actual_houses, predicted_houses)
+rmse = math.sqrt(mean_squared_error(actual_houses, predicted_houses))
+r2   = r2_score(actual_houses, predicted_houses)
+
+print("=== House Price Prediction ($000s) ===")
+print("MAE  = {:.1f}k     <- How wrong on average".format(mae))
+print("RMSE = {:.1f}k     <- Penalises big misses more".format(rmse))
+print(f"R²   = {r2:.3f}     <- Explains {r2*100:.1f}% of variance")
+print("Best metric here: MAE (easy to explain to stakeholders)")
+
+# Scenario 2: Temperature prediction (no big outliers expected)
+print()
+actual_temp    = [18, 22, 15, 25, 20, 17, 23, 21]
+predicted_temp = [19, 21, 16, 24, 20, 18, 22, 22]
+
+mae_t  = mean_absolute_error(actual_temp, predicted_temp)
+rmse_t = math.sqrt(mean_squared_error(actual_temp, predicted_temp))
+
+print("=== Daily Temperature (Celsius) ===")
+print(f"MAE  = {mae_t:.2f}°C")
+print(f"RMSE = {rmse_t:.2f}°C")
+print("Best metric here: MAE or RMSE — both sensible, errors small")
+
+# Scenario 3: Medical dosage (large errors are dangerous)
+print()
+actual_dose    = [100, 150, 200, 120, 180]
+predicted_dose = [102, 145, 205, 118, 182]  # good model
+bad_dose       = [102, 145, 305, 118, 182]  # one big outlier (300 vs 200)
+
+print("=== Medical Dosage (mg) ===")
+print("Good model:")
+print(f"  MAE={mean_absolute_error(actual_dose,predicted_dose):.1f}  RMSE={math.sqrt(mean_squared_error(actual_dose,predicted_dose)):.1f}")
+print("Bad model (one dangerous error of 105mg):")
+print(f"  MAE={mean_absolute_error(actual_dose,bad_dose):.1f}  RMSE={math.sqrt(mean_squared_error(actual_dose,bad_dose)):.1f}")
+print("Use RMSE here — large errors must be penalised heavily!")
+`
+  }
+];
+
+var currentTab = 0, pyodide = null, pyLoading = false, cmEditor = null;
+
+function buildTabs() {
+  C('editor-tabs').innerHTML = SNIPPETS.map(function(s, i) {
+    return '<button class="editor-tab' + (i === 0 ? ' active' : '') + '" onclick="switchTab(' + i + ')">' + s.label + '</button>';
+  }).join('');
+}
+
+function switchTab(i) {
+  currentTab = i;
+  document.querySelectorAll('.editor-tab').forEach(function(b, j) { b.classList.toggle('active', j === i); });
+  if (cmEditor) { cmEditor.setValue(SNIPPETS[i].code); cmEditor.refresh(); }
+  C('editor-filename').textContent = SNIPPETS[i].file;
+  C('editor-output').textContent = 'Click ▶ Run to execute...';
+  C('editor-output').className = 'editor-output idle';
+}
+
+function resetEditor() { if (cmEditor) cmEditor.setValue(SNIPPETS[currentTab].code); }
+function clearOutput() { C('editor-output').textContent = ''; C('editor-output').className = 'editor-output idle'; }
+
+async function runEditor() {
+  var btn = C('run-btn'), out = C('editor-output');
+  var code = cmEditor ? cmEditor.getValue() : '';
+  btn.disabled = true; btn.textContent = 'Running...';
+  out.className = 'editor-output'; out.textContent = 'Loading Python...';
+  var t0 = Date.now();
+
+  if (!pyodide) {
+    var st = C('py-status'); st.textContent = 'Loading...';
+    try {
+      if (!pyLoading) {
+        pyLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r, j) { sc.onload = r; sc.onerror = j; });
+        pyodide = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+        await pyodide.loadPackage(['numpy', 'scikit-learn']);
+        pyLoading = false;
+      } else {
+        while (pyLoading) await new Promise(function(r) { setTimeout(r, 100); });
+      }
+      st.textContent = '● Python ready'; st.className = 'py-status ready';
+    } catch (e) {
+      out.textContent = 'Failed to load Python.';
+      out.className = 'editor-output error';
+      btn.disabled = false; btn.textContent = '▶ Run'; return;
+    }
+  }
+
+  out.textContent = 'Running...';
+  try {
+    pyodide.runPython('import sys, io as _io; _b = _io.StringIO(); sys.stdout = _b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout = sys.__stdout__');
+    var res = pyodide.runPython('_b.getvalue()');
+    out.textContent = res || '(no output)';
+    out.className = 'editor-output';
+    C('run-time').textContent = (Date.now() - t0) + 'ms';
+  } catch (e) {
+    try { pyodide.runPython('import sys; sys.stdout = sys.__stdout__'); } catch (ig) {}
+    out.textContent = 'Error: ' + (e.message || String(e));
+    out.className = 'editor-output error';
+  }
+  btn.disabled = false; btn.textContent = '▶ Run';
+}
+
+/* ════════ INIT ════════ */
+window.addEventListener('load', function() {
+  generateData();
+  buildPlayground();
+  updateAllPG();
+  updateOutlier(0);
+  drawR2Canvas(0.7);
+
+  // Setup CodeMirror — poll until CDN loads
+  (function poll() {
+    if (typeof CodeMirror === 'undefined') { setTimeout(poll, 60); return; }
+    buildTabs();
+    var mount = C('cm-editor-mount');
+    if (!mount) return;
+    cmEditor = CodeMirror(mount, {
+      value: SNIPPETS[0].code,
+      mode: 'python',
+      theme: 'one-dark',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      lineWrapping: false,
+      extraKeys: {
+        Tab: function(cm) {
+          if (cm.somethingSelected()) cm.indentSelection('add');
+          else cm.replaceSelection('    ', 'end');
+        }
+      }
+    });
+    cmEditor.setSize('100%', null);
+    setTimeout(function() { cmEditor.refresh(); }, 100);
+    setTimeout(function() { cmEditor.refresh(); }, 500);
+  })();
+
+  // Redraw on theme toggle
+  new MutationObserver(function() {
+    drawMetricCanvas(); drawErrorVis(); drawOutlierCanvas(); drawR2Canvas(parseFloat(C('r2-quality').value) / 100);
+    if (cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+</script>
+</body>
+</html>

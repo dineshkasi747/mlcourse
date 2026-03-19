@@ -1,0 +1,1424 @@
+<!-- dbscan.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DBSCAN Clustering — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,146,60,0.09),rgba(240,96,96,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:16px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:#fb923c;font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+    .point-type-legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--border);}
+    .legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2);}
+    .legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:26px;height:26px;border-radius:50%;background:rgba(251,146,60,0.1);border:1.5px solid #fb923c;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fb923c;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border-left:3px solid #fb923c;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
+    .compare-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:14px;}
+    .compare-title{font-size:13px;font-weight:700;margin-bottom:8px;}
+    .compare-desc{font-size:12px;color:var(--text-3);line-height:1.6;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(251,146,60,0.15)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#ea580c;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.12);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}.compare-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="dbscan">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">DBSCAN</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Unsupervised</a><span class="sep">/</span>
+            <span class="current">DBSCAN</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(251,146,60,.3);background:rgba(251,146,60,0.08);color:#fb923c;margin-bottom:14px;">Unsupervised · Density-Based · Noise Detection</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">DBSCAN</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              DBSCAN finds clusters based on <strong>density</strong>, not distance to a centre.
+              It can find clusters of any shape, automatically detects <strong>outliers as noise</strong>,
+              and you don't need to pick K upfront — the algorithm finds K itself.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#8987; 20 min</span>
+              <span class="topic-meta-item">&#9670; Intermediate</span>
+              <span class="topic-meta-item">sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — INTUITION -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#127756;</div>
+              Intuition — finding dense neighbourhoods
+            </h2>
+            <p>
+              Imagine you are looking at stars in the night sky. Some stars form tight constellations
+              (clusters). Some stars are isolated (noise / outliers). You wouldn't describe a
+              constellation by its centre — you'd say "these stars are close together and connected."
+              That is exactly what DBSCAN does.
+            </p>
+            <p>
+              DBSCAN asks one simple question for every point:
+              <strong>"Are there at least <code>min_samples</code> other points within distance
+              <code>eps</code> of me?"</strong>
+              If yes, that point is a <strong>core point</strong> and starts or joins a cluster.
+              If no but it's near a core point, it's a <strong>border point</strong>.
+              If completely isolated, it's <strong>noise</strong> (label = -1).
+            </p>
+
+            <div class="callout info">
+              <span class="callout-icon">&#128161;</span>
+              <p><strong>Three types of points:</strong>
+              <strong>Core points</strong> — have enough neighbours within eps. They are the heart of clusters.<br>
+              <strong>Border points</strong> — within eps of a core point but don't have enough neighbours themselves. On the edge of a cluster.<br>
+              <strong>Noise points</strong> — not within eps of any core point. These are outliers. DBSCAN labels them -1.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — INTERACTIVE EPSILON DEMO -->
+          <section class="section" id="epsilon-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#9711;</div>
+              See the eps radius — hover over any point
+            </h2>
+            <p>
+              <strong>Move your mouse over any point</strong> to see its eps-radius circle.
+              Points inside the circle are its neighbours. If there are at least
+              <code>min_samples</code> neighbours, the point becomes a core point.
+              Drag the eps slider to make the radius larger or smaller.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Hover to see eps radius — drag sliders to change parameters</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">eps:</span>
+                  <input type="range" min="10" max="120" value="50" step="1" class="ctrl-slider"
+                    id="eps-slider" oninput="onEpsChange()" style="width:100px;"/>
+                  <span class="ctrl-value" id="eps-val" style="color:#fb923c;font-weight:700;">50</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">min_samples:</span>
+                  <input type="range" min="1" max="10" value="3" step="1" class="ctrl-slider"
+                    id="min-slider" oninput="onEpsChange()" style="width:80px;"/>
+                  <span class="ctrl-value" id="min-val" style="font-weight:700;">3</span>
+                </div>
+                <button class="ctrl-btn" onclick="reshuffleEps()">New data</button>
+              </div>
+              <canvas id="eps-canvas" width="700" height="380" style="width:100%;display:block;"
+                onmousemove="onEpsHover(event)" onmouseleave="onEpsLeave()"></canvas>
+              <div class="point-type-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#fb923c;border:2px solid #fff;"></div>Core point (dense enough)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#60a5fa;border:2px solid #fff;"></div>Border point (near core)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#444;border:2px solid #888;"></div>Noise / Outlier (label = -1)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,0.3);border:2px dashed #fb923c;border-radius:50%;width:14px;height:14px;"></div>eps radius circle</div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="eps-clusters" style="color:#fb923c;">—</span><span class="stat-pill-lbl">Clusters found</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="eps-core" style="color:#fb923c;">—</span><span class="stat-pill-lbl">Core points</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="eps-border" style="color:#60a5fa;">—</span><span class="stat-pill-lbl">Border points</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="eps-noise" style="color:#888;">—</span><span class="stat-pill-lbl">Noise points</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — STEP BY STEP ANIMATION -->
+          <section class="section" id="animation">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#9654;</div>
+              Step-by-step — how DBSCAN expands clusters
+            </h2>
+            <p>
+              Press <strong>Step</strong> to see DBSCAN process one point at a time.
+              Watch how it starts from a core point, then expands to all reachable neighbours,
+              then moves to the next unvisited point.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">DBSCAN step-by-step expansion</span>
+                <button class="ctrl-btn active" onclick="stepDBSCAN()">&#9654; Step</button>
+                <button class="ctrl-btn" onclick="runAllDBSCAN()">&#9654;&#9654; Run all</button>
+                <button class="ctrl-btn" onclick="resetDBSCAN()">&#8635; Reset</button>
+                <select class="ctrl-select" id="anim-dataset" onchange="resetDBSCAN()">
+                  <option value="blobs">Blobs</option>
+                  <option value="moons">Moons</option>
+                  <option value="rings">Rings</option>
+                  <option value="outliers">With outliers</option>
+                </select>
+              </div>
+              <canvas id="anim-canvas" width="700" height="360" style="width:100%;display:block;"></canvas>
+              <div style="padding:8px 18px;font-size:12px;color:var(--text-3);" id="anim-label">
+                Press Step to start. DBSCAN will visit each point and expand clusters from core points.
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-step" style="color:#fb923c;">0</span><span class="stat-pill-lbl">Points visited</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-clusters">0</span><span class="stat-pill-lbl">Clusters found</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-noise" style="color:#888;">0</span><span class="stat-pill-lbl">Noise points</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — HYPERPARAMETER TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#9881;</div>
+              Hyperparameter tuning — eps and min_samples
+            </h2>
+            <p>
+              DBSCAN has two parameters. <strong>eps</strong> controls the radius of each
+              point's neighbourhood. <strong>min_samples</strong> controls how many neighbours
+              are needed to be a core point. Getting these right is the main challenge.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="hp-clusters" style="color:#fb923c;">—</div>
+                <div class="acc-label">Clusters found</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-clusters-bar" style="background:#fb923c;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-noise-pct" style="color:#888;">—</div>
+                <div class="acc-label">Noise %</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-noise-bar" style="background:#666;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-core-pct" style="color:var(--green);">—</div>
+                <div class="acc-label">Core points %</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-core-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-quality" style="font-size:14px;color:var(--green);">—</div>
+                <div class="acc-label">Result quality</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-q-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">&#9881; Controls — updates live</div>
+              <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">Watch noise % drop as eps grows, but clusters merge. Watch clusters split as eps shrinks.</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">eps (neighbourhood radius)</span><span class="hp-val" id="hp-eps-val">40</span></div>
+                  <input type="range" min="5" max="120" value="40" step="1" class="ctrl-slider" id="hp-eps" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Too small = everything is noise. Too large = all points merge into 1 cluster.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">min_samples</span><span class="hp-val" id="hp-min-val">4</span></div>
+                  <input type="range" min="1" max="15" value="4" step="1" class="ctrl-slider" id="hp-min" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Min points to form a core point. Higher = denser clusters required. Noisy data needs higher values.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Dataset</span><span class="hp-val" id="hp-ds-val">Moons</span></div>
+                  <input type="range" min="1" max="4" value="2" step="1" class="ctrl-slider" id="hp-ds" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">1=Blobs, 2=Moons, 3=Rings, 4=Outliers. DBSCAN handles all shapes!</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Noise level</span><span class="hp-val" id="hp-noise-val">0.3</span></div>
+                  <input type="range" min="0.05" max="1.5" value="0.3" step="0.05" class="ctrl-slider" id="hp-noise" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More noise = harder to cluster. Increase min_samples for noisy data.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live result canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Live DBSCAN result — orange=core, blue=border, grey=noise</span>
+              </div>
+              <canvas id="hp-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <!-- eps sweep -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">eps sweep — how cluster count and noise change</span>
+                <button class="ctrl-btn active" onclick="runEpsSweep()">&#9654; Run sweep</button>
+                <span id="sweep-status" style="font-size:12px;color:var(--text-3);margin-left:8px;"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — DBSCAN vs KMEANS -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,146,60,0.1);color:#fb923c;">&#8660;</div>
+              DBSCAN vs K-Means — when to use which
+            </h2>
+
+            <div class="compare-grid">
+              <div class="compare-card" style="border-color:rgba(52,211,153,0.4);">
+                <div class="compare-title" style="color:#34d399;">DBSCAN wins when...</div>
+                <div class="compare-desc">
+                  &#10003; Clusters have irregular shapes (moons, rings)<br>
+                  &#10003; You don't know K upfront<br>
+                  &#10003; Data has outliers you want to detect<br>
+                  &#10003; Clusters have very different sizes<br>
+                  &#10003; Geographic/spatial clustering
+                </div>
+              </div>
+              <div class="compare-card" style="border-color:rgba(96,165,250,0.4);">
+                <div class="compare-title" style="color:#60a5fa;">K-Means wins when...</div>
+                <div class="compare-desc">
+                  &#10003; Clusters are round and compact<br>
+                  &#10003; You know K upfront<br>
+                  &#10003; Dataset is large (K-Means is faster)<br>
+                  &#10003; All points should belong to a cluster<br>
+                  &#10003; High-dimensional data
+                </div>
+              </div>
+              <div class="compare-card" style="border-color:rgba(167,139,250,0.4);">
+                <div class="compare-title" style="color:#a78bfa;">Hierarchical wins when...</div>
+                <div class="compare-desc">
+                  &#10003; You want to explore all cluster levels<br>
+                  &#10003; Dataset is small (&lt;10k points)<br>
+                  &#10003; You need a dendrogram for interpretation<br>
+                  &#10003; Uncertain about K<br>
+                  &#10003; Need reproducible results
+                </div>
+              </div>
+            </div>
+
+            <!-- Side by side: same data, DBSCAN vs K-Means -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Same data — DBSCAN vs K-Means side by side</span>
+                <select class="ctrl-select" id="compare-dataset" onchange="drawComparison()">
+                  <option value="moons">Moons (curved)</option>
+                  <option value="rings">Rings (circular)</option>
+                  <option value="outliers">With outliers</option>
+                  <option value="blobs">Blobs (both work)</option>
+                </select>
+                <button class="ctrl-btn" onclick="drawComparison()">&#8635; Redraw</button>
+              </div>
+              <canvas id="compare-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);" id="compare-note">
+                Moons: DBSCAN finds 2 perfect crescent clusters. K-Means cuts them arbitrarily with a straight boundary.
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 6 — MATH -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#8721;</div>
+              How DBSCAN works — step by step
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Define the neighbourhood of each point</div>
+                  <div class="derive-desc">For every point p, the eps-neighbourhood N(p) is all points within distance eps. This is just a circle of radius eps around p.</div>
+                  <div class="derive-formula">N_eps(p) = { q in X  |  distance(p, q) <= eps }
+
+A point p is a CORE POINT if:
+  |N_eps(p)| >= min_samples
+  (it has enough neighbours inside its circle)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Classify every point</div>
+                  <div class="derive-desc">Every point gets one of three labels based on its neighbourhood. This classification determines whether it starts/joins a cluster or becomes noise.</div>
+                  <div class="derive-formula">Core point:   |N_eps(p)| >= min_samples   -> heart of a cluster
+Border point: p is in N_eps(q) for some core q, but |N_eps(p)| < min_samples
+Noise point:  not core, not border -> label = -1 (outlier)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Expand clusters from core points</div>
+                  <div class="derive-desc">Pick any unvisited core point. Assign it a new cluster label. Add all its neighbours to the cluster. For each neighbour that is also a core point, add their neighbours too. Keep expanding until no more core points can be reached. Then move to the next unvisited point.</div>
+                  <div class="derive-formula">Algorithm:
+  for each unvisited point p:
+    mark p as visited
+    if p is NOT a core point:
+      label p as noise (might change later if neighbour is core)
+    else:
+      create new cluster C
+      add p to C
+      queue = N_eps(p)
+      while queue is not empty:
+        q = queue.pop()
+        if q is unvisited: mark q visited
+        if q not in any cluster: add q to C
+        if q is a core point: queue += N_eps(q)</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">dbscan_intro.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not scaling features.</strong> DBSCAN uses Euclidean distance. A feature in thousands dominates. Always StandardScaler first. After scaling, eps values around 0.3–1.5 usually work well.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Guessing eps.</strong> Use the k-distance graph: compute each point's distance to its k-th nearest neighbour (k=min_samples), sort them, and plot. The "elbow" in that plot is a good eps value.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Using DBSCAN on high-dimensional data.</strong> In high dimensions, all points become roughly equidistant (the curse of dimensionality). eps becomes meaningless. Reduce dimensions first with PCA, then apply DBSCAN.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Treating noise points as a cluster.</strong> DBSCAN labels outliers as -1. This does NOT mean they form a cluster. They are individual anomalies. Never group noise points together.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Clusters with very different densities.</strong> DBSCAN uses one global eps. If cluster A is very dense and cluster B is sparse, no single eps works for both. Use HDBSCAN (a variant) which handles varying densities automatically.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9733;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>DBSCAN finds clusters based on <strong>density</strong>. It needs two parameters: <strong>eps</strong> (neighbourhood radius) and <strong>min_samples</strong> (minimum neighbours to be a core point).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Three point types: <strong>core points</strong> (dense enough), <strong>border points</strong> (near a core), and <strong>noise points</strong> (outliers, label = -1).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>DBSCAN can find clusters of <strong>any shape</strong> and <strong>automatically detects outliers</strong>. Unlike K-Means, you don't need to specify K.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always scale features first.</strong> Use the k-distance elbow plot to choose eps. Start with min_samples = 2 × n_features as a rule of thumb.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For varying-density clusters, use <strong>HDBSCAN</strong> — a hierarchical extension that handles different densities automatically.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="hierarchical.html">
+              <span class="pn-dir">&#8592; Previous</span>
+              <span class="pn-title">Hierarchical Clustering</span>
+            </a>
+            <a class="pn-card next" href="../../index.html">
+              <span class="pn-dir">Next &#8594;</span>
+              <span class="pn-title">Back to Roadmap</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Intuition</a></li>
+            <li class="toc-item"><a href="#epsilon-demo">eps radius demo</a></li>
+            <li class="toc-item"><a href="#animation">Step-by-step animation</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#comparison">DBSCAN vs K-Means</a></li>
+            <li class="toc-item"><a href="#math">How it works</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ── helpers ── */
+function C(id){ return document.getElementById(id); }
+function isDark(){ return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg(){ return isDark() ? '#18181d' : '#e9e7e1'; }
+function bgIn(){ return isDark() ? '#1e1e25' : '#e2e0d9'; }
+function tc(){ return isDark() ? '#a09e98' : '#5c5a54'; }
+function gc(){ return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'; }
+function delay(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+
+var seed = 42;
+function srnd(){ seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+function rseed(s){ seed = s||42; }
+
+var CLUSTER_COLORS = ['#fb923c','#60a5fa','#34d399','#e879f9','#f0a500','#2dd4bf','#a78bfa','#f06060'];
+
+/* ── Euclidean distance (pixel space) ── */
+function pdist(a, b){
+  return Math.sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y));
+}
+
+/* ════════════════════════════════
+   CORE DBSCAN ALGORITHM (JS)
+   Works on array of {x,y} points.
+   Returns labels[] — -1 = noise.
+════════════════════════════════ */
+function runDBSCAN(pts, eps, minSamples){
+  var n = pts.length;
+  var labels = new Array(n).fill(-2); /* -2 = unvisited */
+  var clusterId = 0;
+
+  /* Pre-compute neighbourhoods */
+  var neighbours = pts.map(function(p){
+    var nb = [];
+    for(var i=0;i<n;i++) if(pdist(p, pts[i]) <= eps) nb.push(i);
+    return nb;
+  });
+
+  for(var i=0;i<n;i++){
+    if(labels[i] !== -2) continue; /* already visited */
+    if(neighbours[i].length < minSamples){
+      labels[i] = -1; /* noise for now */
+      continue;
+    }
+    /* Core point — start new cluster */
+    labels[i] = clusterId;
+    var queue = neighbours[i].slice();
+    var qi = 0;
+    while(qi < queue.length){
+      var q = queue[qi++];
+      if(labels[q] === -1) labels[q] = clusterId; /* border: was noise */
+      if(labels[q] !== -2) continue;
+      labels[q] = clusterId;
+      if(neighbours[q].length >= minSamples){
+        /* q is also a core point — add its neighbours */
+        for(var k=0;k<neighbours[q].length;k++){
+          if(labels[neighbours[q][k]] === -2 || labels[neighbours[q][k]] === -1){
+            queue.push(neighbours[q][k]);
+          }
+        }
+      }
+    }
+    clusterId++;
+  }
+  return labels;
+}
+
+/* ════════════════════════════════
+   DATASET GENERATORS
+════════════════════════════════ */
+function makeDataset(type, noise, W, H){
+  rseed(42);
+  var pts = [];
+  W = W||700; H = H||380;
+  var cx = W/2, cy = H/2;
+  noise = noise||0.3;
+
+  if(type === 'blobs'){
+    var centres = [{x:W*0.25,y:H*0.3},{x:W*0.72,y:H*0.28},{x:W*0.5,y:H*0.75}];
+    centres.forEach(function(c){
+      for(var i=0;i<35;i++) pts.push({x:c.x+(srnd()-0.5)*noise*180, y:c.y+(srnd()-0.5)*noise*180});
+    });
+  } else if(type === 'moons'){
+    var n = 60;
+    for(var i=0;i<n;i++){
+      var t = Math.PI * i/(n-1);
+      pts.push({x: cx-120+200*Math.cos(t)+(srnd()-0.5)*noise*60, y: cy-40+110*Math.sin(t)+(srnd()-0.5)*noise*60});
+      pts.push({x: cx+120-200*Math.cos(t)+(srnd()-0.5)*noise*60, y: cy+40-110*Math.sin(t)+(srnd()-0.5)*noise*60});
+    }
+  } else if(type === 'rings'){
+    for(var i=0;i<80;i++){
+      var angle = srnd()*Math.PI*2;
+      var r = (i<40?80:185) + (srnd()-0.5)*noise*40;
+      pts.push({x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r});
+    }
+  } else if(type === 'outliers'){
+    var cs = [{x:W*0.28,y:H*0.3},{x:W*0.7,y:H*0.35},{x:W*0.48,y:H*0.75}];
+    cs.forEach(function(c){ for(var i=0;i<25;i++) pts.push({x:c.x+(srnd()-0.5)*80,y:c.y+(srnd()-0.5)*80}); });
+    /* Add random outliers */
+    for(var i=0;i<15;i++) pts.push({x:40+srnd()*(W-80), y:40+srnd()*(H-80)});
+  }
+  return pts;
+}
+
+/* ════════════════════════════════
+   SECTION 2 — EPS HOVER DEMO
+════════════════════════════════ */
+var epsPts = [];
+var hoverPt = null;
+
+function reshuffleEps(){
+  rseed(Date.now()&0xffff);
+  var W=700,H=380;
+  epsPts = makeDataset('outliers', 0.4, W, H);
+  hoverPt = null;
+  onEpsChange();
+}
+
+function onEpsChange(){
+  var eps = parseInt(C('eps-slider').value);
+  var minS = parseInt(C('min-slider').value);
+  C('eps-val').textContent = eps;
+  C('min-val').textContent = minS;
+  drawEpsCanvas(eps, minS, hoverPt);
+}
+
+function onEpsHover(e){
+  var cv = C('eps-canvas');
+  var r = cv.getBoundingClientRect();
+  var sx = cv.width/r.width, sy = cv.height/r.height;
+  var mx = (e.clientX-r.left)*sx;
+  var my = (e.clientY-r.top)*sy;
+  /* Find nearest point */
+  var best = null, bestD = 20; /* snap within 20px */
+  for(var i=0;i<epsPts.length;i++){
+    var d = pdist({x:mx,y:my}, epsPts[i]);
+    if(d < bestD){ bestD=d; best=i; }
+  }
+  hoverPt = best;
+  var eps = parseInt(C('eps-slider').value);
+  var minS = parseInt(C('min-slider').value);
+  drawEpsCanvas(eps, minS, hoverPt);
+}
+
+function onEpsLeave(){ hoverPt=null; onEpsChange(); }
+
+function drawEpsCanvas(eps, minS, hoverIdx){
+  var cv = C('eps-canvas'), ctx = cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  if(!epsPts.length) return;
+
+  /* Compute labels */
+  var labels = runDBSCAN(epsPts, eps, minS);
+  var nClusters = Math.max(-1, ...labels) + 1;
+  var nCore=0, nBorder=0, nNoise=0;
+
+  /* Pre-compute which points are core */
+  var isCore = epsPts.map(function(p){
+    var cnt=0; for(var i=0;i<epsPts.length;i++) if(pdist(p,epsPts[i])<=eps) cnt++;
+    return cnt >= minS;
+  });
+
+  epsPts.forEach(function(p,i){
+    if(labels[i]===-1) nNoise++;
+    else if(isCore[i]) nCore++;
+    else nBorder++;
+  });
+
+  /* Draw hover radius circle first */
+  if(hoverIdx !== null && hoverIdx !== undefined && hoverIdx >= 0){
+    var hp = epsPts[hoverIdx];
+    /* Shade neighbour points */
+    for(var i=0;i<epsPts.length;i++){
+      if(i===hoverIdx) continue;
+      if(pdist(hp, epsPts[i]) <= eps){
+        ctx.beginPath(); ctx.arc(epsPts[i].x, epsPts[i].y, 13,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(251,146,60,0.2)'; ctx.fill();
+      }
+    }
+    /* Draw eps circle */
+    ctx.beginPath(); ctx.arc(hp.x, hp.y, eps, 0, Math.PI*2);
+    ctx.strokeStyle = '#fb923c'; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(251,146,60,0.06)'; ctx.fill();
+
+    /* Count neighbours */
+    var cnt=0;
+    for(var i=0;i<epsPts.length;i++) if(i!==hoverIdx && pdist(hp,epsPts[i])<=eps) cnt++;
+    var type = isCore[hoverIdx] ? 'Core point (' +cnt+' neighbours >= '+minS+')' :
+      (labels[hoverIdx]!==-1 ? 'Border point ('+cnt+' neighbours < '+minS+')' :
+       'Noise point ('+cnt+' neighbours < '+minS+')');
+    ctx.fillStyle = '#fb923c'; ctx.font='bold 12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(type, hp.x, hp.y - eps - 12);
+    ctx.textAlign='start';
+  }
+
+  /* Draw points */
+  epsPts.forEach(function(p,i){
+    var col, stroke;
+    if(labels[i]===-1){ col='#555'; stroke='#777'; }
+    else if(isCore[i]){ col=CLUSTER_COLORS[labels[i]%CLUSTER_COLORS.length]; stroke='rgba(255,255,255,0.4)'; }
+    else { col='#60a5fa'; stroke='rgba(255,255,255,0.3)'; }
+
+    var r = isCore[i] ? 8 : (labels[i]===-1 ? 5 : 6);
+    if(hoverIdx!==null && i===hoverIdx) r=10;
+
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle=stroke; ctx.lineWidth=1.5; ctx.stroke();
+  });
+
+  C('eps-clusters').textContent = nClusters;
+  C('eps-core').textContent = nCore;
+  C('eps-border').textContent = nBorder;
+  C('eps-noise').textContent = nNoise;
+}
+
+/* ════════════════════════════════
+   SECTION 3 — STEP-BY-STEP ANIM
+════════════════════════════════ */
+var animPts = [];
+var animEps = 55, animMinS = 4;
+var animVisited = [];
+var animLabels = [];
+var animQueue = [];
+var animCurrentCluster = -1;
+var animCurrentPt = -1;
+var animNeighbours = [];
+var animIsCore = [];
+var animRunning = false;
+var animDone = false;
+
+function getAnimDataset(){
+  var type = C('anim-dataset').value;
+  rseed(55);
+  return makeDataset(type, 0.35, 700, 360);
+}
+
+function resetDBSCAN(){
+  animPts = getAnimDataset();
+  var n = animPts.length;
+  animVisited  = new Array(n).fill(false);
+  animLabels   = new Array(n).fill(-2);
+  animQueue    = [];
+  animCurrentCluster = -1;
+  animCurrentPt = -1;
+  animDone = false;
+
+  /* Pre-compute neighbours and core status */
+  animNeighbours = animPts.map(function(p){
+    var nb=[];
+    for(var i=0;i<n;i++) if(pdist(p,animPts[i])<=animEps) nb.push(i);
+    return nb;
+  });
+  animIsCore = animNeighbours.map(function(nb){ return nb.length >= animMinS; });
+
+  C('anim-step').textContent = '0';
+  C('anim-clusters').textContent = '0';
+  C('anim-noise').textContent = '0';
+  C('anim-label').textContent = 'Ready. Press Step to visit the first point.';
+  drawAnimCanvas(-1, []);
+}
+
+function stepDBSCAN(){
+  if(animDone){ C('anim-label').textContent='Done! All points classified.'; return; }
+  if(!animPts.length) resetDBSCAN();
+
+  var n = animPts.length;
+
+  /* If we have a queue, process next item from it */
+  if(animQueue.length > 0){
+    var q = animQueue.shift();
+    if(animLabels[q] !== -2 && animLabels[q] !== -1){
+      /* already in a cluster — skip but draw */
+      drawAnimCanvas(q, animQueue.slice(0,8));
+      return;
+    }
+    animVisited[q] = true;
+    animLabels[q] = animCurrentCluster;
+    if(animIsCore[q]){
+      /* Expand from q */
+      for(var k=0;k<animNeighbours[q].length;k++){
+        var nb = animNeighbours[q][k];
+        if(!animVisited[nb] || animLabels[nb]===-1){
+          if(animQueue.indexOf(nb)===-1) animQueue.push(nb);
+        }
+      }
+    }
+    C('anim-label').textContent = 'Expanding cluster '+animCurrentCluster+': visited point '+q
+      +(animIsCore[q]?' (core — added '+animNeighbours[q].length+' neighbours to queue)':' (border point)');
+    drawAnimCanvas(q, animQueue.slice(0,8));
+    updateAnimStats();
+    return;
+  }
+
+  /* Find next unvisited point */
+  var next = -1;
+  for(var i=0;i<n;i++){
+    if(!animVisited[i]){ next=i; break; }
+  }
+
+  if(next===-1){
+    animDone=true;
+    C('anim-label').textContent='Done! Found '+(animCurrentCluster+1)+' clusters and '+
+      animLabels.filter(function(l){return l===-1;}).length+' noise points.';
+    drawAnimCanvas(-1,[]);
+    updateAnimStats();
+    return;
+  }
+
+  animVisited[next] = true;
+  animCurrentPt = next;
+
+  if(!animIsCore[next]){
+    animLabels[next] = -1; /* noise (might become border later) */
+    C('anim-label').textContent='Point '+next+' has only '+animNeighbours[next].length
+      +' neighbours < '+animMinS+' — marked as noise.';
+  } else {
+    animCurrentCluster++;
+    animLabels[next] = animCurrentCluster;
+    /* Seed queue with neighbours */
+    for(var k=0;k<animNeighbours[next].length;k++){
+      var nb2 = animNeighbours[next][k];
+      if(!animVisited[nb2] || animLabels[nb2]===-1) animQueue.push(nb2);
+    }
+    C('anim-label').textContent='Point '+next+' is a CORE POINT ('+animNeighbours[next].length
+      +' neighbours >= '+animMinS+'). Starting cluster '+animCurrentCluster+'.';
+  }
+
+  C('anim-step').textContent = animVisited.filter(Boolean).length;
+  drawAnimCanvas(next, animQueue.slice(0,8));
+  updateAnimStats();
+}
+
+function updateAnimStats(){
+  var k = Math.max(0, Math.max.apply(null, animLabels.filter(function(l){return l>=0;})) + 1)||0;
+  var noise = animLabels.filter(function(l){return l===-1;}).length;
+  C('anim-clusters').textContent = k;
+  C('anim-noise').textContent = noise;
+  C('anim-step').textContent = animVisited.filter(Boolean).length;
+}
+
+async function runAllDBSCAN(){
+  if(animRunning) return;
+  animRunning=true;
+  while(!animDone){ stepDBSCAN(); await delay(60); }
+  animRunning=false;
+}
+
+function drawAnimCanvas(currentPt, queuePts){
+  var cv=C('anim-canvas'), ctx=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  /* Draw eps circle for current point */
+  if(currentPt>=0 && animIsCore[currentPt]){
+    ctx.beginPath(); ctx.arc(animPts[currentPt].x, animPts[currentPt].y, animEps,0,Math.PI*2);
+    ctx.fillStyle='rgba(251,146,60,0.07)'; ctx.fill();
+    ctx.strokeStyle='rgba(251,146,60,0.5)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  /* Highlight queue points */
+  var queueSet={};
+  queuePts.forEach(function(q){ queueSet[q]=true; });
+
+  /* Draw all points */
+  animPts.forEach(function(p,i){
+    var col, r=7;
+    if(animLabels[i]===-2){ col=isDark()?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.25)'; } /* unvisited */
+    else if(animLabels[i]===-1){ col='#555'; r=5; }
+    else { col=CLUSTER_COLORS[animLabels[i]%CLUSTER_COLORS.length]; }
+
+    if(i===currentPt){ r=11; }
+    if(queueSet[i]){ r=9; }
+
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.fill();
+
+    /* Ring for current point */
+    if(i===currentPt){
+      ctx.strokeStyle='#f0a500'; ctx.lineWidth=3; ctx.stroke();
+    } else if(queueSet[i]){
+      ctx.strokeStyle='rgba(240,165,0,0.6)'; ctx.lineWidth=2; ctx.stroke();
+    } else {
+      ctx.strokeStyle=isDark()?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+    }
+  });
+
+  /* Legend */
+  var items=[
+    {col:'rgba(255,255,255,0.25)',label:'Unvisited'},
+    {col:'#fb923c',label:'Core (current cluster)'},
+    {col:'#555',label:'Noise'},
+    {col:'#f0a500',label:'Current / Queue'}
+  ];
+  items.forEach(function(it,i){
+    ctx.beginPath(); ctx.arc(12,14+i*20,5,0,Math.PI*2);
+    ctx.fillStyle=it.col; ctx.fill();
+    ctx.fillStyle=tc(); ctx.font='10px sans-serif'; ctx.textAlign='left';
+    ctx.fillText(it.label, 22, 18+i*20);
+  });
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════════════
+   SECTION 4 — HYPERPARAMETER TUNING
+════════════════════════════════ */
+function onHPChange(){
+  var eps    = parseInt(C('hp-eps').value);
+  var minS   = parseInt(C('hp-min').value);
+  var dsIdx  = parseInt(C('hp-ds').value);
+  var noise  = parseFloat(C('hp-noise').value);
+  var dsNames= ['','Blobs','Moons','Rings','Outliers'];
+  var dsTypes= ['','blobs','moons','rings','outliers'];
+
+  C('hp-eps-val').textContent  = eps;
+  C('hp-min-val').textContent  = minS;
+  C('hp-ds-val').textContent   = dsNames[dsIdx];
+  C('hp-noise-val').textContent= noise.toFixed(2);
+
+  rseed(42);
+  var pts = makeDataset(dsTypes[dsIdx], noise, 700, 320);
+  var labels = runDBSCAN(pts, eps, minS);
+  var nClusters = 0;
+  for(var i=0;i<labels.length;i++) if(labels[i]>nClusters-1) nClusters=labels[i]+1;
+  var nNoise = labels.filter(function(l){return l===-1;}).length;
+  var nCore  = pts.filter(function(p,i){
+    var cnt=0; for(var j=0;j<pts.length;j++) if(pdist(p,pts[j])<=eps) cnt++;
+    return cnt>=minS;
+  }).length;
+  var noisePct = (nNoise/pts.length*100).toFixed(0);
+  var corePct  = (nCore/pts.length*100).toFixed(0);
+
+  /* Quality: ideal = 2-5 clusters, low noise */
+  var quality = nClusters===0?'All noise':nClusters===1?'One big cluster':nClusters>8?'Too fragmented':
+    noisePct>40?'Too noisy':'Good';
+  var qColor = quality==='Good'?'var(--green)':quality==='All noise'||quality==='Too noisy'?'var(--red)':'var(--accent)';
+
+  C('hp-clusters').textContent = nClusters;
+  C('hp-noise-pct').textContent= noisePct+'%';
+  C('hp-core-pct').textContent = corePct+'%';
+  C('hp-quality').textContent  = quality;
+  C('hp-quality').style.color  = qColor;
+  C('hp-clusters-bar').style.width = Math.min(100,nClusters*20)+'%';
+  C('hp-noise-bar').style.width    = noisePct+'%';
+  C('hp-core-bar').style.width     = corePct+'%';
+  C('hp-q-bar').style.width = quality==='Good'?'100%':'40%';
+
+  drawHPCanvas(pts, labels, eps);
+}
+
+function drawHPCanvas(pts, labels, eps){
+  var cv=C('hp-canvas'), ctx=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  var isCore = pts.map(function(p){
+    var cnt=0; for(var i=0;i<pts.length;i++) if(pdist(p,pts[i])<=eps) cnt++;
+    return cnt >= parseInt(C('hp-min').value);
+  });
+
+  pts.forEach(function(p,i){
+    var lbl = labels[i];
+    var col, r;
+    if(lbl===-1){ col='#555'; r=4; }
+    else if(isCore[i]){ col=CLUSTER_COLORS[lbl%CLUSTER_COLORS.length]; r=7; }
+    else { col='#60a5fa'; r=5; }
+
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.globalAlpha=0.85; ctx.fill(); ctx.globalAlpha=1;
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+  });
+}
+
+async function runEpsSweep(){
+  C('sweep-status').textContent='Running...';
+  var dsIdx = parseInt(C('hp-ds').value);
+  var dsTypes=['','blobs','moons','rings','outliers'];
+  rseed(42);
+  var pts = makeDataset(dsTypes[dsIdx]||'moons', parseFloat(C('hp-noise').value)||0.3, 700, 220);
+  var minS = parseInt(C('hp-min').value)||4;
+  var results=[];
+  var cv=C('sweep-canvas'), ctx=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  var epsVals=[];
+  for(var e=5;e<=120;e+=5) epsVals.push(e);
+
+  for(var ei=0;ei<epsVals.length;ei++){
+    var eps2=epsVals[ei];
+    var labels2=runDBSCAN(pts,eps2,minS);
+    var k=0; for(var i=0;i<labels2.length;i++) if(labels2[i]>k-1) k=labels2[i]+1;
+    var noise2=labels2.filter(function(l){return l===-1;}).length/pts.length*100;
+    results.push({eps:eps2,k:k,noise:noise2});
+
+    ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+    var pad={l:45,r:20,t:15,b:35};
+    var toX=function(i2){return pad.l+i2/(epsVals.length-1)*(W-pad.l-pad.r);};
+    var maxK=Math.max.apply(null,results.map(function(r){return r.k;}))||1;
+    var toYk=function(v){return H-pad.b-(v/Math.max(maxK,6))*(H-pad.t-pad.b);};
+    var toYn=function(v){return H-pad.b-(v/100)*(H-pad.t-pad.b);};
+
+    ctx.strokeStyle=gc(); ctx.lineWidth=0.5;
+    [0,2,4,6].forEach(function(v){
+      ctx.beginPath(); ctx.moveTo(pad.l,toYk(v)); ctx.lineTo(W-pad.r,toYk(v)); ctx.stroke();
+      ctx.fillStyle=tc(); ctx.font='9px mono'; ctx.textAlign='right';
+      ctx.fillText(v,pad.l-3,toYk(v)+3);
+    });
+    epsVals.forEach(function(e2,i2){
+      if(i2%4===0){ctx.fillStyle=tc(); ctx.font='9px mono'; ctx.textAlign='center';
+        ctx.fillText(e2,toX(i2),H-pad.b+14);}
+    });
+    ctx.fillStyle=tc(); ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('eps',W/2,H-2);
+
+    if(results.length>1){
+      ctx.beginPath();
+      results.forEach(function(r,i2){i2===0?ctx.moveTo(toX(i2),toYk(r.k)):ctx.lineTo(toX(i2),toYk(r.k));});
+      ctx.strokeStyle='#fb923c'; ctx.lineWidth=2.5; ctx.stroke();
+
+      ctx.beginPath();
+      results.forEach(function(r,i2){i2===0?ctx.moveTo(toX(i2),toYn(r.noise)):ctx.lineTo(toX(i2),toYn(r.noise));});
+      ctx.strokeStyle='rgba(96,96,96,0.7)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+
+      results.forEach(function(r,i2){
+        ctx.beginPath(); ctx.arc(toX(i2),toYk(r.k),3,0,Math.PI*2);
+        ctx.fillStyle='#fb923c'; ctx.fill();
+      });
+    }
+    /* Current eps marker */
+    ctx.beginPath(); ctx.moveTo(toX(ei),pad.t); ctx.lineTo(toX(ei),H-pad.b);
+    ctx.strokeStyle='rgba(240,165,0,0.5)'; ctx.lineWidth=2; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+
+    /* Legend */
+    ctx.strokeStyle='#fb923c'; ctx.lineWidth=2; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(W-130,pad.t+4); ctx.lineTo(W-110,pad.t+4); ctx.stroke();
+    ctx.fillStyle='#fb923c'; ctx.font='10px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('Cluster count',W-107,pad.t+8);
+    ctx.strokeStyle='rgba(96,96,96,0.7)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(W-130,pad.t+18); ctx.lineTo(W-110,pad.t+18); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=tc(); ctx.fillText('Noise %',W-107,pad.t+22);
+    ctx.textAlign='start';
+    await delay(30);
+  }
+  C('sweep-status').textContent='Done — pick eps where cluster count stabilises and noise is low';
+}
+
+/* ════════════════════════════════
+   SECTION 5 — COMPARISON CANVAS
+════════════════════════════════ */
+function drawComparison(){
+  var type = C('compare-dataset').value;
+  var notes={
+    moons:'Moons: DBSCAN perfectly follows the crescent shapes. K-Means arbitrarily cuts with a straight boundary.',
+    rings:'Rings: DBSCAN identifies the inner and outer rings. K-Means splits them both into halves.',
+    outliers:'Outliers: DBSCAN labels scattered points as noise (-1). K-Means must assign ALL points to a cluster.',
+    blobs:'Blobs: Both algorithms work well here — K-Means is actually faster and equally good on blob-shaped data.'
+  };
+  C('compare-note').textContent = notes[type];
+
+  var cv=C('compare-canvas'), ctx=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  var panelW=W/2;
+  /* Generate dataset */
+  rseed(42);
+  var pts=makeDataset(type, 0.3, panelW-20, H-20);
+  /* Offset pts for each panel */
+  var ptsL=pts.map(function(p){return{x:p.x+10,y:p.y+10};});
+  var ptsR=pts.map(function(p){return{x:p.x+panelW+10,y:p.y+10};});
+
+  /* DBSCAN labels */
+  var epsForType={moons:45,rings:40,outliers:50,blobs:55};
+  var eps3=epsForType[type]||50;
+  var labelsDB=runDBSCAN(ptsL,eps3,4);
+
+  /* K-Means: simple 2-cluster for non-blob, 3 for blob */
+  var kk = type==='blobs'?3:2;
+  var labelsKM=simpleKMeans(ptsR,kk);
+
+  /* Divider */
+  ctx.strokeStyle=isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
+  ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(panelW,0); ctx.lineTo(panelW,H); ctx.stroke();
+
+  /* Titles */
+  ctx.font='bold 13px sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#fb923c'; ctx.fillText('DBSCAN',panelW/2,18);
+  ctx.fillStyle='#34d399'; ctx.fillText('K-Means (K='+kk+')',panelW+panelW/2,18);
+
+  /* Draw DBSCAN points */
+  var isCore3=ptsL.map(function(p){
+    var cnt=0; for(var i=0;i<ptsL.length;i++) if(pdist(p,ptsL[i])<=eps3) cnt++;
+    return cnt>=4;
+  });
+  ptsL.forEach(function(p,i){
+    var lbl=labelsDB[i];
+    var col=lbl===-1?'#555':CLUSTER_COLORS[lbl%CLUSTER_COLORS.length];
+    var r=isCore3[i]?7:5;
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.globalAlpha=0.85; ctx.fill(); ctx.globalAlpha=1;
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+  });
+
+  /* Draw K-Means points */
+  ptsR.forEach(function(p,i){
+    var col=CLUSTER_COLORS[labelsKM[i]%CLUSTER_COLORS.length];
+    ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.globalAlpha=0.85; ctx.fill(); ctx.globalAlpha=1;
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+  });
+
+  /* Noise label for DBSCAN */
+  var nNoise=labelsDB.filter(function(l){return l===-1;}).length;
+  if(nNoise>0){
+    ctx.fillStyle='#888'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(nNoise+' noise points (label=-1)',panelW/2,H-6);
+  }
+  ctx.textAlign='start';
+}
+
+/* Simple K-Means for comparison */
+function simpleKMeans(pts,k){
+  rseed(77);
+  var n=pts.length;
+  var cents=[];
+  for(var i=0;i<k;i++) cents.push({x:pts[Math.floor(srnd()*n)].x,y:pts[Math.floor(srnd()*n)].y});
+  var labels=new Array(n).fill(0);
+  for(var iter=0;iter<30;iter++){
+    for(var i=0;i<n;i++){
+      var best=0,bestD=Infinity;
+      for(var c=0;c<k;c++){var d=pdist(pts[i],cents[c]);if(d<bestD){bestD=d;best=c;}}
+      labels[i]=best;
+    }
+    for(var c=0;c<k;c++){
+      var members=pts.filter(function(_,i2){return labels[i2]===c;});
+      if(!members.length) continue;
+      cents[c].x=members.reduce(function(s,p){return s+p.x;},0)/members.length;
+      cents[c].y=members.reduce(function(s,p){return s+p.y;},0)/members.length;
+    }
+  }
+  return labels;
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'dbscan_intro.py', label:'DBSCAN basics', code:`import numpy as np
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import make_moons, make_blobs
+
+# ── Why DBSCAN shines: non-round clusters ────────────
+# Make moon-shaped clusters (K-Means fails here)
+X, true_labels = make_moons(n_samples=200, noise=0.1, random_state=42)
+
+# Step 1: Always scale first
+X = StandardScaler().fit_transform(X)
+
+# Step 2: Fit DBSCAN
+db = DBSCAN(
+    eps=0.3,          # neighbourhood radius
+    min_samples=5,    # min points to be a core point
+    metric='euclidean'
+)
+labels = db.fit_predict(X)
+
+# Results
+n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+n_noise    = list(labels).count(-1)
+n_core     = len(db.core_sample_indices_)
+
+print(f"Clusters found:  {n_clusters}  (true: 2)")
+print(f"Noise points:    {n_noise} ({n_noise/len(X)*100:.1f}%)")
+print(f"Core points:     {n_core}")
+print(f"Border points:   {len(X) - n_core - n_noise}")
+print()
+print(f"Label counts: { {l: list(labels).count(l) for l in sorted(set(labels))} }")
+print()
+print("Note: label -1 means NOISE (outlier, not in any cluster)")
+print("      label 0, 1, 2... are cluster IDs")
+`},
+{file:'choose_eps.py', label:'Choosing eps', code:`import numpy as np
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import make_moons
+from sklearn.neighbors import NearestNeighbors
+
+# The k-distance graph helps choose eps.
+# For each point, find its k-th nearest neighbour distance.
+# Plot (sorted) — the elbow is a good eps.
+
+X, _ = make_moons(n_samples=200, noise=0.1, random_state=42)
+X = StandardScaler().fit_transform(X)
+
+min_samples = 5  # choose k = min_samples
+
+# Fit nearest neighbours to get k-distances
+nbrs = NearestNeighbors(n_neighbors=min_samples)
+nbrs.fit(X)
+distances, _ = nbrs.kneighbors(X)
+
+# k-th neighbour distance for each point
+k_distances = np.sort(distances[:, -1])
+
+print("k-distance values (sorted, every 10th):")
+print("Index  k-dist  Interpretation")
+print("-" * 40)
+for i in range(0, len(k_distances), 20):
+    note = ""
+    if 0.15 < k_distances[i] < 0.45:
+        note = "<-- look for elbow here"
+    print(f"{i:>5}  {k_distances[i]:.4f}  {note}")
+
+print()
+print("The 'elbow' in the sorted k-distance plot")
+print("is a good choice for eps.")
+print()
+print("Try eps values around the elbow:")
+for eps in [0.1, 0.2, 0.3, 0.4, 0.5]:
+    db = DBSCAN(eps=eps, min_samples=min_samples).fit(X)
+    k = len(set(db.labels_)) - (1 if -1 in db.labels_ else 0)
+    noise = list(db.labels_).count(-1)
+    print(f"  eps={eps:.1f}: {k} clusters, {noise} noise points")
+`},
+{file:'dbscan_scratch.py', label:'From scratch', code:`import numpy as np
+
+# ── DBSCAN from scratch — simple, readable code ───────
+
+def euclidean(p, q):
+    return np.sqrt(np.sum((p - q)**2))
+
+def get_neighbours(pts, i, eps):
+    """Find all points within eps distance of point i"""
+    neighbours = []
+    for j in range(len(pts)):
+        if euclidean(pts[i], pts[j]) <= eps:
+            neighbours.append(j)
+    return neighbours
+
+def dbscan(pts, eps, min_samples):
+    n = len(pts)
+    labels = [-2] * n   # -2 = unvisited
+
+    # Pre-compute all neighbourhoods
+    neighbourhoods = [get_neighbours(pts, i, eps) for i in range(n)]
+
+    cluster_id = 0
+
+    for i in range(n):
+        if labels[i] != -2:
+            continue  # already visited
+
+        # Check if i is a core point
+        if len(neighbourhoods[i]) < min_samples:
+            labels[i] = -1  # noise
+            continue
+
+        # i is a core point — start a new cluster
+        labels[i] = cluster_id
+        queue = list(neighbourhoods[i])  # BFS queue
+
+        while queue:
+            q = queue.pop(0)
+
+            if labels[q] == -1:
+                labels[q] = cluster_id  # noise -> border
+            if labels[q] != -2:
+                continue  # already assigned
+
+            labels[q] = cluster_id
+
+            # If q is also a core point, expand cluster further
+            if len(neighbourhoods[q]) >= min_samples:
+                for nb in neighbourhoods[q]:
+                    if labels[nb] == -2 or labels[nb] == -1:
+                        queue.append(nb)
+
+        cluster_id += 1
+
+    return labels
+
+# Test on simple 2D data
+np.random.seed(42)
+
+# Create 3 clusters + 5 outliers
+X = np.vstack([
+    np.random.randn(20, 2) + [0, 0],
+    np.random.randn(20, 2) + [5, 5],
+    np.random.randn(20, 2) + [0, 5],
+    np.random.uniform(-2, 8, (5, 2))   # random outliers
+])
+
+# Normalise
+X = (X - X.mean(0)) / X.std(0)
+
+labels = dbscan(X, eps=0.8, min_samples=4)
+
+n_clusters = max(l for l in labels if l >= 0) + 1
+n_noise    = labels.count(-1)
+print(f"Points: {len(X)}")
+print(f"Clusters found: {n_clusters}")
+print(f"Noise points:   {n_noise}")
+print(f"Labels: {labels}")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='Run';
+}
+
+/* ── Init ── */
+window.addEventListener('load',function(){
+  /* Section 2 — eps demo */
+  rseed(42);
+  epsPts = makeDataset('outliers', 0.4, 700, 380);
+  onEpsChange();
+
+  /* Section 3 — animation */
+  resetDBSCAN();
+
+  /* Section 4 — HP tuning */
+  onHPChange();
+
+  /* Section 5 — comparison */
+  drawComparison();
+
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    onEpsChange();drawAnimCanvas(animCurrentPt,[]);onHPChange();drawComparison();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

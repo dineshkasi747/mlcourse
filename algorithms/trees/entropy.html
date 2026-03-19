@@ -1,0 +1,782 @@
+<!-- entropy.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Entropy — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,165,0,0.09),rgba(251,140,64,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(240,165,0,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .coin-zone{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .coin-grid{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+    .coin{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;user-select:none;}
+    .coin.H{background:var(--accent-surface);border-color:var(--accent);color:var(--accent);}
+    .coin.T{background:var(--blue-surf);border-color:var(--blue);color:var(--blue);}
+    .scenario-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    .scenario-card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:all .18s;text-align:center;}
+    .scenario-card.active{border-color:var(--accent);}
+    .scenario-card:hover{border-color:var(--border-hi);}
+    .sc-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .sc-desc{font-size:11px;color:var(--text-3);}
+    .sc-entropy{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--accent);margin-top:6px;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-variable{color:#e2e0d9;}.cm-s-one-dark .cm-property{color:#2dd4bf;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}.CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(240,165,0,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}[data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}[data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--accent);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.scenario-cards{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="entropy">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a></div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Entropy</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Decision Trees</a><span class="sep">/</span>
+            <span class="current">Entropy</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(240,165,0,.3);background:var(--accent-surface);color:var(--accent);margin-bottom:14px;">Decision Trees · Information Theory</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Entropy</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Entropy measures <strong>how much uncertainty</strong> exists in a set of labels.
+              A pure node (all one class) has entropy = 0. A perfectly mixed node has maximum entropy.
+              Decision trees split data to <em>reduce</em> entropy as fast as possible.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">15 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — COIN FLIP -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">?</div>
+              What is entropy? — a coin flip intuition
+            </h2>
+            <p>Entropy answers: <em>"How surprised will I be by the next outcome?"</em> If I flip a fair coin, I'm maximally uncertain — entropy is high. If the coin always lands heads, I'm never surprised — entropy is zero.</p>
+            <p>In decision trees, each node holds a bag of training samples with labels. <strong>High entropy</strong> = labels are mixed. <strong>Low entropy</strong> = labels are mostly one class — confident prediction.</p>
+
+            <div class="coin-zone">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);">Click coins to flip H/T — watch entropy change live</div>
+                <div style="display:flex;gap:8px;">
+                  <button class="ctrl-btn" onclick="setAllCoins('H')">All Heads</button>
+                  <button class="ctrl-btn" onclick="setAllCoins('T')">All Tails</button>
+                  <button class="ctrl-btn" onclick="randomCoins()">Randomise</button>
+                </div>
+              </div>
+              <div class="coin-grid" id="coin-grid"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;">
+                <div style="text-align:center;">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">H count</div>
+                  <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--accent);" id="h-count">5</div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Entropy (bits)</div>
+                  <div style="font-family:var(--font-display);font-size:28px;font-weight:700;" id="coin-entropy">1.000</div>
+                  <div style="font-size:11px;color:var(--text-3);margin-top:2px;" id="coin-interp">Max uncertainty</div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">T count</div>
+                  <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--blue);" id="t-count">5</div>
+                </div>
+              </div>
+            </div>
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Bits of information:</strong> Entropy in bits tells you how many yes/no questions you need on average to identify an outcome. 1 bit = 1 question (fair coin). 0 bits = no questions needed (always heads).</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — ENTROPY CURVE -->
+          <section class="section" id="entropy-curve">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">~</div>
+              The entropy curve — interactive explorer
+            </h2>
+            <p>For a 2-class problem, entropy peaks at 1 bit when p=0.5 and hits 0 at p=0 or p=1. Drag the slider to explore any class mix.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Entropy H(p) = -p·log2(p) - (1-p)·log2(1-p)</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">P(class A):</span>
+                  <input type="range" min="0.01" max="0.99" value="0.5" step="0.01" class="ctrl-slider" id="p-slider" oninput="updateEntropyCurve(this.value)" style="width:120px;"/>
+                  <span class="ctrl-value" id="p-val" style="color:var(--accent);">0.50</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Classes:</span>
+                  <select class="ctrl-select" id="n-classes" onchange="updateEntropyCurve(document.getElementById('p-slider').value)">
+                    <option value="2">2 classes (max 1 bit)</option>
+                    <option value="3">3 classes (max 1.58 bits)</option>
+                    <option value="4">4 classes (max 2 bits)</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="entropy-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="entropy-val" style="color:var(--accent);">1.000</span><span class="stat-pill-lbl">Entropy (bits)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="max-entropy">1.000</span><span class="stat-pill-lbl">Max possible</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="purity-pct">50%</span><span class="stat-pill-lbl">Dominant class</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="surprise-val">1.00</span><span class="stat-pill-lbl">Avg surprise</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — REAL NODE EXAMPLES -->
+          <section class="section" id="scenarios">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">@</div>
+              Real node examples — entropy in decision trees
+            </h2>
+            <p>These are typical node label distributions you would see in a decision tree. Click any card to explore it.</p>
+            <div class="scenario-cards">
+              <div class="scenario-card active" id="sc-0" onclick="selectScenario(0)">
+                <div class="sc-name">Pure node</div>
+                <div class="sc-desc">All same class</div>
+                <div class="sc-entropy" id="sc-ent-0">0.000</div>
+                <div style="font-size:10px;color:var(--green);margin-top:2px;">Perfect split!</div>
+              </div>
+              <div class="scenario-card" id="sc-1" onclick="selectScenario(1)">
+                <div class="sc-name">Mostly pure</div>
+                <div class="sc-desc">90% one class</div>
+                <div class="sc-entropy" id="sc-ent-1">0.469</div>
+                <div style="font-size:10px;color:var(--teal);margin-top:2px;">Near pure</div>
+              </div>
+              <div class="scenario-card" id="sc-2" onclick="selectScenario(2)">
+                <div class="sc-name">Moderate mix</div>
+                <div class="sc-desc">70% one class</div>
+                <div class="sc-entropy" id="sc-ent-2">0.881</div>
+                <div style="font-size:10px;color:var(--orange);margin-top:2px;">Needs splitting</div>
+              </div>
+              <div class="scenario-card" id="sc-3" onclick="selectScenario(3)">
+                <div class="sc-name">Max uncertainty</div>
+                <div class="sc-desc">50% each class</div>
+                <div class="sc-entropy" id="sc-ent-3">1.000</div>
+                <div style="font-size:10px;color:var(--red);margin-top:2px;">Split urgently!</div>
+              </div>
+            </div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="scenario-title">Node: Pure — 100% Class A</span>
+              </div>
+              <canvas id="scenario-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — MULTI-CLASS -->
+          <section class="section" id="multiclass-entropy">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">K</div>
+              Multi-class entropy — drag each class proportion
+            </h2>
+            <p>With K classes, max entropy = log2(K) bits. Drag sliders to explore any class distribution and see how entropy responds.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Multi-class entropy calculator</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Classes K:</span>
+                  <input type="range" min="2" max="8" value="3" step="1" class="ctrl-slider" id="k-slider" oninput="updateKClasses(this.value)" style="width:80px;"/>
+                  <span class="ctrl-value" id="k-val">3</span>
+                </div>
+              </div>
+              <div style="padding:16px 18px;" id="class-sliders"></div>
+              <canvas id="multiclass-canvas" width="700" height="180" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="mc-entropy" style="color:var(--accent);">—</span><span class="stat-pill-lbl">Entropy (bits)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mc-max">—</span><span class="stat-pill-lbl">Max (log2K)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mc-pct">—</span><span class="stat-pill-lbl">% of max</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — MATH -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">S</div>
+              The formula — where does -p·log2(p) come from?
+            </h2>
+            <p>The entropy formula comes from information theory. Each term -pi·log2(pi) is the <em>expected surprise</em> of class i.</p>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 var(--r-md) var(--r-md) 0;padding:16px 20px;margin-bottom:18px;">
+              <div style="font-family:var(--font-mono);font-size:15px;color:var(--text-1);text-align:center;margin-bottom:10px;">H(S) = -Sum_i  p_i * log2(p_i)</div>
+              <ul style="color:var(--text-2);font-size:13.5px;line-height:1.8;">
+                <li><strong>p_i</strong> = proportion of class i in node S</li>
+                <li><strong>log2(p_i)</strong> = how many bits to encode this class (negative for p less than 1)</li>
+                <li><strong>-p_i * log2(p_i)</strong> = expected surprise for class i (0 when p=0 or p=1)</li>
+                <li><strong>Sum over all classes</strong> = total average surprise in the node</li>
+              </ul>
+            </div>
+            <div class="callout success">
+              <span class="callout-icon">ok</span>
+              <p><strong>Why log2?</strong> Because we measure information in bits. 1 bit = 1 yes/no question. A fair coin flip gives exactly 1 bit of information. A 4-sided die gives log2(4) = 2 bits. Using log2 makes the numbers intuitive.</p>
+            </div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Formula breakdown — each term -pi*log2(pi) visualised</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Node distribution:</span>
+                  <input type="range" min="0.01" max="0.99" value="0.6" step="0.01" class="ctrl-slider" id="formula-p" oninput="updateFormulaBreakdown(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="formula-p-val" style="color:var(--accent);">0.60</span>
+                </div>
+              </div>
+              <canvas id="formula-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Two programs — entropy from scratch and entropy used inside a real decision tree.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">entropy.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Entropy measures <strong>impurity and uncertainty</strong> in a node. 0 = pure, log2(K) = maximum disorder for K classes.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Formula: H = -Sum pi*log2(pi). Each term is the expected information content of that class.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Decision trees use entropy to choose splits — pick the feature+threshold that maximises <strong>Information Gain</strong> (reduction in entropy after the split).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Binary entropy max = 1 bit. Multi-class entropy max = log2(K) bits.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Entropy and Gini impurity give very similar results. Entropy is ~2x slower to compute but may give slightly more balanced splits.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="../../phase5-feature-selection/pca.html"><span class="pn-dir">Previous</span><span class="pn-title">PCA</span></a>
+            <a class="pn-card next" id="next-card" href="information-gain.html"><span class="pn-dir">Next</span><span class="pn-title">Information Gain</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Coin flip intuition</a></li>
+            <li class="toc-item"><a href="#entropy-curve">Entropy curve</a></li>
+            <li class="toc-item"><a href="#scenarios">Real node examples</a></li>
+            <li class="toc-item"><a href="#multiclass-entropy">Multi-class entropy</a></li>
+            <li class="toc-item"><a href="#math">The formula</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+
+function entropyBinary(p){
+  if(p<=0||p>=1) return 0;
+  return -(p*Math.log2(p)+(1-p)*Math.log2(1-p));
+}
+function entropyMulti(probs){
+  return probs.reduce(function(s,p){return s+(p>0?-p*Math.log2(p):0);},0);
+}
+
+/* ── COINS ── */
+var coins=[];
+for(var i=0;i<10;i++) coins.push(Math.random()<0.5?'H':'T');
+
+function renderCoins(){
+  var grid=C('coin-grid');
+  grid.innerHTML=coins.map(function(c,i){
+    return '<div class="coin '+c+'" onclick="flipCoin('+i+')">'+c+'</div>';
+  }).join('');
+  updateCoinStats();
+}
+function flipCoin(i){coins[i]=coins[i]==='H'?'T':'H';renderCoins();}
+function setAllCoins(v){for(var i=0;i<coins.length;i++)coins[i]=v;renderCoins();}
+function randomCoins(){for(var i=0;i<coins.length;i++)coins[i]=Math.random()<0.5?'H':'T';renderCoins();}
+function updateCoinStats(){
+  var h=0;coins.forEach(function(c){if(c==='H')h++;});
+  var t=coins.length-h;
+  var p=h/coins.length;
+  var ent=entropyBinary(p);
+  C('h-count').textContent=h;
+  C('t-count').textContent=t;
+  C('coin-entropy').textContent=ent.toFixed(3);
+  var color=ent>0.8?'#f06060':ent>0.4?'var(--orange)':'var(--green)';
+  C('coin-entropy').style.color=color;
+  C('coin-interp').textContent=ent>0.95?'Max uncertainty':ent>0.7?'High uncertainty':ent>0.3?'Moderate':ent>0.05?'Near pure':'Pure!';
+}
+
+/* ── ENTROPY CURVE ── */
+function updateEntropyCurve(p){
+  p=parseFloat(p);
+  C('p-val').textContent=p.toFixed(2);
+  var nC=parseInt(C('n-classes').value);
+  var maxH=Math.log2(nC);
+  var ent;
+  if(nC===2){
+    ent=entropyBinary(p);
+  } else {
+    var rem=(1-p)/(nC-1);
+    var probs=[p];
+    for(var i=1;i<nC;i++) probs.push(rem);
+    ent=entropyMulti(probs);
+  }
+  C('entropy-val').textContent=ent.toFixed(3);
+  C('max-entropy').textContent=maxH.toFixed(3);
+  C('purity-pct').textContent=(Math.max(p,1-p)*100).toFixed(0)+'%';
+  C('surprise-val').textContent=ent.toFixed(2);
+  drawEntropyCurve(p,nC);
+}
+
+function drawEntropyCurve(curP,nC){
+  var cv=C('entropy-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var maxH=Math.log2(nC);
+  var toX=function(p){return p*(W-pad.l-pad.r)+pad.l;};
+  var toY=function(v){return (1-v/maxH)*(H-pad.t-pad.b)+pad.t;};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.2,.4,.6,.8,1].forEach(function(x){
+    ctx.beginPath();ctx.moveTo(toX(x),pad.t);ctx.lineTo(toX(x),H-pad.b);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(x.toFixed(1),toX(x),H-pad.b+14);
+  });
+  [0,0.5,1].forEach(function(v){
+    var y=toY(v*maxH);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText((v*maxH).toFixed(2),pad.l-4,y+4);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('P(class A)',W/2,H-4);
+
+  var steps=[];
+  for(var p=0.002;p<=0.998;p+=0.005) steps.push(p);
+
+  // area under curve
+  ctx.beginPath();
+  steps.forEach(function(p,i){
+    var e=nC===2?entropyBinary(p):entropyMulti([p].concat(new Array(nC-1).fill((1-p)/(nC-1))));
+    i===0?ctx.moveTo(toX(p),toY(e)):ctx.lineTo(toX(p),toY(e));
+  });
+  ctx.lineTo(toX(0.998),toY(0));ctx.lineTo(toX(0.002),toY(0));ctx.closePath();
+  ctx.fillStyle='rgba(240,165,0,0.08)';ctx.fill();
+
+  // curve line
+  ctx.beginPath();
+  steps.forEach(function(p,i){
+    var e=nC===2?entropyBinary(p):entropyMulti([p].concat(new Array(nC-1).fill((1-p)/(nC-1))));
+    i===0?ctx.moveTo(toX(p),toY(e)):ctx.lineTo(toX(p),toY(e));
+  });
+  ctx.strokeStyle='#f0a500';ctx.lineWidth=2.5;ctx.stroke();
+
+  // current point
+  var curE=nC===2?entropyBinary(curP):entropyMulti([curP].concat(new Array(nC-1).fill((1-curP)/(nC-1))));
+  ctx.beginPath();ctx.moveTo(toX(curP),pad.t);ctx.lineTo(toX(curP),H-pad.b);
+  ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.arc(toX(curP),toY(curE),7,0,Math.PI*2);
+  ctx.fillStyle='#f0a500';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#f0a500';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('H='+curE.toFixed(3),toX(curP),toY(curE)-12);
+  ctx.textAlign='start';
+}
+
+/* ── SCENARIOS ── */
+var SCENARIOS=[
+  {name:'Pure node',desc:'100% Class A',probs:[1,0]},
+  {name:'Mostly pure',desc:'90% A 10% B',probs:[0.9,0.1]},
+  {name:'Moderate mix',desc:'70% A 30% B',probs:[0.7,0.3]},
+  {name:'Max uncertainty',desc:'50/50 each',probs:[0.5,0.5]},
+];
+var curScenario=0;
+SCENARIOS.forEach(function(s,i){
+  var probs=s.probs.filter(function(p){return p>0;});
+  C('sc-ent-'+i).textContent=entropyMulti(probs).toFixed(3);
+});
+
+function selectScenario(i){
+  curScenario=i;
+  SCENARIOS.forEach(function(_,j){C('sc-'+j).classList.toggle('active',j===i);});
+  C('scenario-title').textContent='Node: '+SCENARIOS[i].name+' — '+SCENARIOS[i].desc;
+  drawScenario();
+}
+
+function drawScenario(){
+  var cv=C('scenario-canvas'),ctx=cv.getContext('2d');
+  var s=SCENARIOS[curScenario];
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var probs=s.probs.filter(function(p){return p>0;});
+  var ent=entropyMulti(probs);
+  var cols=['#4b96ff','#f06060','#3ecf8e'];
+  var n=20;
+  var pts=[];
+  s.probs.forEach(function(p,ci){
+    var c=Math.round(p*n);
+    for(var i=0;i<c;i++) pts.push(ci);
+  });
+  pts.sort(function(){return Math.random()-0.5;});
+  var r=15,spacing=34,perRow=Math.floor((W-40)/spacing);
+  pts.slice(0,n).forEach(function(cls,i){
+    var row=Math.floor(i/perRow),col=i%perRow;
+    var x=20+col*spacing+r,y=28+row*48;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=cols[cls]+'35';ctx.fill();
+    ctx.strokeStyle=cols[cls];ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=cols[cls];ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(cls===0?'A':'B',x,y+4);
+  });
+  var bY=H-46,bX=40,bW=W-80;
+  ctx.fillStyle=bgIn();ctx.fillRect(bX,bY,bW,20);
+  ctx.fillStyle=ent>0.8?'#f06060':ent>0.4?'var(--orange)':'var(--green)';
+  ctx.fillRect(bX,bY,bW*ent,20);
+  ctx.fillStyle=tc();ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Entropy = '+ent.toFixed(3)+' bits',W/2,bY+14);
+  ctx.textAlign='start';
+}
+
+/* ── MULTI-CLASS ── */
+var kClasses=3;
+var classWeights=[33,33,34];
+
+function updateKClasses(k){
+  kClasses=parseInt(k);C('k-val').textContent=k;
+  classWeights=[];
+  for(var i=0;i<kClasses;i++) classWeights.push(Math.floor(100/kClasses));
+  classWeights[kClasses-1]=100-classWeights.slice(0,-1).reduce(function(a,b){return a+b;},0);
+  buildClassSliders();drawMulticlass();
+}
+
+function buildClassSliders(){
+  var colors=['#4b96ff','#f06060','#3ecf8e','#fb8c40','#a78bfa','#2dd4bf','#f0a500','#e879f9'];
+  var html='';
+  for(var i=0;i<kClasses;i++){
+    html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+      +'<span style="width:60px;font-size:12px;color:'+colors[i]+';">Class '+(i+1)+'</span>'
+      +'<input type="range" min="0" max="100" value="'+classWeights[i]+'" class="ctrl-slider" style="flex:1;" oninput="updateClassWeight('+i+',this.value)"/>'
+      +'<span style="font-family:var(--font-mono);font-size:12px;color:'+colors[i]+';min-width:36px;" id="cw-'+i+'">'+classWeights[i]+'%</span>'
+      +'</div>';
+  }
+  C('class-sliders').innerHTML=html;
+}
+
+function updateClassWeight(i,v){
+  classWeights[i]=parseInt(v);
+  C('cw-'+i).textContent=v+'%';
+  drawMulticlass();
+}
+
+function drawMulticlass(){
+  var total=classWeights.reduce(function(a,b){return a+b;},0)||1;
+  var probs=classWeights.map(function(w){return w/total;});
+  var ent=entropyMulti(probs);
+  var maxH=Math.log2(kClasses);
+  C('mc-entropy').textContent=ent.toFixed(3);
+  C('mc-max').textContent=maxH.toFixed(3);
+  C('mc-pct').textContent=(ent/maxH*100).toFixed(0)+'%';
+
+  var cv=C('multiclass-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad=30;
+  var colors=['#4b96ff','#f06060','#3ecf8e','#fb8c40','#a78bfa','#2dd4bf','#f0a500','#e879f9'];
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var bw=(W-2*pad)/kClasses;
+  for(var i=0;i<probs.length;i++){
+    var p=probs[i];
+    var bH=Math.max(4,p*(H-2*pad-30));
+    ctx.fillStyle=colors[i]+'25';ctx.fillRect(pad+i*bw+4,pad,bw-8,H-2*pad-30);
+    ctx.fillStyle=colors[i];ctx.fillRect(pad+i*bw+4,pad+H-2*pad-30-bH,bw-8,bH);
+    ctx.fillStyle=colors[i];ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText((p*100).toFixed(0)+'%',pad+i*bw+bw/2,pad+H-2*pad-30-bH-5);
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';
+    ctx.fillText('C'+(i+1),pad+i*bw+bw/2,H-pad-14);
+  }
+  // entropy bar
+  ctx.fillStyle=bgIn();ctx.fillRect(pad,H-pad-12,W-2*pad,12);
+  ctx.fillStyle=ent/maxH>0.8?'#f06060':ent/maxH>0.5?'var(--orange)':'var(--green)';
+  ctx.fillRect(pad,H-pad-12,(W-2*pad)*ent/maxH,12);
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='right';
+  ctx.fillText('H='+ent.toFixed(3)+' bits',W-pad-4,H-pad-15);
+  ctx.textAlign='start';
+}
+
+/* ── FORMULA BREAKDOWN ── */
+function updateFormulaBreakdown(p){
+  p=parseFloat(p);C('formula-p-val').textContent=p.toFixed(2);
+  var q=1-p;
+  var termA=p>0?-p*Math.log2(p):0;
+  var termB=q>0?-q*Math.log2(q):0;
+  var ent=termA+termB;
+  var cv=C('formula-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:40,r:20,t:25,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var classes=[{label:'Class A',prob:p,term:termA,col:'#4b96ff'},{label:'Class B',prob:q,term:termB,col:'#f06060'}];
+  var maxBar=H-pad.t-pad.b-40;
+  var bw=(W-pad.l-pad.r)/classes.length-20;
+
+  classes.forEach(function(cls,i){
+    var x=pad.l+i*(bw+20);
+    var probH=Math.max(4,cls.prob*maxBar);
+    ctx.fillStyle=cls.col+'20';ctx.fillRect(x,pad.t,bw,maxBar);
+    ctx.fillStyle=cls.col+'50';ctx.fillRect(x,pad.t+maxBar-probH,bw,probH);
+    var termH=Math.max(4,cls.term/0.53*maxBar);
+    ctx.fillStyle=cls.col;ctx.fillRect(x+bw/4,pad.t+maxBar-termH,bw/2,termH);
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(cls.label+' p='+cls.prob.toFixed(2),x+bw/2,H-pad.b+14);
+    ctx.fillStyle=cls.col;ctx.font='bold 11px sans-serif';
+    ctx.fillText('-p*log2(p)='+cls.term.toFixed(3),x+bw/2,pad.t+maxBar-termH-6);
+  });
+  ctx.fillStyle=tc();ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+  ctx.fillText('H = '+termA.toFixed(3)+' + '+termB.toFixed(3)+' = '+ent.toFixed(3)+' bits',W/2,H-4);
+  ctx.textAlign='start';
+}
+
+/* ── EDITOR ── */
+var SNIPPETS=[
+{file:'entropy.py',label:'Entropy basics',code:`import numpy as np
+
+def entropy(probs):
+    """Shannon entropy in bits."""
+    probs = np.array(probs, dtype=float)
+    probs = probs[probs > 0]   # ignore zero-prob classes
+    return -np.sum(probs * np.log2(probs))
+
+def entropy_from_counts(counts):
+    """Entropy from raw class counts (no normalisation needed)."""
+    counts = np.array(counts, dtype=float)
+    n = counts.sum()
+    probs = counts[counts > 0] / n
+    return -np.sum(probs * np.log2(probs))
+
+# ── Binary entropy ──────────────────────────────────
+print("Binary entropy H(p) for various p values:")
+for p in [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]:
+    q = 1 - p
+    h = entropy([p, q]) if 0 < p < 1 else 0.0
+    bar = 'X' * int(h * 25)
+    print(f"  p={p:.1f}  H={h:.4f} bits  {bar}")
+
+# ── Multi-class entropy ─────────────────────────────
+print()
+print("Multi-class entropy (max = log2(K) bits):")
+scenarios = {
+    "2 classes equal   ": [0.5, 0.5],
+    "3 classes equal   ": [1/3, 1/3, 1/3],
+    "3 classes 80/10/10": [0.8, 0.1, 0.1],
+    "4 classes equal   ": [0.25]*4,
+    "4 classes 97/1/1/1": [0.97, 0.01, 0.01, 0.01],
+}
+for name, probs in scenarios.items():
+    h = entropy(probs)
+    max_h = np.log2(len(probs))
+    print(f"  {name}  H={h:.4f}  max={max_h:.4f}  ({h/max_h*100:.0f}% of max)")
+
+# ── Real decision tree node ─────────────────────────
+print()
+print("Real decision tree node examples:")
+nodes = {
+    "Root (Iris)    ": [50, 50, 50],
+    "After 1st split": [50, 0, 0],
+    "Mixed leaf     ": [45, 4, 1],
+    "Pure leaf      ": [0, 48, 0],
+}
+for name, counts in nodes.items():
+    h = entropy_from_counts(counts)
+    total = sum(counts)
+    print(f"  {name}  counts={counts}  H={h:.4f}")
+`},
+{file:'entropy_tree.py',label:'Entropy in sklearn trees',code:`from sklearn.tree import DecisionTreeClassifier
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+iris = load_iris()
+X, y = iris.data, iris.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Compare criterion: gini vs entropy vs log_loss
+print(f"{'criterion':<12} {'depth':>5} {'nodes':>6} {'train':>7} {'test':>7}")
+print("-" * 46)
+for crit in ['gini', 'entropy', 'log_loss']:
+    for max_d in [2, 3, 5, None]:
+        dt = DecisionTreeClassifier(
+            criterion=crit, max_depth=max_d, random_state=42)
+        dt.fit(X_train, y_train)
+        tr = dt.score(X_train, y_train)
+        te = dt.score(X_test, y_test)
+        d = dt.get_depth()
+        n = dt.tree_.node_count
+        print(f"{crit:<12} {str(max_d):>5} {n:>6} {tr:>7.2%} {te:>7.2%}")
+    print()
+
+print("Verdict: gini and entropy produce nearly identical trees.")
+print("entropy is ~2x slower due to logarithm computation.")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      C('py-status').textContent='Python ready';C('py-status').className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    out.textContent=pyodide.runPython('_b.getvalue()')||'(no output)';
+    out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+window.addEventListener('load',function(){
+  renderCoins();
+  updateEntropyCurve(0.5);
+  selectScenario(0);
+  updateKClasses(3);
+  updateFormulaBreakdown(0.6);
+
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawEntropyCurve(parseFloat(C('p-slider').value),parseInt(C('n-classes').value));
+    drawScenario();drawMulticlass();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

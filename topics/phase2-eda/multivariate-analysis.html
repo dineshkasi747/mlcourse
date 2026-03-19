@@ -1,0 +1,1215 @@
+<!-- multivariate-analysis.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multivariate Analysis — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(167,139,250,0.09),rgba(75,150,255,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(167,139,250,0.1) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--purple);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    /* feature importance bars */
+    .fi-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .fi-bar-label{width:120px;font-size:12.5px;color:var(--text-2);text-align:right;flex-shrink:0;}
+    .fi-bar-track{flex:1;height:22px;background:var(--bg-input);border-radius:3px;overflow:hidden;}
+    .fi-bar-fill{height:100%;border-radius:3px;transition:width .5s ease;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;}
+    .fi-bar-val{width:50px;font-family:var(--font-mono);font-size:11.5px;color:var(--text-1);text-align:right;flex-shrink:0;}
+  </style>
+</head>
+<body data-topic-id="multivariate-analysis">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Multivariate Analysis</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">EDA</a><span class="sep">/</span>
+            <span class="current">Multivariate Analysis</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-2" style="border-color:rgba(167,139,250,.25);margin-bottom:14px;">Phase 2 &middot; EDA</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Multivariate Analysis</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Analyse three or more variables simultaneously. Discover hidden patterns, detect multicollinearity, reduce dimensions, and find which features matter most — before touching any model.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">25 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">pandas &middot; numpy &middot; sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: LIVE CORRELATION HEATMAP -->
+          <section class="section" id="corr-heatmap">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">r</div>
+              Correlation heatmap &mdash; interactive
+            </h2>
+            <p>The full pairwise correlation matrix. <strong>Click any cell</strong> to highlight that feature pair and see the exact r value. Drag the threshold slider to mask weak correlations and see the strong ones clearly.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Pairwise correlation matrix</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="hm-dataset" onchange="buildCorrMatrix()">
+                    <option value="housing">House prices</option>
+                    <option value="health">Health metrics</option>
+                    <option value="finance">Finance features</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Hide |r| &lt;</span>
+                  <input type="range" min="0" max="90" value="0" class="ctrl-slider" id="corr-thresh" style="width:90px;" oninput="drawCorrHeatmap()"/>
+                  <span class="ctrl-value" id="corr-thresh-val" style="color:var(--purple);">0.0</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Method:</span>
+                  <select class="ctrl-select" id="corr-method" onchange="buildCorrMatrix()">
+                    <option value="pearson">Pearson</option>
+                    <option value="spearman">Spearman</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="heatmap-canvas" width="700" height="380" style="width:100%;display:block;cursor:pointer;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-selected" style="font-size:12px;color:var(--purple);">Click a cell</span><span class="stat-pill-lbl">Selected pair</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-r-val">--</span><span class="stat-pill-lbl">Correlation r</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-high-pos" style="color:var(--green);">--</span><span class="stat-pill-lbl">Highest positive</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-high-neg" style="color:var(--red);">--</span><span class="stat-pill-lbl">Highest negative</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hm-multi" style="color:var(--orange);">--</span><span class="stat-pill-lbl">Multicollinear pairs</span></div>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">!</span>
+              <p><strong>Multicollinearity alert:</strong> If two features have |r| &gt; 0.85, they carry nearly the same information. Including both in a linear model inflates standard errors and makes coefficients unreliable. Drop one or use PCA/Ridge regression.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: PARALLEL COORDINATES -->
+          <section class="section" id="parallel-coords">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">|</div>
+              Parallel coordinates &mdash; all features at once
+            </h2>
+            <p>Each vertical axis is one feature. Each line is one data point. Lines that cross between axes suggest negative correlation. Parallel lines suggest positive correlation. <strong>Colour = class label.</strong></p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Parallel coordinates plot</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="pc-dataset" onchange="drawParallelCoords()">
+                    <option value="iris">Iris (3 classes)</option>
+                    <option value="wine">Wine quality</option>
+                    <option value="customers">Customer segments</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Opacity:</span>
+                  <input type="range" min="5" max="80" value="30" class="ctrl-slider" id="pc-opacity" style="width:80px;" oninput="drawParallelCoords()"/>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Highlight class:</span>
+                  <select class="ctrl-select" id="pc-highlight" onchange="drawParallelCoords()">
+                    <option value="-1">All</option>
+                    <option value="0">Class 0</option>
+                    <option value="1">Class 1</option>
+                    <option value="2">Class 2</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="pc-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="pc-n">--</span><span class="stat-pill-lbl">Data points</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pc-features">--</span><span class="stat-pill-lbl">Features</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pc-classes">--</span><span class="stat-pill-lbl">Classes</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pc-sep" style="font-size:12px;">--</span><span class="stat-pill-lbl">Class separation</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: PCA EXPLORER -->
+          <section class="section" id="pca-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">PC</div>
+              PCA &mdash; reduce to 2D and see the structure
+            </h2>
+            <p>Principal Component Analysis projects high-dimensional data onto the directions of maximum variance. Drag the <strong>noise slider</strong> to see how PCA separates clean vs noisy clusters.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">PCA 2D projection</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="pca-dataset" onchange="runPCA()">
+                    <option value="blobs">Gaussian blobs</option>
+                    <option value="moons">Two moons</option>
+                    <option value="mixed">Mixed clusters</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Noise:</span>
+                  <input type="range" min="0" max="100" value="20" class="ctrl-slider" id="pca-noise" style="width:80px;" oninput="runPCA()"/>
+                  <span class="ctrl-value" id="pca-noise-val" style="color:var(--teal);">20%</span>
+                </div>
+                <button class="ctrl-btn active" onclick="runPCA()">Rerun PCA</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <canvas id="pca-raw-canvas" width="350" height="280" style="width:100%;display:block;border-right:1px solid var(--border);"></canvas>
+                <canvas id="pca-proj-canvas" width="350" height="280" style="width:100%;display:block;"></canvas>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="pca-var1" style="color:var(--teal);">--</span><span class="stat-pill-lbl">PC1 variance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pca-var2" style="color:var(--blue);">--</span><span class="stat-pill-lbl">PC2 variance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pca-total">--</span><span class="stat-pill-lbl">Total explained</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pca-dims">--</span><span class="stat-pill-lbl">Input dims</span></div>
+              </div>
+            </div>
+
+            <!-- Scree plot -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title">Scree plot &mdash; explained variance per component</span>
+                <span style="font-size:12px;color:var(--text-3);">The "elbow" shows where adding more components gives diminishing returns</span>
+              </div>
+              <canvas id="scree-canvas" width="700" height="200" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 4: FEATURE IMPORTANCE -->
+          <section class="section" id="feature-importance">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">FI</div>
+              Feature importance &mdash; what actually matters?
+            </h2>
+            <p>Three methods to rank feature importance. Select a dataset and method — the ranking updates instantly. Notice how different methods can give completely different rankings.</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Settings</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <div class="ctrl-group">
+                    <span class="ctrl-label">Dataset:</span>
+                    <select class="ctrl-select" id="fi-dataset" onchange="drawFeatureImportance()">
+                      <option value="house">House price</option>
+                      <option value="churn">Customer churn</option>
+                      <option value="health">Health risk</option>
+                    </select>
+                  </div>
+                  <div class="ctrl-group">
+                    <span class="ctrl-label">Method:</span>
+                    <select class="ctrl-select" id="fi-method" onchange="drawFeatureImportance()">
+                      <option value="correlation">Correlation with target</option>
+                      <option value="mutual_info">Mutual information</option>
+                      <option value="rf">Random forest importance</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Method comparison</div>
+                <div style="font-size:12.5px;color:var(--text-2);line-height:1.7;">
+                  <div><strong style="color:var(--blue);">Correlation:</strong> Fast but only linear, misses complex interactions</div>
+                  <div><strong style="color:var(--green);">Mutual info:</strong> Captures non-linear, but slow on large data</div>
+                  <div><strong style="color:var(--orange);">RF importance:</strong> Captures interactions, but biased to high-cardinality features</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="fi-bars-container" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:18px;">
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:14px;" id="fi-title">Feature importance ranking</div>
+              <div id="fi-bars"></div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: MULTICOLLINEARITY DETECTOR -->
+          <section class="section" id="multicollinearity">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">VIF</div>
+              Multicollinearity detector &mdash; VIF explorer
+            </h2>
+            <p>Variance Inflation Factor (VIF) measures how much a feature's variance is inflated by correlation with other features. VIF &gt; 10 = severe multicollinearity. Drag the correlation slider to see VIF spike.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">VIF vs feature correlation</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Correlation between F1 &amp; F2:</span>
+                  <input type="range" min="0" max="99" value="50" class="ctrl-slider" id="vif-corr" style="width:120px;" oninput="updateVIF(this.value)"/>
+                  <span class="ctrl-value" id="vif-corr-val" style="color:var(--red);">r = 0.50</span>
+                </div>
+              </div>
+              <canvas id="vif-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="vif-f1" style="color:var(--blue);">--</span><span class="stat-pill-lbl">VIF of F1</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="vif-f2" style="color:var(--red);">--</span><span class="stat-pill-lbl">VIF of F2</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="vif-r2" style="color:var(--purple);">--</span><span class="stat-pill-lbl">R&sup2; between F1&amp;F2</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="vif-verdict" style="font-size:12px;">--</span><span class="stat-pill-lbl">Severity</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: correlation matrix + heatmap, PCA from scratch, feature selection, and VIF multicollinearity check.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">multivariate_corr.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Including highly correlated features in linear models.</strong> When |r| &gt; 0.85 between two features, the coefficients become unstable. The model cannot distinguish their individual effects. Use VIF to detect this.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not scaling before PCA.</strong> PCA finds directions of maximum variance. If income (0-100000) and age (0-100) are both in the data, PCA will be dominated by income. Always StandardScale before PCA.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using correlation for feature selection with tree models.</strong> Correlation only captures linear relationships. Tree-based models (RF, XGBoost) can use non-linear features. Use mutual information or permutation importance instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Dropping features based on low correlation with target alone.</strong> A feature with r=0.05 with the target might still be important in combination with other features (interaction effects). Use model-based feature importance, not just correlation.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Choosing n_components for PCA without a scree plot.</strong> Always plot the cumulative explained variance. Pick the number of components where the curve bends (the elbow) or where cumulative variance exceeds 90-95%.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Correlation heatmap: spot multicollinearity (|r| &gt; 0.85) and which features correlate with the target.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Parallel coordinates: visualise all features at once, coloured by class — reveals separability and patterns.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always StandardScale before PCA. Choose n_components via the scree plot elbow or 90% cumulative variance.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>VIF &gt; 10 = severe multicollinearity. Drop one of the correlated features or use Ridge/PCA regression.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use multiple feature importance methods — correlation, mutual information, and model-based importance can give very different rankings.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Multivariate EDA is about finding structure before modelling — do not skip it even under time pressure.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="bivariate-analysis.html"><span class="pn-dir">Previous</span><span class="pn-title">Bivariate Analysis</span></a>
+            <a class="pn-card next" id="next-card" href="pandas-profiling.html"><span class="pn-dir">Next</span><span class="pn-title">Pandas Profiling</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#corr-heatmap">Correlation heatmap</a></li>
+            <li class="toc-item"><a href="#parallel-coords">Parallel coordinates</a></li>
+            <li class="toc-item"><a href="#pca-explorer">PCA explorer</a></li>
+            <li class="toc-item"><a href="#feature-importance">Feature importance</a></li>
+            <li class="toc-item"><a href="#multicollinearity">VIF detector</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function normalRand(mu,sigma){
+  var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return (mu||0)+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function seededRng(seed){return function(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;};}
+
+/* ══════════════════════════════════════
+   SECTION 1: CORRELATION HEATMAP
+══════════════════════════════════════ */
+var HM=C('heatmap-canvas'),HX=HM.getContext('2d');
+var corrMatrix=null, corrFeatures=null, selectedCell=null;
+
+var HM_DATASETS={
+  housing:{
+    features:['Size','Rooms','Age','Distance','Income','Crime','Schools','Price'],
+    // Simulated correlation matrix
+    corr:function(){
+      return [
+        [1.00, 0.82, -0.35, -0.48, 0.61, -0.52, 0.38, 0.78],
+        [0.82, 1.00, -0.22, -0.31, 0.44, -0.38, 0.29, 0.71],
+        [-0.35,-0.22, 1.00, 0.18,-0.28, 0.22,-0.19,-0.41],
+        [-0.48,-0.31, 0.18, 1.00,-0.55, 0.64,-0.72,-0.62],
+        [0.61, 0.44,-0.28,-0.55, 1.00,-0.71, 0.58, 0.69],
+        [-0.52,-0.38, 0.22, 0.64,-0.71, 1.00,-0.63,-0.68],
+        [0.38, 0.29,-0.19,-0.72, 0.58,-0.63, 1.00, 0.55],
+        [0.78, 0.71,-0.41,-0.62, 0.69,-0.68, 0.55, 1.00]
+      ];
+    }
+  },
+  health:{
+    features:['Age','BMI','BP','Glucose','Insulin','Skin','Pregnancies','Diabetes'],
+    corr:function(){
+      return [
+        [1.00, 0.18, 0.32, 0.26, 0.08, 0.12, 0.54, 0.24],
+        [0.18, 1.00, 0.28, 0.22, 0.20, 0.39, 0.01, 0.29],
+        [0.32, 0.28, 1.00, 0.15, 0.09, 0.21, 0.19, 0.17],
+        [0.26, 0.22, 0.15, 1.00, 0.33, 0.23, 0.13, 0.47],
+        [0.08, 0.20, 0.09, 0.33, 1.00, 0.44, 0.02, 0.13],
+        [0.12, 0.39, 0.21, 0.23, 0.44, 1.00, 0.08, 0.07],
+        [0.54, 0.01, 0.19, 0.13, 0.02, 0.08, 1.00, 0.22],
+        [0.24, 0.29, 0.17, 0.47, 0.13, 0.07, 0.22, 1.00]
+      ];
+    }
+  },
+  finance:{
+    features:['Revenue','Profit','Assets','Debt','PE_ratio','Volatility','MarketCap','Return'],
+    corr:function(){
+      return [
+        [1.00, 0.88, 0.92, 0.71,-0.18,-0.35, 0.89, 0.42],
+        [0.88, 1.00, 0.79, 0.52,-0.31,-0.44, 0.82, 0.58],
+        [0.92, 0.79, 1.00, 0.83,-0.22,-0.28, 0.94, 0.31],
+        [0.71, 0.52, 0.83, 1.00,-0.09,-0.15, 0.77, 0.08],
+        [-0.18,-0.31,-0.22,-0.09, 1.00, 0.38,-0.25, 0.29],
+        [-0.35,-0.44,-0.28,-0.15, 0.38, 1.00,-0.31,-0.52],
+        [0.89, 0.82, 0.94, 0.77,-0.25,-0.31, 1.00, 0.38],
+        [0.42, 0.58, 0.31, 0.08, 0.29,-0.52, 0.38, 1.00]
+      ];
+    }
+  }
+};
+
+function buildCorrMatrix(){
+  var key=C('hm-dataset').value;
+  var ds=HM_DATASETS[key];
+  corrFeatures=ds.features;
+  corrMatrix=ds.corr();
+  drawCorrHeatmap();
+}
+
+function drawCorrHeatmap(){
+  var thresh=parseInt(C('corr-thresh').value)/100;
+  C('corr-thresh-val').textContent=thresh.toFixed(1);
+  if(!corrMatrix)return;
+
+  var n=corrFeatures.length;
+  var W=HM.width,H=HM.height;
+  var lblW=70,lblH=70,pad=10;
+  var cw=(W-lblW-pad)/n,ch=(H-lblH-pad)/n;
+
+  HX.clearRect(0,0,W,H);HX.fillStyle=bg();HX.fillRect(0,0,W,H);
+
+  // Feature labels top + left
+  corrFeatures.forEach(function(f,i){
+    HX.fillStyle=tc();HX.font='11px sans-serif';
+    HX.textAlign='center';HX.fillText(f,lblW+i*cw+cw/2,lblH-8);
+    HX.save();HX.translate(lblW-8,lblH+i*ch+ch/2);HX.rotate(-Math.PI/2);
+    HX.textAlign='center';HX.fillText(f,0,0);HX.restore();
+  });
+
+  // Cells
+  var highPos=-1,highNeg=1,highPosI=-1,highPosJ=-1,highNegI=-1,highNegJ=-1;
+  var multiCount=0;
+
+  corrMatrix.forEach(function(row,i){
+    row.forEach(function(r,j){
+      var x=lblW+j*cw,y=lblH+i*ch;
+      var isSelected=selectedCell&&selectedCell[0]===i&&selectedCell[1]===j;
+      var isDiag=i===j;
+
+      if(isDiag){
+        HX.fillStyle=isDark()?'rgba(167,139,250,0.3)':'rgba(167,139,250,0.2)';
+        HX.fillRect(x+1,y+1,cw-2,ch-2);
+      } else {
+        var show=Math.abs(r)>=thresh;
+        var intensity=Math.abs(r);
+        var r2b=r>0?Math.round(isDark()?intensity*60:220-intensity*120):Math.round(isDark()?60+intensity*40:220-intensity*20);
+        var g2b=r>0?Math.round(isDark()?40+intensity*100:200-intensity*80):Math.round(isDark()?intensity*20:200-intensity*60);
+        var b2b=r>0?Math.round(isDark()?intensity*60:200-intensity*80):Math.round(isDark()?60+intensity*80:230-intensity*60);
+
+        HX.fillStyle=show?'rgb('+r2b+','+g2b+','+b2b+')':'var(--bg-input)';
+        HX.fillRect(x+1,y+1,cw-2,ch-2);
+
+        if(show&&Math.abs(r)>0.01){
+          var textColor=intensity>0.6?'rgba(255,255,255,0.9)':tc();
+          HX.fillStyle=textColor;HX.font='bold 10px monospace';HX.textAlign='center';
+          HX.fillText(r.toFixed(2),x+cw/2,y+ch/2+4);
+        }
+
+        if(j>i){
+          if(r>highPos){highPos=r;highPosI=i;highPosJ=j;}
+          if(r<highNeg){highNeg=r;highNegI=i;highNegJ=j;}
+          if(Math.abs(r)>0.85)multiCount++;
+        }
+      }
+
+      // Selected highlight
+      if(isSelected){
+        HX.strokeStyle='#a78bfa';HX.lineWidth=3;
+        HX.strokeRect(x+1,y+1,cw-2,ch-2);
+      }
+    });
+  });
+
+  C('hm-high-pos').textContent=highPos>-1?corrFeatures[highPosI]+'/'+corrFeatures[highPosJ]+' '+highPos.toFixed(2):'--';
+  C('hm-high-neg').textContent=highNeg<1?corrFeatures[highNegI]+'/'+corrFeatures[highNegJ]+' '+highNeg.toFixed(2):'--';
+  C('hm-multi').textContent=multiCount;
+  C('hm-multi').style.color=multiCount>0?'var(--red)':'var(--green)';
+}
+
+HM.addEventListener('click',function(e){
+  if(!corrMatrix)return;
+  var r=HM.getBoundingClientRect(),sx=HM.width/r.width,sy=HM.height/r.height;
+  var mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;
+  var n=corrFeatures.length,lblW=70,lblH=70,pad=10;
+  var cw=(HM.width-lblW-pad)/n,ch=(HM.height-lblH-pad)/n;
+  var ci=Math.floor((my-lblH)/ch),cj=Math.floor((mx-lblW)/cw);
+  if(ci>=0&&ci<n&&cj>=0&&cj<n){
+    selectedCell=[ci,cj];
+    C('hm-selected').textContent=corrFeatures[ci]+' vs '+corrFeatures[cj];
+    C('hm-r-val').textContent=corrMatrix[ci][cj].toFixed(3);
+    C('hm-r-val').style.color=corrMatrix[ci][cj]>0?'var(--green)':corrMatrix[ci][cj]<0?'var(--red)':'var(--text-3)';
+    drawCorrHeatmap();
+  }
+});
+
+/* ══════════════════════════════════════
+   SECTION 2: PARALLEL COORDINATES
+══════════════════════════════════════ */
+var PCC=C('pc-canvas'),PCX=PCC.getContext('2d');
+var CLASS_COLORS=['#4b96ff','#3ecf8e','#f0a500','#a78bfa'];
+
+var PC_DATASETS={
+  iris:{
+    features:['Sepal L','Sepal W','Petal L','Petal W'],
+    classes:['Setosa','Versicolor','Virginica'],
+    gen:function(){
+      var rng=seededRng(42),pts=[];
+      var params=[
+        [[5.0,0.35],[3.4,0.38],[1.5,0.17],[0.25,0.10]],
+        [[5.9,0.52],[2.77,0.31],[4.26,0.47],[1.33,0.20]],
+        [[6.6,0.64],[2.97,0.32],[5.55,0.55],[2.03,0.27]]
+      ];
+      params.forEach(function(cls,ci){
+        for(var i=0;i<50;i++){
+          pts.push({cls:ci,vals:cls.map(function(p){return Math.max(0,p[0]+(rng()-0.5)*p[1]*3);})});
+        }
+      });
+      return pts;
+    }
+  },
+  wine:{
+    features:['Alcohol','Acidity','Sugar','pH','Sulphates'],
+    classes:['Low','Medium','High'],
+    gen:function(){
+      var rng=seededRng(7),pts=[];
+      var params=[
+        [[9.5,0.5],[7.2,0.8],[5.5,1.2],[3.3,0.15],[0.5,0.08]],
+        [[10.5,0.5],[6.8,0.7],[3.8,0.9],[3.2,0.12],[0.62,0.10]],
+        [[11.8,0.6],[6.2,0.6],[2.1,0.6],[3.1,0.12],[0.80,0.12]]
+      ];
+      params.forEach(function(cls,ci){
+        for(var i=0;i<40;i++){
+          pts.push({cls:ci,vals:cls.map(function(p){return Math.max(0,p[0]+(rng()-0.5)*p[1]*3);})});
+        }
+      });
+      return pts;
+    }
+  },
+  customers:{
+    features:['Age','Income','Spend','Loyalty','Recency'],
+    classes:['Budget','Mainstream','Premium'],
+    gen:function(){
+      var rng=seededRng(13),pts=[];
+      var params=[
+        [[32,8],[28000,5000],[1200,300],[2,0.8],[45,20]],
+        [[40,10],[55000,8000],[3500,800],[5,1.5],[25,12]],
+        [[52,12],[110000,20000],[12000,3000],[8,1.5],[8,5]]
+      ];
+      params.forEach(function(cls,ci){
+        for(var i=0;i<40;i++){
+          pts.push({cls:ci,vals:cls.map(function(p){return Math.max(0,p[0]+(rng()-0.5)*p[1]*3);})});
+        }
+      });
+      return pts;
+    }
+  }
+};
+
+var pcData=null;
+
+function drawParallelCoords(){
+  var key=C('pc-dataset').value;
+  var ds=PC_DATASETS[key];
+  if(!pcData||pcData._key!==key){pcData=ds.gen();pcData._key=key;}
+  var highlight=parseInt(C('pc-highlight').value);
+  var opacity=parseInt(C('pc-opacity').value)/100;
+
+  var W=PCC.width,H=PCC.height,pad={l:40,r:40,t:50,b:30};
+  PCX.clearRect(0,0,W,H);PCX.fillStyle=bg();PCX.fillRect(0,0,W,H);
+
+  var features=ds.features;
+  var n=features.length;
+  var axisX=features.map(function(_,i){return pad.l+i*(W-pad.l-pad.r)/(n-1);});
+  var axisH=H-pad.t-pad.b;
+
+  // Min/max per feature
+  var fmins=features.map(function(_,fi){return Math.min.apply(null,pcData.filter(function(p){return p.vals;}).map(function(p){return p.vals[fi];}));});
+  var fmaxs=features.map(function(_,fi){return Math.max.apply(null,pcData.filter(function(p){return p.vals;}).map(function(p){return p.vals[fi];}));});
+  var fC=function(fi,v){return pad.t+axisH*(1-(v-fmins[fi])/(fmaxs[fi]-fmins[fi]||1));};
+
+  // Draw lines
+  pcData.forEach(function(pt){
+    if(!pt.vals)return;
+    var isHL=highlight===-1||pt.cls===highlight;
+    var col=CLASS_COLORS[pt.cls%CLASS_COLORS.length];
+    PCX.globalAlpha=isHL?opacity*2:opacity*0.3;
+    PCX.strokeStyle=col;PCX.lineWidth=1.2;
+    PCX.beginPath();
+    pt.vals.forEach(function(v,fi){
+      var x=axisX[fi],y=fC(fi,v);
+      fi===0?PCX.moveTo(x,y):PCX.lineTo(x,y);
+    });
+    PCX.stroke();
+  });
+  PCX.globalAlpha=1;
+
+  // Axes
+  axisX.forEach(function(x,i){
+    PCX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';PCX.lineWidth=1.5;
+    PCX.beginPath();PCX.moveTo(x,pad.t);PCX.lineTo(x,pad.t+axisH);PCX.stroke();
+    // Min/max labels
+    PCX.fillStyle=tc();PCX.font='9px monospace';PCX.textAlign='center';
+    PCX.fillText(fmaxs[i].toFixed(1),x,pad.t-4);
+    PCX.fillText(fmins[i].toFixed(1),x,pad.t+axisH+12);
+    // Feature name
+    PCX.fillStyle=tc();PCX.font='bold 11px sans-serif';
+    PCX.fillText(features[i],x,pad.t-16);
+  });
+
+  // Legend
+  ds.classes.forEach(function(cls,ci){
+    PCX.fillStyle=CLASS_COLORS[ci];
+    PCX.beginPath();PCX.rect(pad.l+ci*90,H-12,12,8);PCX.fill();
+    PCX.fillStyle=tc();PCX.font='10px sans-serif';PCX.textAlign='left';
+    PCX.fillText(cls,pad.l+ci*90+16,H-5);
+  });
+
+  C('pc-n').textContent=pcData.filter(function(p){return p.vals;}).length;
+  C('pc-features').textContent=features.length;
+  C('pc-classes').textContent=ds.classes.length;
+  C('pc-sep').textContent=highlight===-1?'All classes':'Class '+highlight+' highlighted';
+}
+
+/* ══════════════════════════════════════
+   SECTION 3: PCA EXPLORER
+══════════════════════════════════════ */
+var PRAW=C('pca-raw-canvas'),PRWX=PRAW.getContext('2d');
+var PPRJ=C('pca-proj-canvas'),PPRX=PPRJ.getContext('2d');
+var SCREE=C('scree-canvas'),SCRX=SCREE.getContext('2d');
+
+function generatePCAData(){
+  var key=C('pca-dataset').value;
+  var noise=parseInt(C('pca-noise').value)/100;
+  C('pca-noise-val').textContent=parseInt(C('pca-noise').value)+'%';
+  var rng=seededRng(99);
+  var pts=[];
+  if(key==='blobs'){
+    var centers=[[2,2],[8,3],[5,8]];
+    centers.forEach(function(c,ci){
+      for(var i=0;i<50;i++){
+        pts.push({cls:ci,x:c[0]+normalRand(0,0.8+noise*2),y:c[1]+normalRand(0,0.8+noise*2),extra:normalRand(0,1+noise*2),extra2:c[0]*0.3+normalRand(0,0.5+noise)});
+      }
+    });
+  } else if(key==='moons'){
+    for(var i=0;i<150;i++){
+      var cls=i%2,angle=Math.PI*rng();
+      pts.push({cls:cls,x:(cls===0?Math.cos(angle):(1-Math.cos(angle)))+normalRand(0,0.1+noise*0.5),y:(cls===0?Math.sin(angle):(0.5-Math.sin(angle)))+normalRand(0,0.1+noise*0.5),extra:normalRand(0,0.5+noise),extra2:normalRand(0,0.5+noise)});
+    }
+  } else {
+    var cts=[[-1,-1],[1,-1],[-1,1],[1,1]];
+    cts.forEach(function(c,ci){
+      for(var i=0;i<35;i++){
+        pts.push({cls:ci%2,x:c[0]*3+normalRand(0,0.6+noise*1.5),y:c[1]*3+normalRand(0,0.6+noise*1.5),extra:normalRand(0,1+noise),extra2:normalRand(0,1+noise)});
+      }
+    });
+  }
+  return pts;
+}
+
+function runPCA(){
+  var pts=generatePCAData();
+  // Build 4D data matrix [x, y, extra, extra2]
+  var features=['X','Y','F3','F4'];
+  var mat=pts.map(function(p){return[p.x,p.y,p.extra,p.extra2];});
+  var n=mat.length,d=mat[0].length;
+
+  // Standardize
+  var means=features.map(function(_,fi){return mat.reduce(function(s,row){return s+row[fi];},0)/n;});
+  var stds=features.map(function(_,fi){
+    var m=means[fi];
+    return Math.sqrt(mat.reduce(function(s,row){return s+(row[fi]-m)**2;},0)/n)||1;
+  });
+  var X=mat.map(function(row){return row.map(function(v,fi){return(v-means[fi])/stds[fi];});});
+
+  // Covariance matrix
+  var cov=[];
+  for(var i=0;i<d;i++){
+    cov.push([]);
+    for(var j=0;j<d;j++){
+      var s=0;for(var k=0;k<n;k++)s+=X[k][i]*X[k][j];
+      cov[i].push(s/n);
+    }
+  }
+
+  // Power iteration for top 2 eigenvectors (simplified PCA)
+  function powerIter(mat2,exclude){
+    var vec=Array.from({length:d},function(){return Math.random()-0.5;});
+    for(var iter=0;iter<50;iter++){
+      var nv=mat2.map(function(row){return row.reduce(function(s,v,j){return s+v*vec[j];},0);});
+      if(exclude){var dot=nv.reduce(function(s,v,i){return s+v*exclude[i];},0);nv=nv.map(function(v,i){return v-dot*exclude[i];});}
+      var norm=Math.sqrt(nv.reduce(function(s,v){return s+v*v;},0))||1;
+      vec=nv.map(function(v){return v/norm;});
+    }
+    var eigenval=vec.reduce(function(s,v,i){return s+v*cov[i].reduce(function(ss,cv,j){return ss+cv*vec[j];},0);},0);
+    return{vec:vec,val:eigenval};
+  }
+
+  var pc1=powerIter(cov,null);
+  var pc2=powerIter(cov,pc1.vec);
+  var totalVar=cov.reduce(function(s,row,i){return s+row[i];},0);
+  var var1=Math.abs(pc1.val)/totalVar,var2=Math.abs(pc2.val)/totalVar;
+
+  // Project data
+  var proj=X.map(function(row){
+    return[row.reduce(function(s,v,i){return s+v*pc1.vec[i];},0),row.reduce(function(s,v,i){return s+v*pc2.vec[i];},0)];
+  });
+
+  // Draw raw (X vs Y only)
+  drawRawPCA(pts);
+  drawProjectedPCA(pts,proj);
+  drawScreePlot([var1,var2,Math.max(0,(1-var1-var2)*0.6),Math.max(0,(1-var1-var2)*0.4)]);
+
+  C('pca-var1').textContent=(var1*100).toFixed(1)+'%';
+  C('pca-var2').textContent=(var2*100).toFixed(1)+'%';
+  C('pca-total').textContent=((var1+var2)*100).toFixed(1)+'%';
+  C('pca-dims').textContent='4D \u2192 2D';
+}
+
+function drawRawPCA(pts){
+  var W=PRAW.width,H=PRAW.height,pad=30;
+  PRWX.clearRect(0,0,W,H);PRWX.fillStyle=bg();PRWX.fillRect(0,0,W,H);
+  var xs=pts.map(function(p){return p.x;}),ys=pts.map(function(p){return p.y;});
+  var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs);
+  var minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+  var xC=function(v){return pad+(v-minX)/(maxX-minX||1)*(W-2*pad);};
+  var yC=function(v){return H-pad-(v-minY)/(maxY-minY||1)*(H-2*pad);};
+  PRWX.strokeStyle=gc();PRWX.lineWidth=0.5;
+  for(var i=0;i<=4;i++){
+    var gx=pad+i*(W-2*pad)/4,gy=pad+i*(H-2*pad)/4;
+    PRWX.beginPath();PRWX.moveTo(gx,pad);PRWX.lineTo(gx,H-pad);PRWX.stroke();
+    PRWX.beginPath();PRWX.moveTo(pad,gy);PRWX.lineTo(W-pad,gy);PRWX.stroke();
+  }
+  pts.forEach(function(p){
+    PRWX.beginPath();PRWX.arc(xC(p.x),yC(p.y),3.5,0,Math.PI*2);
+    PRWX.fillStyle=CLASS_COLORS[p.cls%CLASS_COLORS.length]+'99';PRWX.fill();
+  });
+  PRWX.fillStyle=tc();PRWX.font='11px sans-serif';PRWX.textAlign='center';
+  PRWX.fillText('Raw data (X vs Y only)',W/2,H-4);
+}
+
+function drawProjectedPCA(pts,proj){
+  var W=PPRJ.width,H=PPRJ.height,pad=30;
+  PPRX.clearRect(0,0,W,H);PPRX.fillStyle=bg();PPRX.fillRect(0,0,W,H);
+  var xs=proj.map(function(p){return p[0];}),ys=proj.map(function(p){return p[1];});
+  var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs);
+  var minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+  var xC=function(v){return pad+(v-minX)/(maxX-minX||1)*(W-2*pad);};
+  var yC=function(v){return H-pad-(v-minY)/(maxY-minY||1)*(H-2*pad);};
+  PPRX.strokeStyle=gc();PPRX.lineWidth=0.5;
+  for(var i=0;i<=4;i++){
+    var gx=pad+i*(W-2*pad)/4,gy=pad+i*(H-2*pad)/4;
+    PPRX.beginPath();PPRX.moveTo(gx,pad);PPRX.lineTo(gx,H-pad);PPRX.stroke();
+    PPRX.beginPath();PPRX.moveTo(pad,gy);PPRX.lineTo(W-pad,gy);PPRX.stroke();
+  }
+  proj.forEach(function(p,i){
+    PPRX.beginPath();PPRX.arc(xC(p[0]),yC(p[1]),3.5,0,Math.PI*2);
+    PPRX.fillStyle=CLASS_COLORS[pts[i].cls%CLASS_COLORS.length]+'99';PPRX.fill();
+  });
+  PPRX.fillStyle=tc();PPRX.font='11px sans-serif';PPRX.textAlign='center';
+  PPRX.fillText('PCA projection (PC1 vs PC2)',W/2,H-4);
+  PPRX.fillStyle=tc();PPRX.font='10px monospace';PPRX.textAlign='left';
+  PPRX.fillText('PC1 \u2192',pad,pad-3);
+  PPRX.save();PPRX.translate(pad-3,H-pad);PPRX.rotate(-Math.PI/2);PPRX.fillText('PC2 \u2191',0,0);PPRX.restore();
+}
+
+function drawScreePlot(variances){
+  var W=SCREE.width,H=SCREE.height,pad={l:45,r:20,t:15,b:35};
+  SCRX.clearRect(0,0,W,H);SCRX.fillStyle=bg();SCRX.fillRect(0,0,W,H);
+  var n=variances.length;
+  var bw=(W-pad.l-pad.r)/n;
+  var cumVars=variances.reduce(function(a,v,i){a.push((a[i-1]||0)+v);return a;},[]);
+  SCRX.strokeStyle=gc();SCRX.lineWidth=0.5;
+  [0,0.25,0.5,0.75,1.0].forEach(function(v){
+    var y=pad.t+(H-pad.t-pad.b)*(1-v);
+    SCRX.beginPath();SCRX.moveTo(pad.l,y);SCRX.lineTo(W-pad.r,y);SCRX.stroke();
+    SCRX.fillStyle=tc();SCRX.font='9px monospace';SCRX.textAlign='right';
+    SCRX.fillText((v*100).toFixed(0)+'%',pad.l-3,y+3);
+  });
+  variances.forEach(function(v,i){
+    var x=pad.l+i*bw,bh=v*(H-pad.t-pad.b);
+    SCRX.fillStyle='rgba(167,139,250,0.7)';SCRX.fillRect(x+bw*0.15,H-pad.b-bh,bw*0.7,bh);
+    SCRX.strokeStyle='var(--purple)';SCRX.lineWidth=1.5;SCRX.strokeRect(x+bw*0.15,H-pad.b-bh,bw*0.7,bh);
+    SCRX.fillStyle=tc();SCRX.font='10px sans-serif';SCRX.textAlign='center';
+    SCRX.fillText('PC'+(i+1),x+bw/2,H-pad.b+14);
+    SCRX.fillStyle='var(--purple)';SCRX.font='bold 9px monospace';
+    SCRX.fillText((v*100).toFixed(1)+'%',x+bw/2,H-pad.b-bh-4);
+  });
+  SCRX.beginPath();SCRX.strokeStyle='#f0a500';SCRX.lineWidth=2;
+  cumVars.forEach(function(v,i){
+    var x=pad.l+i*bw+bw/2,y=pad.t+(H-pad.t-pad.b)*(1-v);
+    i===0?SCRX.moveTo(x,y):SCRX.lineTo(x,y);
+  });
+  SCRX.stroke();
+  cumVars.forEach(function(v,i){
+    var x=pad.l+i*bw+bw/2,y=pad.t+(H-pad.t-pad.b)*(1-v);
+    SCRX.beginPath();SCRX.arc(x,y,4,0,Math.PI*2);SCRX.fillStyle='#f0a500';SCRX.fill();
+  });
+  SCRX.fillStyle='#f0a500';SCRX.font='10px sans-serif';SCRX.textAlign='right';
+  SCRX.fillText('Cumulative variance',W-pad.r,pad.t+10);
+}
+
+/* ══════════════════════════════════════
+   SECTION 4: FEATURE IMPORTANCE
+══════════════════════════════════════ */
+var FI_DATA={
+  house:{
+    features:['Size','Rooms','Neighborhood','Age','Distance','Schools','Crime','Garage'],
+    correlation:[0.82,0.71,0.65,0.41,0.58,0.52,0.48,0.39],
+    mutual_info:[0.78,0.62,0.71,0.38,0.55,0.49,0.45,0.42],
+    rf:[0.24,0.15,0.19,0.08,0.12,0.10,0.07,0.05]
+  },
+  churn:{
+    features:['Contract','Tenure','MonthlyCharge','Support','Calls','Age','Usage','Payment'],
+    correlation:[0.75,0.68,0.52,0.61,0.48,0.22,0.38,0.29],
+    mutual_info:[0.81,0.72,0.58,0.65,0.52,0.31,0.44,0.35],
+    rf:[0.22,0.18,0.14,0.16,0.12,0.06,0.08,0.04]
+  },
+  health:{
+    features:['Glucose','BMI','Age','BloodPressure','Insulin','Pregnancies','SkinThick','DiabPedigree'],
+    correlation:[0.47,0.29,0.24,0.17,0.13,0.22,0.07,0.18],
+    mutual_info:[0.52,0.35,0.28,0.22,0.19,0.25,0.12,0.22],
+    rf:[0.25,0.15,0.12,0.08,0.07,0.09,0.05,0.11]
+  }
+};
+
+var FI_COLORS={correlation:'var(--blue)',mutual_info:'var(--green)',rf:'var(--orange)'};
+
+function drawFeatureImportance(){
+  var key=C('fi-dataset').value;
+  var method=C('fi-method').value;
+  var data=FI_DATA[key];
+  var vals=data[method];
+  var maxV=Math.max.apply(null,vals);
+  var col=FI_COLORS[method];
+
+  // Sort by importance
+  var indexed=vals.map(function(v,i){return{val:v,feat:data.features[i]};});
+  indexed.sort(function(a,b){return b.val-a.val;});
+
+  var title={correlation:'Correlation with target (|r|)',mutual_info:'Mutual information score',rf:'Random Forest importance'}[method];
+  C('fi-title').textContent=title+' \u2014 '+key+' dataset';
+
+  C('fi-bars').innerHTML=indexed.map(function(item){
+    var pct=(item.val/maxV*100);
+    return '<div class="fi-bar-row"><div class="fi-bar-label">'+item.feat+'</div><div class="fi-bar-track"><div class="fi-bar-fill" style="width:'+pct+'%;background:'+col+';">'+item.val.toFixed(3)+'</div></div><div class="fi-bar-val" style="color:'+col+'">'+item.val.toFixed(3)+'</div></div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   SECTION 5: VIF DETECTOR
+══════════════════════════════════════ */
+var VIFC=C('vif-canvas'),VIFX=VIFC.getContext('2d');
+
+function updateVIF(v){
+  var r=parseInt(v)/100;
+  C('vif-corr-val').textContent='r = '+r.toFixed(2);
+  var r2=r*r;
+  var vif=1/(1-r2);
+
+  C('vif-f1').textContent=vif.toFixed(2);
+  C('vif-f2').textContent=vif.toFixed(2);
+  C('vif-r2').textContent=r2.toFixed(3);
+
+  var severity=vif<5?'OK (< 5)':vif<10?'Moderate (5-10)':vif<20?'High (> 10)':'Severe (> 20)';
+  var sColor=vif<5?'var(--green)':vif<10?'var(--accent)':vif<20?'var(--orange)':'var(--red)';
+  C('vif-verdict').textContent=severity;C('vif-verdict').style.color=sColor;
+  C('vif-f1').style.color=sColor;C('vif-f2').style.color=sColor;
+
+  // Draw VIF curve
+  var W=VIFC.width,H=VIFC.height,pad={l:60,r:20,t:20,b:40};
+  VIFX.clearRect(0,0,W,H);VIFX.fillStyle=bg();VIFX.fillRect(0,0,W,H);
+
+  var maxVIF=50,iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  var xC=function(r2){return pad.l+r2*iW;};
+  var yC=function(v){return pad.t+iH*(1-Math.min(v,maxVIF)/maxVIF);};
+
+  VIFX.strokeStyle=gc();VIFX.lineWidth=0.5;
+  [0,10,20,30,40,50].forEach(function(v){
+    var y=yC(v);
+    VIFX.beginPath();VIFX.moveTo(pad.l,y);VIFX.lineTo(W-pad.r,y);VIFX.stroke();
+    VIFX.fillStyle=tc();VIFX.font='9px monospace';VIFX.textAlign='right';VIFX.fillText(v,pad.l-3,y+3);
+  });
+  [0,0.2,0.4,0.6,0.8,1.0].forEach(function(r2){
+    var x=xC(r2);
+    VIFX.beginPath();VIFX.moveTo(x,pad.t);VIFX.lineTo(x,H-pad.b);VIFX.stroke();
+    VIFX.fillStyle=tc();VIFX.font='9px monospace';VIFX.textAlign='center';VIFX.fillText(r2.toFixed(1),x,H-pad.b+12);
+  });
+
+  // Danger zones
+  VIFX.fillStyle='rgba(240,165,0,0.08)';VIFX.fillRect(xC(1-1/5),pad.t,xC(1-1/10)-xC(1-1/5),iH);
+  VIFX.fillStyle='rgba(240,96,96,0.10)';VIFX.fillRect(xC(1-1/10),pad.t,W-pad.r-xC(1-1/10),iH);
+
+  // VIF curve
+  VIFX.beginPath();VIFX.strokeStyle='var(--purple)';VIFX.lineWidth=2.5;
+  for(var px=0;px<=iW;px+=2){
+    var r2v=px/iW;var vifv=1/(1-r2v+0.001);
+    var y=yC(Math.min(vifv,maxVIF));
+    px===0?VIFX.moveTo(pad.l+px,y):VIFX.lineTo(pad.l+px,y);
+  }
+  VIFX.stroke();
+
+  // Current point
+  var curX=xC(r2),curY=yC(Math.min(vif,maxVIF));
+  VIFX.beginPath();VIFX.arc(curX,curY,7,0,Math.PI*2);
+  VIFX.fillStyle=sColor;VIFX.fill();VIFX.strokeStyle='#fff';VIFX.lineWidth=2;VIFX.stroke();
+  VIFX.fillStyle=sColor;VIFX.font='bold 11px sans-serif';VIFX.textAlign='center';
+  VIFX.fillText('VIF='+vif.toFixed(1),curX,curY-12);
+
+  // Threshold lines
+  var drawThresh=function(threshVIF,label,col2){
+    var thR2=1-1/threshVIF;if(thR2<0||thR2>=1)return;
+    var tx=xC(thR2);
+    VIFX.beginPath();VIFX.strokeStyle=col2;VIFX.lineWidth=1.5;VIFX.setLineDash([5,4]);
+    VIFX.moveTo(tx,pad.t);VIFX.lineTo(tx,H-pad.b);VIFX.stroke();VIFX.setLineDash([]);
+    VIFX.fillStyle=col2;VIFX.font='bold 10px sans-serif';VIFX.textAlign='left';
+    VIFX.fillText(label,tx+3,pad.t+16);
+  };
+  drawThresh(5,'VIF=5','var(--accent)');
+  drawThresh(10,'VIF=10','var(--red)');
+
+  VIFX.fillStyle=tc();VIFX.font='10px monospace';VIFX.textAlign='center';
+  VIFX.fillText('R\u00b2 between F1 and F2',W/2,H-pad.b+26);
+  VIFX.fillStyle=tc();VIFX.font='10px sans-serif';VIFX.textAlign='left';
+  VIFX.fillText('VIF = 1/(1-R\u00b2)',pad.l+4,pad.t+12);
+}
+
+/* ══════════════════════════════════════
+   LIVE EDITOR
+══════════════════════════════════════ */
+var SNIPPETS=[
+{file:'multivariate_corr.py',label:'Correlation matrix',code:`import numpy as np
+import pandas as pd
+from scipy import stats
+
+np.random.seed(42)
+n = 300
+
+# Simulate a housing dataset
+size      = np.random.normal(1800, 400, n)
+rooms     = size/400 + np.random.normal(0, 0.5, n)
+age       = np.random.normal(20, 10, n).clip(0, 80)
+distance  = np.random.normal(15, 8, n).clip(1, 50)
+price     = (size*80 + rooms*5000 - age*200 - distance*1000
+             + np.random.normal(0, 30000, n))
+
+df = pd.DataFrame({'size':size,'rooms':rooms,'age':age,
+                   'distance':distance,'price':price})
+
+# Full correlation matrix (Pearson)
+corr = df.corr()
+print("Correlation matrix:")
+print(corr.round(3))
+
+# Find high correlations (multicollinearity)
+print()
+print("High correlations (|r| > 0.6, excluding diagonal):")
+for i in range(len(corr.columns)):
+    for j in range(i+1, len(corr.columns)):
+        r = corr.iloc[i,j]
+        if abs(r) > 0.6:
+            cols = corr.columns
+            print(f"  {cols[i]:12} x {cols[j]:12}: r = {r:.3f}")
+
+# Spearman for robustness
+print()
+print("Spearman correlation with price:")
+for col in ['size','rooms','age','distance']:
+    rho, p = stats.spearmanr(df[col], df['price'])
+    print(f"  {col:12}: rho={rho:.3f}  p={p:.4f}")`},
+{file:'multivariate_pca.py',label:'PCA from scratch',code:`import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.datasets import load_iris
+
+data = load_iris()
+X, y = data.data, data.target
+feature_names = data.feature_names
+
+# Step 1: ALWAYS scale before PCA
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Step 2: Fit PCA
+pca = PCA()
+pca.fit(X_scaled)
+
+print("Explained variance ratio per component:")
+for i, ev in enumerate(pca.explained_variance_ratio_):
+    cumsum = pca.explained_variance_ratio_[:i+1].sum()
+    bar = '#' * int(ev * 40)
+    print(f"  PC{i+1}: {ev:.4f} ({cumsum:.4f} cumulative) {bar}")
+
+# Step 3: Choose n_components
+n_90 = next(i+1 for i,v in enumerate(pca.explained_variance_ratio_.cumsum()) if v >= 0.90)
+print(f"\\nComponents needed for 90% variance: {n_90}")
+
+# Step 4: Project data
+pca2 = PCA(n_components=2)
+X_proj = pca2.fit_transform(X_scaled)
+print(f"Original shape: {X_scaled.shape}")
+print(f"Projected shape: {X_proj.shape}")
+print(f"Variance explained: {pca2.explained_variance_ratio_.sum():.3f}")
+
+# Loadings: which features contribute to each PC?
+print()
+print("PC1 loadings (how each feature contributes):")
+for feat, loading in zip(feature_names, pca2.components_[0]):
+    bar = '+' * int(abs(loading)*20) if loading > 0 else '-' * int(abs(loading)*20)
+    print(f"  {feat:30}: {loading:+.3f} {bar}")`},
+{file:'multivariate_vif.py',label:'VIF check',code:`import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+
+np.random.seed(42)
+n = 200
+
+# Create features with varying multicollinearity
+f1 = np.random.normal(0, 1, n)
+f2 = 0.9 * f1 + np.sqrt(1-0.81) * np.random.normal(0, 1, n)  # r=0.9 with f1
+f3 = np.random.normal(0, 1, n)                                 # independent
+f4 = 0.5 * f1 + 0.5 * f3 + 0.5*np.random.normal(0, 1, n)   # moderate
+
+df = pd.DataFrame({'F1':f1,'F2':f2,'F3':f3,'F4':f4})
+
+def vif(df, target_col):
+    """VIF = 1 / (1 - R2) where R2 is from regressing target on all others."""
+    y = df[target_col].values
+    X = df.drop(columns=[target_col]).values
+    reg = LinearRegression().fit(X, y)
+    r2 = reg.score(X, y)
+    return 1 / (1 - r2 + 1e-10)
+
+print(f"{'Feature':<12} {'VIF':>8} {'Severity':>14}")
+print("-" * 38)
+for col in df.columns:
+    v = vif(df, col)
+    sev = ("OK" if v < 5 else
+           "Moderate" if v < 10 else
+           "HIGH - consider dropping" if v < 20 else
+           "SEVERE - must address")
+    print(f"{col:<12} {v:>8.3f} {sev:>14}")
+
+print("\\nRule: VIF > 10 = problematic multicollinearity")
+print("Fix: drop one of the correlated features, or use Ridge/PCA")`},
+{file:'multivariate_features.py',label:'Feature selection',code:`import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import (SelectKBest, mutual_info_classif,
+                                       f_classif, RFE)
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(42)
+X, y = make_classification(
+    n_samples=500, n_features=15, n_informative=6,
+    n_redundant=3, n_repeated=2, random_state=42)
+
+feature_names = [f'Feature_{i+1}' for i in range(15)]
+scaler = StandardScaler()
+X_s = scaler.fit_transform(X)
+
+# Method 1: Pearson correlation
+corr = np.abs(np.corrcoef(X_s.T, y)[-1, :-1])
+
+# Method 2: Mutual information
+mi = mutual_info_classif(X_s, y, random_state=42)
+
+# Method 3: Random Forest importance
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_s, y)
+rf_imp = rf.feature_importances_
+
+# Combined ranking
+df = pd.DataFrame({
+    'Feature': feature_names,
+    'Corr':    corr,
+    'MI':      mi / mi.max(),
+    'RF':      rf_imp / rf_imp.max()
+})
+df['Mean_rank'] = df[['Corr','MI','RF']].mean(axis=1)
+df = df.sort_values('Mean_rank', ascending=False)
+
+print(f"{'Feature':<12} {'Corr':>7} {'MI':>7} {'RF':>7} {'Mean':>7}")
+print("-" * 48)
+for _, row in df.iterrows():
+    print(f"{row.Feature:<12} {row.Corr:>7.3f} {row.MI:>7.3f} {row.RF:>7.3f} {row.Mean_rank:>7.3f}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scipy','scikit-learn']);pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  buildCorrMatrix();
+  drawParallelCoords();
+  runPCA();
+  drawFeatureImportance();
+  updateVIF(50);
+  initEditor();
+  new MutationObserver(function(){
+    buildCorrMatrix();drawParallelCoords();runPCA();drawFeatureImportance();
+    updateVIF(document.getElementById('vif-corr').value);
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Data Types &mdash; ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(75,150,255,0.09),rgba(62,207,142,0.06));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* dtype card grid */
+    .dtype-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+    .dtype-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+    .dtype-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .dtype-card:hover{transform:translateY(-2px);border-color:var(--border-md);}
+    .dtype-card.active{border-color:var(--border-md);}
+    .dtype-icon{font-size:22px;margin-bottom:6px;}
+    .dtype-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .dtype-sub{font-size:11px;color:var(--text-3);line-height:1.4;}
+    .dtype-detail{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;min-height:180px;transition:all .3s;}
+    /* column builder */
+    .col-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);transition:background .15s;}
+    .col-row:last-child{border-bottom:none;}
+    .col-row:hover{background:var(--bg-input);}
+    .col-badge{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;font-family:var(--font-mono);}
+    /* memory bar */
+    .mem-bar-track{height:10px;background:var(--border);border-radius:5px;overflow:hidden;flex:1;}
+    .mem-bar-fill{height:100%;border-radius:5px;transition:width .6s ease;}
+    /* type converter */
+    .conv-arrow{font-size:18px;color:var(--text-3);margin:0 6px;}
+    .conv-box{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;font-family:var(--font-mono);font-size:12.5px;min-width:90px;text-align:center;}
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;} .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}.CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--blue);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);}.run-pill:disabled{opacity:.4;cursor:not-allowed;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.dtype-grid{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="data-types">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Data Types</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb"><a href="../../index.html">Home</a><span class="sep">/</span><a href="../../index.html#roadmap">EDA</a><span class="sep">/</span><span class="current">Data Types</span></nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(75,150,255,.3);background:rgba(75,150,255,0.1);color:var(--blue);margin-bottom:14px;">EDA &middot; Pandas &middot; dtypes</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Data Types in Pandas</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              The <strong>dtype</strong> of a column controls its memory use, the operations you can perform,
+              and how ML models interpret it. Getting dtypes right is the first step in any EDA.
+              A column stored as <code>object</code> when it should be <code>category</code> can waste
+              <strong>10&times; more memory</strong>. Dates stored as strings can&rsquo;t be resampled.
+              Numbers stored as int64 when int8 suffices waste 8&times; the space.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#9201; 25 min</span>
+              <span class="topic-meta-item">&#9670; Beginner</span>
+              <span class="topic-meta-item">pandas &middot; numpy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: DTYPE EXPLORER -->
+          <section class="section" id="dtype-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(75,150,255,0.15);color:var(--blue);">T</div>
+              Click a dtype to explore it
+            </h2>
+            <p>Every pandas column has exactly one dtype. Click any card to see what it stores, when to use it, memory cost, and how to convert to it.</p>
+
+            <div class="dtype-grid" id="dtype-grid"></div>
+            <div class="dtype-detail" id="dtype-detail">
+              <div style="color:var(--text-3);font-size:13.5px;">Click a dtype card above to see details.</div>
+            </div>
+          </section>
+
+          <!-- SECTION 2: INTERACTIVE COLUMN BUILDER -->
+          <section class="section" id="column-builder">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">&#9776;</div>
+              Column builder &mdash; see how dtype choice affects memory
+            </h2>
+            <p>Build a DataFrame by picking a dtype for each column. The memory bar updates live to show the impact of each choice. Good dtype choices can shrink a dataset by 5&ndash;10x.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">DataFrame column builder</span>
+                <button class="ctrl-btn active" onclick="addColumn()">+ Add column</button>
+                <button class="ctrl-btn" onclick="resetColumns()">&#8634; Reset</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Rows:</span>
+                  <input type="range" min="1000" max="1000000" value="100000" step="1000" class="ctrl-slider" id="nrows-slider" oninput="updateMemory()" style="width:110px;"/>
+                  <span class="ctrl-value" id="nrows-val" style="color:var(--accent);">100k</span>
+                </div>
+              </div>
+              <div id="col-list" style="min-height:80px;"></div>
+              <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <div style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Total memory:</div>
+                <div style="flex:1;min-width:120px;">
+                  <div class="mem-bar-track"><div class="mem-bar-fill" id="total-bar" style="background:var(--green);width:0%"></div></div>
+                </div>
+                <div id="total-mem" style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent);min-width:80px;"></div>
+                <div id="mem-rating" style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:100px;"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: TYPE CONVERSION PLAYGROUND -->
+          <section class="section" id="type-converter">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.15);color:var(--accent);">&#8644;</div>
+              Type conversion playground
+            </h2>
+            <p>Type a value and see what pandas gives it for each dtype. This is why checking dtypes after loading CSV data is so important.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Enter a value to see how each dtype handles it</span>
+                <input type="text" id="conv-input" value="42" placeholder="Enter a value..."
+                  style="background:var(--bg-card);color:var(--text-1);border:1px solid var(--border-md);border-radius:var(--r-md);padding:6px 12px;font-family:var(--font-mono);font-size:13px;width:160px;"
+                  oninput="runConverter()"/>
+              </div>
+              <div style="padding:16px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;" id="conv-results"></div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: MEMORY SAVINGS VISUALISER -->
+          <section class="section" id="memory-viz">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">&#128190;</div>
+              Memory savings visualiser
+            </h2>
+            <p>See how much memory you can save by optimising dtypes on a real-world-style dataset. Drag the row count to see how savings scale.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Memory usage before vs after dtype optimisation</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Rows:</span>
+                  <input type="range" min="10000" max="5000000" value="500000" step="10000" class="ctrl-slider" id="mem-rows" oninput="drawMemoryChart()" style="width:130px;"/>
+                  <span class="ctrl-value" id="mem-rows-val" style="color:var(--green);">500k</span>
+                </div>
+              </div>
+              <canvas id="mem-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="mem-before" style="color:var(--orange);">--</span><span class="stat-pill-lbl">Before (MB)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mem-after" style="color:var(--green);">--</span><span class="stat-pill-lbl">After (MB)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mem-saving" style="color:var(--accent);">--</span><span class="stat-pill-lbl">Saving</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mem-factor" style="color:var(--teal);">--</span><span class="stat-pill-lbl">Smaller by</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: COMMON DTYPE GOTCHAS -->
+          <section class="section" id="gotchas">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.15);color:var(--accent);">&#9888;</div>
+              Dtype gotchas &mdash; interactive examples
+            </h2>
+            <p>Click each gotcha to see a live example of the problem and the fix.</p>
+            <div class="canvas-card">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;padding:14px 18px;border-bottom:1px solid var(--border);">
+                <button class="ctrl-btn active" id="gotcha-0" onclick="showGotcha(0)">String numbers</button>
+                <button class="ctrl-btn" id="gotcha-1" onclick="showGotcha(1)">Mixed types</button>
+                <button class="ctrl-btn" id="gotcha-2" onclick="showGotcha(2)">NaN + int</button>
+                <button class="ctrl-btn" id="gotcha-3" onclick="showGotcha(3)">Date as string</button>
+                <button class="ctrl-btn" id="gotcha-4" onclick="showGotcha(4)">Bool as object</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <div style="padding:16px 18px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Problem</div>
+                  <div id="gotcha-problem" style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);white-space:pre-wrap;line-height:1.7;"></div>
+                </div>
+                <div style="padding:16px 18px;">
+                  <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Fix</div>
+                  <div id="gotcha-fix" style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);white-space:pre-wrap;line-height:1.7;"></div>
+                </div>
+              </div>
+              <div id="gotcha-explain" style="padding:14px 18px;border-top:1px solid var(--border);font-size:13.5px;color:var(--text-2);line-height:1.7;"></div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:rgba(62,207,142,0.15);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">dtypes_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click &#9654; Run to execute...</div>
+              <div class="editor-actions"><button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button><button class="reset-pill" onclick="resetEditor()">&#8634; Reset</button><button class="reset-pill" onclick="clearOutput()">&#10005; Clear</button><span class="py-status" id="run-time" style="margin-left:auto;"></span></div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Never checking dtypes after loading data.</strong> Always run <code>df.dtypes</code> and <code>df.info()</code> right after loading. CSV files store everything as text so pandas has to guess &mdash; it often guesses wrong.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Leaving high-cardinality columns as category.</strong> Category type only helps when there are few unique values (under ~50% of total). If every row is unique, category uses MORE memory than object.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Forgetting that int columns can't hold NaN.</strong> A pandas int64 column becomes float64 if any NaN appears. Use pandas nullable integer type <code>pd.Int64Dtype()</code> if you need both integers and missing values.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Downcasting to int8 without checking the range.</strong> int8 holds -128 to 127. If your "age" column has a typo like 999, it silently wraps around to a garbage value. Always check <code>df['col'].max()</code> before downcasting.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#9733;</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always run <code>df.dtypes</code> and <code>df.info()</code> first. Fix wrong dtypes before doing anything else.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>category</strong> for string columns with &lt;50 unique values. Can save 10&times; memory and speed up groupby.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>int8/int16</strong> for small integers (age, rating, count). Use <strong>float32</strong> instead of float64 for ML feature matrices.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always convert date strings with <code>pd.to_datetime()</code> to unlock <code>.dt</code> accessor methods for feature engineering.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><code>pd.to_numeric(col, downcast='integer')</code> automatically picks the smallest safe integer type.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="missing-values.html"><span class="pn-dir">&#8592; Previous</span><span class="pn-title">Missing Values</span></a>
+            <a class="pn-card next" href="distributions.html"><span class="pn-dir">Next &#8594;</span><span class="pn-title">Distributions</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#dtype-explorer">Dtype explorer</a></li>
+            <li class="toc-item"><a href="#column-builder">Column builder</a></li>
+            <li class="toc-item"><a href="#type-converter">Type converter</a></li>
+            <li class="toc-item"><a href="#memory-viz">Memory savings</a></li>
+            <li class="toc-item"><a href="#gotchas">Dtype gotchas</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* ============================================
+   SECTION 1 - DTYPE EXPLORER
+============================================ */
+var dtypes = [
+  {name:'int8 / int16 / int32 / int64',icon:'&#128290;',color:'#4b96ff',sub:'Whole numbers',
+   bytes:[1,2,4,8],range:'-128..127  /  -32768..32767  /  -2B..2B  /  very large',
+   when:'Counts, ages, IDs, ratings. Pick smallest size that fits your max value.',
+   pandas:'df["age"] = df["age"].astype("int8")\ndf["id"]  = df["id"].astype("int32")',
+   ml:'ML models treat integers as continuous by default. Good for ordinal features.'},
+  {name:'float32 / float64',icon:'&#128202;',color:'#3ecf8e',sub:'Decimal numbers',
+   bytes:[4,8],range:'~7 decimal places  /  ~15 decimal places',
+   when:'Prices, coordinates, probabilities. Use float32 for ML feature matrices to halve memory.',
+   pandas:'df["price"] = df["price"].astype("float32")\n# or auto-downcast:\npd.to_numeric(df["price"], downcast="float")',
+   ml:'Most ML models work in float32. sklearn auto-converts but explicit is better.'},
+  {name:'object (string)',icon:'&#128140;',color:'#fb8c40',sub:'Text / mixed',
+   bytes:[50,200],range:'Unlimited text (heap-allocated)',
+   when:'Free-form text, names, high-cardinality strings. Convert to category if few unique values.',
+   pandas:'# Read as object by default from CSV\n# Convert to category:\ndf["city"] = df["city"].astype("category")',
+   ml:'Not directly usable. Encode with LabelEncoder or OneHotEncoder first.'},
+  {name:'category',icon:'&#127925;',color:'#f0a500',sub:'Low-cardinality strings',
+   bytes:[1,2],range:'Up to 2^8=256 or 2^16=65536 categories',
+   when:'Country, gender, size (S/M/L), department. Any string column with <50 unique values.',
+   pandas:'df["dept"] = df["dept"].astype("category")\n# Ordered category:\npd.Categorical(col, categories=["Low","Med","High"], ordered=True)',
+   ml:'Use OrdinalEncoder (ordered) or OneHotEncoder (unordered).'},
+  {name:'bool',icon:'&#10003;',color:'#2dd4bf',sub:'True / False',
+   bytes:[1,1],range:'True or False only',
+   when:'Binary flags: is_active, has_discount, is_weekend. Much smaller than int or object.',
+   pandas:'df["is_manager"] = df["is_manager"].astype(bool)\n# From strings:\ndf["flag"] = df["flag"].map({"yes":True,"no":False})',
+   ml:'Treated as 0/1 integer automatically. Can use directly or encode.'},
+  {name:'datetime64',icon:'&#128197;',color:'#a855f7',sub:'Dates and timestamps',
+   bytes:[8,8],range:'1677 to 2262 (nanosecond resolution)',
+   when:'Any date or timestamp column. Enables .dt accessor for year, month, day, weekday etc.',
+   pandas:'df["date"] = pd.to_datetime(df["date"])\n# Access features:\ndf["year"]  = df["date"].dt.year\ndf["month"] = df["date"].dt.month',
+   ml:'Extract year, month, day_of_week, quarter as separate int features.'},
+];
+
+var activeDtype = 0;
+function initDtypeGrid(){
+  C('dtype-grid').innerHTML = dtypes.map(function(d,i){
+    return '<div class="dtype-card'+(i===0?' active':'')+'" id="dc-'+i+'" onclick="showDtype('+i+')" style="border-top-color:'+d.color+';">'
+      +'<div class="dtype-icon">'+d.icon+'</div>'
+      +'<div class="dtype-name" style="color:'+d.color+';">'+d.name.split('/')[0].trim()+'</div>'
+      +'<div class="dtype-sub">'+d.sub+'</div>'
+      +'</div>';
+  }).join('');
+  showDtype(0);
+}
+
+function showDtype(i){
+  activeDtype = i;
+  document.querySelectorAll('.dtype-card').forEach(function(c,j){c.classList.toggle('active',j===i);});
+  var d = dtypes[i];
+  var bytesStr = d.bytes.map(function(b){return b+'B';}).join(' / ');
+  C('dtype-detail').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">'
+    +'<div>'
+    +'<div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:'+d.color+';margin-bottom:12px;">'+d.icon+' '+d.name+'</div>'
+    +'<div style="margin-bottom:10px;"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Memory per value: </span><span style="font-family:var(--font-mono);color:'+d.color+';">'+bytesStr+' bytes</span></div>'
+    +'<div style="margin-bottom:10px;"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Range: </span><span style="font-family:var(--font-mono);font-size:12px;color:var(--text-1);">'+d.range+'</span></div>'
+    +'<div style="margin-bottom:10px;"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">When to use: </span><span style="font-size:13px;color:var(--text-2);">'+d.when+'</span></div>'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:6px;">For ML:</div>'
+    +'<div style="font-size:13px;color:var(--text-2);">'+d.ml+'</div>'
+    +'</div>'
+    +'<div>'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;">Pandas code:</div>'
+    +'<div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid '+d.color+';border-radius:0 var(--r-sm) var(--r-sm) 0;padding:12px 14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);white-space:pre;overflow-x:auto;">'+d.pandas+'</div>'
+    +'</div>'
+    +'</div>';
+}
+
+/* ============================================
+   SECTION 2 - COLUMN BUILDER
+============================================ */
+var columns = [
+  {name:'user_id',    dtype:'int32',    card:4},
+  {name:'age',        dtype:'int8',     card:1},
+  {name:'salary',     dtype:'float32',  card:2},
+  {name:'country',    dtype:'category', card:4},
+  {name:'signup_date',dtype:'datetime64',card:8},
+];
+
+var dtypeOptions = {
+  'int8':      {bytes:1,  color:'#4b96ff', label:'int8'},
+  'int16':     {bytes:2,  color:'#4b96ff', label:'int16'},
+  'int32':     {bytes:4,  color:'#4b96ff', label:'int32'},
+  'int64':     {bytes:8,  color:'#4b96ff', label:'int64'},
+  'float32':   {bytes:4,  color:'#3ecf8e', label:'float32'},
+  'float64':   {bytes:8,  color:'#3ecf8e', label:'float64'},
+  'object':    {bytes:50, color:'#fb8c40', label:'object'},
+  'category':  {bytes:2,  color:'#f0a500', label:'category'},
+  'bool':      {bytes:1,  color:'#2dd4bf', label:'bool'},
+  'datetime64':{bytes:8,  color:'#a855f7', label:'datetime64'},
+};
+
+function renderColumns(){
+  var nrows = parseInt(C('nrows-slider').value);
+  var nrowsStr = nrows >= 1000000 ? (nrows/1000000).toFixed(1)+'M' : (nrows/1000).toFixed(0)+'k';
+  C('nrows-val').textContent = nrowsStr;
+
+  var maxMem = 0;
+  columns.forEach(function(col){maxMem += (dtypeOptions[col.dtype]||{bytes:8}).bytes * nrows;});
+
+  C('col-list').innerHTML = columns.map(function(col, i){
+    var opt = dtypeOptions[col.dtype]||{bytes:8,color:'#888',label:col.dtype};
+    var mem = opt.bytes * nrows;
+    var pct = Math.min(100, mem/maxMem*100);
+    var memStr = mem >= 1e6 ? (mem/1e6).toFixed(1)+' MB' : (mem/1000).toFixed(0)+' KB';
+    var selectOpts = Object.keys(dtypeOptions).map(function(k){
+      return '<option value="'+k+'"'+(k===col.dtype?' selected':'')+'>'+k+'</option>';
+    }).join('');
+    return '<div class="col-row">'
+      +'<div style="font-family:var(--font-mono);font-size:13px;color:var(--text-1);min-width:130px;">'+col.name+'</div>'
+      +'<select onchange="updateColDtype('+i+',this.value)" style="background:var(--bg-card);color:var(--text-1);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;font-size:12px;font-family:var(--font-mono);">'+selectOpts+'</select>'
+      +'<div class="mem-bar-track"><div class="mem-bar-fill" style="width:'+pct+'%;background:'+opt.color+';"></div></div>'
+      +'<div style="font-family:var(--font-mono);font-size:12px;color:'+opt.color+';min-width:70px;text-align:right;">'+memStr+'</div>'
+      +'<button onclick="removeColumn('+i+')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:2px 6px;">&#10005;</button>'
+      +'</div>';
+  }).join('');
+  updateMemory();
+}
+
+function updateColDtype(i, dtype){ columns[i].dtype = dtype; renderColumns(); }
+function removeColumn(i){ columns.splice(i,1); renderColumns(); }
+function resetColumns(){
+  columns = [
+    {name:'user_id',dtype:'int32'},{name:'age',dtype:'int8'},
+    {name:'salary',dtype:'float32'},{name:'country',dtype:'category'},
+    {name:'signup_date',dtype:'datetime64'}
+  ];
+  renderColumns();
+}
+
+var colNameCounter = 0;
+function addColumn(){
+  var names = ['score','flag','label','value','category','status','amount','code','level','rank'];
+  var types = Object.keys(dtypeOptions);
+  columns.push({name:names[colNameCounter % names.length]+'_'+colNameCounter, dtype:'int64'});
+  colNameCounter++;
+  renderColumns();
+}
+
+function updateMemory(){
+  var nrows = parseInt(C('nrows-slider').value);
+  var nrowsStr = nrows >= 1000000 ? (nrows/1000000).toFixed(1)+'M' : (nrows/1000).toFixed(0)+'k';
+  C('nrows-val').textContent = nrowsStr;
+  var total = 0;
+  columns.forEach(function(col){total += (dtypeOptions[col.dtype]||{bytes:8}).bytes * nrows;});
+  var mb = total/1e6;
+  var memStr = mb >= 1000 ? (mb/1000).toFixed(2)+' GB' : mb.toFixed(1)+' MB';
+  C('total-mem').textContent = memStr;
+  var pct = Math.min(100, mb/500*100);
+  C('total-bar').style.width = pct+'%';
+  C('total-bar').style.background = mb<50?'var(--green)':mb<200?'var(--orange)':'var(--red)';
+  var rating = mb<50?'Efficient':'Moderate';
+  if(mb>=200) rating = 'Heavy';
+  C('mem-rating').textContent = rating;
+  C('mem-rating').style.background = mb<50?'rgba(62,207,142,0.15)':mb<200?'rgba(251,140,64,0.15)':'rgba(240,96,96,0.15)';
+  C('mem-rating').style.color = mb<50?'var(--green)':mb<200?'var(--orange)':'var(--red)';
+  renderColumns();
+}
+
+/* ============================================
+   SECTION 3 - TYPE CONVERTER
+============================================ */
+var convTypes = [
+  {dtype:'int64',    color:'#4b96ff', convert:function(v){var n=parseInt(v,10);return isNaN(n)?'ERROR: ValueError':''+n;}},
+  {dtype:'float64',  color:'#3ecf8e', convert:function(v){var n=parseFloat(v);return isNaN(n)?'ERROR: ValueError':''+n;}},
+  {dtype:'bool',     color:'#2dd4bf', convert:function(v){if(['true','1','yes'].includes(v.toLowerCase()))return'True';if(['false','0','no',''].includes(v.toLowerCase()))return'False';return'True (truthy)';}},
+  {dtype:'str',      color:'#fb8c40', convert:function(v){return'"'+v+'"';}},
+  {dtype:'category', color:'#f0a500', convert:function(v){return'"'+v+'" (code: 0)';}},
+  {dtype:'datetime64',color:'#a855f7',convert:function(v){var d=new Date(v);return isNaN(d)?'ERROR: cannot parse':''+d.toISOString().split('T')[0];}},
+];
+
+function runConverter(){
+  var val = C('conv-input').value;
+  C('conv-results').innerHTML = convTypes.map(function(ct){
+    var result = ct.convert(val);
+    var isErr = result.startsWith('ERROR');
+    return '<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;min-width:150px;">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:'+ct.color+';margin-bottom:6px;">'+ct.dtype+'</div>'
+      +'<div style="font-family:var(--font-mono);font-size:13px;color:'+(isErr?'var(--red)':ct.color)+';">'+result+'</div>'
+      +'<div style="font-size:10px;color:var(--text-3);margin-top:5px;">df[col].astype("'+ct.dtype+'")</div>'
+      +'</div>';
+  }).join('');
+}
+
+/* ============================================
+   SECTION 4 - MEMORY SAVINGS CHART
+============================================ */
+var colDefs = [
+  {name:'user_id',    before:'int64',    after:'int32',     beforeB:8, afterB:4},
+  {name:'age',        before:'int64',    after:'int8',      beforeB:8, afterB:1},
+  {name:'salary',     before:'float64',  after:'float32',   beforeB:8, afterB:4},
+  {name:'country',    before:'object',   after:'category',  beforeB:50,afterB:2},
+  {name:'product',    before:'object',   after:'category',  beforeB:50,afterB:2},
+  {name:'rating',     before:'int64',    after:'int8',      beforeB:8, afterB:1},
+  {name:'is_active',  before:'int64',    after:'bool',      beforeB:8, afterB:1},
+  {name:'created_at', before:'object',   after:'datetime64',beforeB:50,afterB:8},
+];
+
+function drawMemoryChart(){
+  var nrows = parseInt(C('mem-rows').value);
+  var nrowsStr = nrows>=1e6?(nrows/1e6).toFixed(1)+'M':(nrows/1000).toFixed(0)+'k';
+  C('mem-rows-val').textContent = nrowsStr;
+
+  var cv=C('mem-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pad={l:115,r:20,t:20,b:30};
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  var maxMem = 0;
+  colDefs.forEach(function(c){maxMem=Math.max(maxMem,c.beforeB*nrows/1e6);});
+  maxMem *= 1.15;
+
+  var rowH = (H-pad.t-pad.b)/colDefs.length - 4;
+  var totalBefore=0, totalAfter=0;
+
+  colDefs.forEach(function(c,i){
+    var y = pad.t + i*(rowH+4);
+    var bMB = c.beforeB*nrows/1e6;
+    var aMB = c.afterB*nrows/1e6;
+    totalBefore += bMB; totalAfter += aMB;
+    var bW = bMB/maxMem*(W-pad.l-pad.r);
+    var aW = aMB/maxMem*(W-pad.l-pad.r);
+
+    // before bar
+    ctx.fillStyle = 'rgba(251,140,64,0.35)';
+    ctx.strokeStyle = '#fb8c40';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(pad.l,y,bW,rowH/2-2,2) : ctx.rect(pad.l,y,bW,rowH/2-2);
+    ctx.fill(); ctx.stroke();
+
+    // after bar
+    ctx.fillStyle = 'rgba(62,207,142,0.35)';
+    ctx.strokeStyle = '#3ecf8e';
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(pad.l,y+rowH/2+2,aW,rowH/2-2,2) : ctx.rect(pad.l,y+rowH/2+2,aW,rowH/2-2);
+    ctx.fill(); ctx.stroke();
+
+    // labels
+    ctx.fillStyle = tc(); ctx.font='11px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(c.name,pad.l-6,y+rowH/2+4);
+    ctx.fillStyle = '#fb8c40'; ctx.font='10px mono'; ctx.textAlign='left';
+    ctx.fillText(bMB.toFixed(1)+' MB  '+c.before,pad.l+bW+4,y+rowH/2-3);
+    ctx.fillStyle = '#3ecf8e';
+    ctx.fillText(aMB.toFixed(1)+' MB  '+c.after,pad.l+aW+4,y+rowH/2+rowH/2+1);
+  });
+
+  var saving = (1-totalAfter/totalBefore)*100;
+  C('mem-before').textContent = totalBefore.toFixed(0)+' MB';
+  C('mem-after').textContent = totalAfter.toFixed(0)+' MB';
+  C('mem-saving').textContent = (totalBefore-totalAfter).toFixed(0)+' MB';
+  C('mem-factor').textContent = (totalBefore/totalAfter).toFixed(1)+'x';
+
+  // legend
+  ctx.fillStyle='#fb8c40'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText('Before (default dtypes)',pad.l,H-8);
+  ctx.fillStyle='#3ecf8e';
+  ctx.fillText('After (optimised dtypes)',pad.l+170,H-8);
+  ctx.textAlign='start';
+}
+
+/* ============================================
+   SECTION 5 - GOTCHAS
+============================================ */
+var gotchas = [
+  {
+    title:'String numbers',
+    problem:'# Numbers loaded as strings from CSV\nimport pandas as pd\ndf = pd.DataFrame({"price": ["29.99","14.50","99.00"]})\nprint(df["price"].dtype)   # object\nprint(df["price"].mean())  # TypeError!',
+    fix:'# Fix: convert to numeric\ndf["price"] = pd.to_numeric(df["price"])\nprint(df["price"].dtype)   # float64\nprint(df["price"].mean())  # 47.83',
+    explain:'When pandas reads a CSV, it sees "29.99" as text, not a number. Always call pd.to_numeric() on columns that should be numbers. Use errors="coerce" to turn unparseable values into NaN instead of crashing.'
+  },
+  {
+    title:'Mixed types in one column',
+    problem:'# Column with mixed ints and strings\ndf = pd.DataFrame({"id": [1, 2, "missing", 4]})\nprint(df["id"].dtype)   # object\nprint(df["id"].sum())   # "1 2 missing 4" (string concat!)',
+    fix:'# Fix: coerce errors to NaN, then fillna\ndf["id"] = pd.to_numeric(df["id"], errors="coerce")\n# NaN where "missing" was\ndf["id"] = df["id"].fillna(0).astype(int)\nprint(df["id"].dtype)  # int64',
+    explain:'Mixed types force pandas to use object dtype. The errors="coerce" argument replaces invalid values with NaN so numeric operations work. Then decide how to handle the NaN (fill, drop, or leave).'
+  },
+  {
+    title:'NaN kills integer dtype',
+    problem:'# Integer column becomes float when NaN appears\ndf = pd.DataFrame({"count": [1, 2, None, 4]})\nprint(df["count"].dtype)    # float64 (!)\nprint(df["count"].iloc[0])  # 1.0 (not 1)',
+    fix:'# Fix: use pandas nullable integer type\ndf["count"] = df["count"].astype(pd.Int64Dtype())\nprint(df["count"].dtype)    # Int64\nprint(df["count"].iloc[0])  # 1 (integer!)\nprint(df["count"].iloc[2])  # <NA>',
+    explain:'Standard numpy int64 cannot hold NaN, so pandas silently converts to float64. Use pd.Int64Dtype() (capital I) for the nullable integer type that can hold both integers and missing values natively.'
+  },
+  {
+    title:'Date strings miss .dt accessor',
+    problem:'# Date stored as string -- no time features\ndf = pd.DataFrame({"date": ["2024-01-15", "2024-03-20"]})\nprint(df["date"].dtype)       # object\ndf["month"] = df["date"].dt.month  # AttributeError!',
+    fix:'# Fix: convert to datetime first\ndf["date"] = pd.to_datetime(df["date"])\nprint(df["date"].dtype)         # datetime64[ns]\ndf["month"]   = df["date"].dt.month\ndf["weekday"] = df["date"].dt.day_name()\ndf["quarter"] = df["date"].dt.quarter',
+    explain:'Date strings look like dates but are just text to pandas. pd.to_datetime() parses them into proper datetime64 objects, unlocking the .dt accessor for year, month, day, hour, weekday, quarter and more.'
+  },
+  {
+    title:'Bool stored as object',
+    problem:'# Boolean values read as strings from CSV\ndf = pd.DataFrame({"active": ["True","False","True"]})\nprint(df["active"].dtype)       # object\nprint(df["active"].sum())       # "TrueFalseTrue" (!)\nprint(df[df["active"]].shape)   # TypeError',
+    fix:'# Fix: map to actual Python bool\ndf["active"] = df["active"].map({"True":True,"False":False})\n# or: df["active"] = df["active"] == "True"\nprint(df["active"].dtype)   # bool\nprint(df["active"].sum())   # 2 (count of True)\nprint(df[df["active"]].shape)  # works!',
+    explain:'"True" and "False" as strings are truthy objects -- they both evaluate to True in a boolean context! Always map string booleans to actual Python True/False. Watch for "yes"/"no", "1"/"0", "Y"/"N" variants too.'
+  },
+];
+
+function showGotcha(i){
+  for(var k=0;k<5;k++) C('gotcha-'+k).classList.toggle('active',k===i);
+  var g = gotchas[i];
+  C('gotcha-problem').textContent = g.problem;
+  C('gotcha-fix').textContent = g.fix;
+  C('gotcha-explain').innerHTML = '<strong style="color:var(--accent);">Why this happens: </strong>'+g.explain;
+}
+
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return'<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','pandas']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+var SNIPPETS=[
+{file:"dtypes_basics.py",label:"dtype basics",code:"# Every pandas column has a dtype -- it controls memory, operations, speed\nimport pandas as pd\nimport numpy as np\n\n# Create a DataFrame with mixed types\ndf = pd.DataFrame({\n    'age':        [25, 32, 28, 45, 19],\n    'salary':     [50000.0, 75000.0, 62000.0, 90000.0, 38000.0],\n    'name':       ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],\n    'is_manager': [False, True, False, True, False],\n    'hire_date':  ['2020-01-15', '2018-06-01', '2021-03-20', '2015-09-10', '2023-02-28'],\n    'dept':       ['Eng', 'Mgt', 'Eng', 'Mgt', 'Sales'],\n})\n\nprint(\"=== dtypes ===\")\nprint(df.dtypes)\nprint()\nprint(\"=== memory usage ===\")\nprint(df.memory_usage(deep=True))\nprint(f\"Total: {df.memory_usage(deep=True).sum():,} bytes\")\nprint()\n\n# Fix dtypes for efficiency\ndf['hire_date'] = pd.to_datetime(df['hire_date'])\ndf['dept']      = df['dept'].astype('category')    # saves memory for low-cardinality\ndf['age']       = df['age'].astype('int8')          # 25 fits in int8 (max 127)\n\nprint(\"=== dtypes after fix ===\")\nprint(df.dtypes)\nprint()\nprint(f\"Memory after fix: {df.memory_usage(deep=True).sum():,} bytes\")\nprint()\n\n# What each dtype enables\nprint(\"=== dtype capabilities ===\")\nprint(f\"Mean salary:    {df['salary'].mean():.2f}\")\nprint(f\"Max age:        {df['age'].max()}\")\nprint(f\"Managers:       {df['is_manager'].sum()}\")\nprint(f\"Hire year range:{df['hire_date'].dt.year.min()} - {df['hire_date'].dt.year.max()}\")\nprint(f\"Dept categories:{list(df['dept'].cat.categories)}\")\n"},
+{file:"numeric_types.py",label:"Numeric types",code:"# Numeric types: int8/16/32/64, float16/32/64\n# Choosing the right size saves huge memory on large datasets\nimport pandas as pd\nimport numpy as np\n\n# Show the range of each integer type\nprint(\"=== Integer type ranges ===\")\nfor dtype in ['int8','int16','int32','int64']:\n    info = np.iinfo(dtype)\n    print(f\"  {dtype:<8}: {info.min:>25,} to {info.max:>20,}\")\n\nprint()\nprint(\"=== Float type precision ===\")\nfor dtype in ['float16','float32','float64']:\n    info = np.finfo(dtype)\n    print(f\"  {dtype:<10}: precision ~{abs(int(np.log10(info.eps))):>2} decimal places, max={info.max:.2e}\")\n\nprint()\n\n# Real-world example: a dataset with 1 million rows\nn = 1_000_000\nages   = np.random.randint(18, 90, n)     # values 18-90 fit in int8\nsalaries = np.random.uniform(20000, 200000, n)  # needs float32 at least\nratings = np.random.randint(1, 6, n)      # 1-5 fits in int8\n\n# Memory comparison\nfor col_name, data, default_dtype, small_dtype in [\n    ('age',    ages,     'int64',   'int8'),\n    ('salary', salaries, 'float64', 'float32'),\n    ('rating', ratings,  'int64',   'int8'),\n]:\n    big   = data.astype(default_dtype).nbytes\n    small = data.astype(small_dtype).nbytes\n    print(f\"{col_name:<8}: {default_dtype} = {big/1e6:.1f} MB  |  {small_dtype} = {small/1e6:.1f} MB  (saves {(big-small)/big*100:.0f}%)\")\n\nprint()\n\n# Downcasting automatically\ndf = pd.DataFrame({'age': ages, 'salary': salaries, 'rating': ratings})\nprint(\"Before downcast:\", df.memory_usage(deep=True).sum() / 1e6, \"MB\")\n\ndf['age']    = pd.to_numeric(df['age'],    downcast='integer')\ndf['salary'] = pd.to_numeric(df['salary'], downcast='float')\ndf['rating'] = pd.to_numeric(df['rating'], downcast='integer')\nprint(\"After downcast: \", df.memory_usage(deep=True).sum() / 1e6, \"MB\")\nprint(\"New dtypes:\", df.dtypes.to_dict())\n"},
+{file:"categorical_type.py",label:"Categorical type",code:"# Categorical type: massive memory savings for low-cardinality string columns\n# Also enables fast groupby and ordered comparisons\nimport pandas as pd\nimport numpy as np\n\n# Simulate a dataset with many repeated string values\nn = 500_000\ncountries = ['USA', 'UK', 'Germany', 'France', 'India', 'China', 'Brazil', 'Japan']\nsizes     = ['Small', 'Medium', 'Large', 'Enterprise']\n\ndf = pd.DataFrame({\n    'country':   np.random.choice(countries, n),\n    'size':      np.random.choice(sizes, n),\n    'revenue':   np.random.exponential(50000, n),\n})\n\n# Memory before\nobj_mem  = df[['country','size']].memory_usage(deep=True).sum()\nprint(f\"object dtype memory:    {obj_mem/1e6:.1f} MB\")\n\n# Convert to categorical\ndf['country'] = df['country'].astype('category')\ndf['size']    = pd.Categorical(df['size'],\n                    categories=['Small','Medium','Large','Enterprise'],\n                    ordered=True)      # ordered = can use < > comparisons!\n\ncat_mem = df[['country','size']].memory_usage(deep=True).sum()\nprint(f\"category dtype memory:  {cat_mem/1e6:.1f} MB\")\nprint(f\"Memory saved:           {(obj_mem-cat_mem)/obj_mem*100:.0f}%\")\nprint()\n\n# Ordered categorical enables useful comparisons\nbig_companies = df[df['size'] >= 'Large']\nprint(f\"Large or Enterprise companies: {len(big_companies):,}\")\n\n# Fast groupby on categorical\ngrp = df.groupby('country', observed=True)['revenue'].mean()\nprint()\nprint(\"Average revenue by country:\")\nfor country, rev in grp.items():\n    print(f\"  {country:<12}: ${rev:,.0f}\")\n\n# Category codes (internal integer representation)\nprint()\nprint(\"Category codes (memory-efficient integers):\")\nprint(df['country'].cat.codes.head(5).tolist(),\n      \"-> maps to ->\",\n      df['country'].cat.categories.tolist())\n"},
+{file:"datetime_type.py",label:"Datetime type",code:"# Datetime type: enables time-series operations, date math, resampling\nimport pandas as pd\nimport numpy as np\n\n# Parsing different date formats\ndates_raw = ['2024-01-15', '15/01/2024', 'Jan 15, 2024', '20240115']\nfor d in dates_raw:\n    try:\n        parsed = pd.to_datetime(d, dayfirst=True)\n        print(f\"Parsed '{d}' -> {parsed.date()}  (format: {parsed.strftime('%A %d %B %Y')})\")\n    except Exception as e:\n        print(f\"Failed  '{d}': {e}\")\n\nprint()\n\n# Time-series feature engineering -- the most useful datetime operations\ndf = pd.DataFrame({\n    'timestamp': pd.date_range('2023-01-01', periods=365, freq='D'),\n    'sales':     np.random.poisson(100, 365) + np.sin(np.linspace(0, 4*np.pi, 365))*30,\n})\n\ndf['year']        = df['timestamp'].dt.year\ndf['month']       = df['timestamp'].dt.month        # 1-12\ndf['day_of_week'] = df['timestamp'].dt.dayofweek    # 0=Monday\ndf['quarter']     = df['timestamp'].dt.quarter      # 1-4\ndf['is_weekend']  = df['timestamp'].dt.dayofweek >= 5\ndf['week_number'] = df['timestamp'].dt.isocalendar().week\n\nprint(\"=== Datetime feature engineering ===\")\nprint(df[['timestamp','year','month','day_of_week','quarter','is_weekend']].head(7))\nprint()\n\n# Resampling: aggregate by month\nmonthly = df.set_index('timestamp')['sales'].resample('ME').sum()\nprint(\"=== Monthly sales totals ===\")\nfor period, total in monthly.items():\n    bar = '#' * int(total / 100)\n    print(f\"  {period.strftime('%b %Y')}: {total:6.0f}  {bar}\")\n"}
+];
+
+window.addEventListener('load', function(){
+  initDtypeGrid();
+  resetColumns();
+  runConverter();
+  drawMemoryChart();
+  showGotcha(0);
+  initEditor();
+
+  new MutationObserver(function(){
+    drawMemoryChart();
+    if(cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

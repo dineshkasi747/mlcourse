@@ -1,0 +1,938 @@
+<!-- hyperparameter-tuning.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hyperparameter Tuning — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,165,0,0.09),rgba(167,139,250,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(240,165,0,0.1) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* strategy cards */
+    .strategy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+    .strategy-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;cursor:pointer;transition:all .18s;position:relative;}
+    .strategy-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.2);}
+    .strategy-card.active{border-color:var(--accent);}
+    .strategy-card.active::after{content:'selected';position:absolute;top:10px;right:12px;font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;}
+    .strategy-icon{font-size:24px;margin-bottom:8px;}
+    .strategy-name{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .strategy-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:100px;display:inline-block;margin-bottom:8px;}
+    .strategy-desc{font-size:12.5px;color:var(--text-3);line-height:1.55;}
+    /* algo steps */
+    .algo-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+    .algo-step{display:flex;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;transition:border-color .2s;}
+    .algo-step:hover{border-color:rgba(240,165,0,0.4);}
+    .algo-step-num{width:38px;height:38px;border-radius:50%;background:var(--accent-surface);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--accent-surface);color:var(--accent);margin-bottom:7px;letter-spacing:.04em;}
+    .algo-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:10px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid var(--accent);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+    /* param grid heatmap */
+    .heatmap-cell{display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:pointer;transition:all .15s;font-family:var(--font-mono);font-size:11px;font-weight:700;}
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--accent);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.strategy-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="hyperparameter-tuning">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Hyperparameter Tuning</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Real-World ML</a><span class="sep">/</span>
+            <span class="current">Hyperparameter Tuning</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(240,165,0,.3);margin-bottom:14px;">Real-World ML &middot; Optimisation</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Hyperparameter Tuning</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Parameters you set before training — not learned from data. Grid Search, Random Search, and Bayesian Optimisation are the three strategies. The right one depends on your compute budget.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">20 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">sklearn &middot; optuna</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: STRATEGY SELECTOR + LIVE SEARCH SIM -->
+          <section class="section" id="strategy-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">3</div>
+              Three tuning strategies &mdash; click to compare
+            </h2>
+            <p>Each strategy searches the hyperparameter space differently. Click a card to see how it samples and explore the animated search on the canvas.</p>
+
+            <div class="strategy-grid">
+              <div class="strategy-card active" id="sc-grid" onclick="selectStrategy('grid')">
+                <div class="strategy-icon">&#9783;</div>
+                <div class="strategy-name">Grid Search</div>
+                <div class="strategy-tag" style="background:var(--blue-surf);color:var(--blue);">Exhaustive</div>
+                <div class="strategy-desc">Tries every combination of specified values. Guaranteed to find the best in the grid but scales exponentially with parameters.</div>
+              </div>
+              <div class="strategy-card" id="sc-random" onclick="selectStrategy('random')">
+                <div class="strategy-icon">&#9762;</div>
+                <div class="strategy-name">Random Search</div>
+                <div class="strategy-tag" style="background:var(--green-surf);color:var(--green);">Efficient</div>
+                <div class="strategy-desc">Samples randomly from distributions. Finds good solutions faster than grid when only a few parameters matter (which is usually the case).</div>
+              </div>
+              <div class="strategy-card" id="sc-bayes" onclick="selectStrategy('bayes')">
+                <div class="strategy-icon">&#9670;</div>
+                <div class="strategy-name">Bayesian Optimisation</div>
+                <div class="strategy-tag" style="background:var(--purple-surf);color:var(--purple);">Smart</div>
+                <div class="strategy-desc">Builds a surrogate model of the objective function. Uses past results to choose the next point — focuses budget where improvement is likely.</div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="strategy-canvas-title">Grid Search &mdash; exhaustive, 25 evaluations</span>
+                <button class="ctrl-btn active" id="search-btn" onclick="runSearch()">Run search</button>
+                <button class="ctrl-btn" onclick="resetSearch()">Reset</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Budget:</span>
+                  <input type="range" min="5" max="50" value="25" class="ctrl-slider" id="budget-slider" style="width:80px;" oninput="C('budget-val').textContent=this.value"/>
+                  <span class="ctrl-value" id="budget-val" style="color:var(--accent);">25</span>
+                </div>
+              </div>
+              <canvas id="search-canvas" width="700" height="340" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="s-evals" style="color:var(--accent);">0</span><span class="stat-pill-lbl">Evaluations</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="s-best">--</span><span class="stat-pill-lbl">Best score</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="s-best-params" style="font-size:11px;">--</span><span class="stat-pill-lbl">Best params</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="s-efficiency">--</span><span class="stat-pill-lbl">Efficiency</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2: PARAM GRID HEATMAP -->
+          <section class="section" id="param-heatmap">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">~</div>
+              Parameter interaction heatmap
+            </h2>
+            <p>See how two hyperparameters interact. Drag the sliders to see which regions of parameter space are best — the goal is to find the peak (brightest cell).</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Validation score heatmap &mdash; C vs gamma (SVM)</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Noise:</span>
+                  <input type="range" min="0" max="40" value="10" class="ctrl-slider" id="noise-hp" style="width:80px;" oninput="drawHeatmap(parseInt(this.value))"/>
+                </div>
+                <button class="ctrl-btn" onclick="drawHeatmap(parseInt(C('noise-hp').value))">Refresh</button>
+              </div>
+              <canvas id="heatmap-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Key insight:</strong> In most models, only 1&ndash;2 hyperparameters matter most. This is why Random Search often beats Grid Search: it samples more diverse values for the important parameters instead of wasting budget on unimportant ones.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 3: TUNING WORKFLOW STEPS -->
+          <section class="section" id="workflow">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">5</div>
+              Production tuning workflow
+            </h2>
+
+            <div class="algo-steps">
+              <div class="algo-step">
+                <div class="algo-step-num">1</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Baseline first</div>
+                  <div class="algo-step-title">Get a baseline with default parameters</div>
+                  <div class="algo-step-desc">Never tune before you have a baseline. Default sklearn parameters are well-chosen starting points. Measure cross-validated score first so you know how much tuning actually helps.</div>
+                  <div class="algo-step-formula">model = RandomForestClassifier()   # all defaults
+baseline = cross_val_score(model, X, y, cv=5).mean()
+print(f"Baseline: {baseline:.4f}")</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">2</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Coarse search</div>
+                  <div class="algo-step-title">Random search over a wide range</div>
+                  <div class="algo-step-desc">Start with Random Search over a large parameter space using log-uniform distributions. This is faster than Grid Search and covers the space better. Use n_iter=50-100 with 3-fold CV.</div>
+                  <div class="algo-step-formula">from scipy.stats import loguniform
+param_dist = {
+    'n_estimators': [50, 100, 200, 500],
+    'max_depth': [None, 5, 10, 20],
+    'min_samples_split': loguniform(0.001, 0.1),
+}
+rs = RandomizedSearchCV(model, param_dist, n_iter=50, cv=3)</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">3</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Fine search</div>
+                  <div class="algo-step-title">Grid search around the best region</div>
+                  <div class="algo-step-desc">Once you know roughly where the optimum is, run a tight Grid Search in that neighbourhood. Use 5-fold CV here since you have fewer combinations.</div>
+                  <div class="algo-step-formula">best = rs.best_params_
+# Narrow grid around best
+param_grid = {
+    'n_estimators': [best['n_estimators']-50, best['n_estimators'], best['n_estimators']+50],
+    'max_depth': [best['max_depth']-2, best['max_depth'], best['max_depth']+2],
+}</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">4</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Final evaluation</div>
+                  <div class="algo-step-title">Evaluate on held-out test set ONCE</div>
+                  <div class="algo-step-desc">After tuning, fit the best model on all training data and evaluate on the test set exactly once. If you tune using test set feedback you leak information and your estimate is optimistic.</div>
+                  <div class="algo-step-formula">best_model = gs.best_estimator_
+best_model.fit(X_train, y_train)   # fit on ALL train
+test_score = best_model.score(X_test, y_test)
+print(f"Test: {test_score:.4f}")   # report THIS number</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">5</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag">Advanced</div>
+                  <div class="algo-step-title">Bayesian Optimisation for expensive models</div>
+                  <div class="algo-step-desc">When each model fit takes minutes (XGBoost, neural nets), use Optuna or scikit-optimize. They use past evaluations to intelligently choose the next trial.</div>
+                  <div class="algo-step-formula">import optuna
+def objective(trial):
+    n = trial.suggest_int('n_estimators', 50, 500)
+    d = trial.suggest_int('max_depth', 2, 20)
+    model = RandomForestClassifier(n_estimators=n, max_depth=d)
+    return cross_val_score(model, X, y, cv=3).mean()
+study = optuna.create_study(direction='maximize')
+study.optimize(objective, n_trials=100)</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: BUDGET SIMULATOR -->
+          <section class="section" id="budget-sim">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">$</div>
+              Budget simulator &mdash; which strategy wins?
+            </h2>
+            <p>Given a fixed evaluation budget, which search strategy finds the best parameters fastest? Run the simulation to compare all three.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Best score vs evaluations (averaged over 20 runs)</span>
+                <button class="ctrl-btn active" onclick="runBudgetSim()">Run simulation</button>
+                <button class="ctrl-btn" onclick="clearBudgetSim()">Clear</button>
+                <span style="font-size:12px;color:var(--text-3);" id="sim-status"></span>
+              </div>
+              <canvas id="budget-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: Grid Search, Random Search, Optuna Bayesian, and nested CV to avoid leakage.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">grid_search.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Tuning on the test set.</strong> If you use test set feedback to choose hyperparameters, your reported accuracy is optimistic. Use cross-validation on training data only. Evaluate on test set exactly once at the end.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Grid searching too many parameters at once.</strong> A 5-parameter grid with 5 values each = 5^5 = 3125 fits. With 5-fold CV that is 15,625 model fits. Random Search with n_iter=100 explores the same space in 500 fits.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not using log-scale for LR and regularisation.</strong> Learning rate ranges like [0.001, 0.01, 0.1, 1.0] are log-spaced. Using linear spacing [0.1, 0.2, 0.3] misses the most important region near 0.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Tuning before feature engineering.</strong> Hyperparameter tuning gives marginal gains. Better features give large gains. Always do EDA and feature engineering first.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Overfitting the validation set.</strong> Running hundreds of trials will eventually find params that fit the validation noise. Use nested CV or a separate validation set for final reporting.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Grid Search is exhaustive but exponential. Use it only for 1-2 parameters with few values.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Random Search is usually better than Grid Search. Sample from distributions, not fixed grids. Use log-uniform for LR and regularisation.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Bayesian Optimisation (Optuna, scikit-optimize) is best when evaluations are expensive. It learns from past trials to choose the next point.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Never use test set for tuning. Evaluate on test set exactly once after all tuning is done.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always start with a baseline using default params. Tuning rarely improves more than 1-3% on well-prepared data.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="cross-validation.html"><span class="pn-dir">Previous</span><span class="pn-title">Cross-Validation</span></a>
+            <a class="pn-card next" href="overfitting-underfitting.html"><span class="pn-dir">Next</span><span class="pn-title">Overfitting & Underfitting</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#strategy-explorer">Strategy explorer</a></li>
+            <li class="toc-item"><a href="#param-heatmap">Param heatmap</a></li>
+            <li class="toc-item"><a href="#workflow">Tuning workflow</a></li>
+            <li class="toc-item"><a href="#budget-sim">Budget simulator</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* ═══════════════════════════════════════
+   SECTION 1: STRATEGY SEARCH ANIMATION
+═══════════════════════════════════════ */
+var SC = C('search-canvas'), SX = SC.getContext('2d');
+var currentStrategy = 'grid';
+var searchPoints = [];
+var searchRunning = false;
+var searchAnim = null;
+
+// Simulated objective function (unknown to the search)
+function objective(x, y) {
+  // Two peaks: main at (0.3,0.7) and secondary at (0.7,0.3)
+  var d1 = Math.sqrt((x-0.3)*(x-0.3)+(y-0.7)*(y-0.7));
+  var d2 = Math.sqrt((x-0.7)*(x-0.7)+(y-0.3)*(y-0.3));
+  return Math.max(
+    0.9*Math.exp(-d1*d1/0.04),
+    0.75*Math.exp(-d2*d2/0.03)
+  ) + Math.random()*0.05;
+}
+
+var STRATEGY_META = {
+  grid:   {title:'Grid Search — exhaustive, systematic', color:'#4b96ff'},
+  random: {title:'Random Search — random sampling, efficient', color:'#3ecf8e'},
+  bayes:  {title:'Bayesian Optimisation — smart, informed', color:'#a78bfa'}
+};
+
+function selectStrategy(s) {
+  currentStrategy = s;
+  ['grid','random','bayes'].forEach(function(k){
+    var el = C('sc-'+k);
+    if(el) el.classList.toggle('active', k===s);
+  });
+  C('strategy-canvas-title').textContent = STRATEGY_META[s].title;
+  resetSearch();
+}
+
+function generateSearchPoints(strategy, budget) {
+  var pts = [];
+  if(strategy === 'grid') {
+    var n = Math.round(Math.sqrt(budget));
+    for(var i=0;i<n;i++) for(var j=0;j<n;j++) {
+      pts.push({x:(i+0.5)/n, y:(j+0.5)/n});
+    }
+  } else if(strategy === 'random') {
+    for(var i=0;i<budget;i++) pts.push({x:Math.random(), y:Math.random()});
+  } else {
+    // Bayesian: start random, then focus near best
+    pts.push({x:Math.random(), y:Math.random()});
+    pts.push({x:Math.random(), y:Math.random()});
+    pts.push({x:Math.random(), y:Math.random()});
+    for(var i=3;i<budget;i++) {
+      // Find current best
+      var best = pts.reduce(function(b,p){return (p.score||0)>(b.score||0)?p:b;}, pts[0]);
+      // Sample near best with some exploration
+      var explore = Math.random() < 0.3;
+      if(explore) {
+        pts.push({x:Math.random(), y:Math.random()});
+      } else {
+        pts.push({
+          x: Math.max(0.01,Math.min(0.99, (best.x||0.5)+(Math.random()-0.5)*0.3)),
+          y: Math.max(0.01,Math.min(0.99, (best.y||0.5)+(Math.random()-0.5)*0.3))
+        });
+      }
+    }
+  }
+  return pts;
+}
+
+async function runSearch() {
+  if(searchRunning) return;
+  resetSearch();
+  searchRunning = true;
+  C('search-btn').textContent = 'Running...';
+  var budget = parseInt(C('budget-slider').value);
+  var pts = generateSearchPoints(currentStrategy, budget);
+  var col = STRATEGY_META[currentStrategy].color;
+  var bestScore = -Infinity, bestPt = null;
+
+  for(var i=0;i<pts.length;i++) {
+    var p = pts[i];
+    p.score = objective(p.x, p.y);
+    p.color = col;
+    if(p.score > bestScore) { bestScore=p.score; bestPt=p; }
+    searchPoints.push(p);
+    drawSearch(col, bestPt);
+    C('s-evals').textContent = i+1;
+    C('s-best').textContent = bestScore.toFixed(4);
+    if(bestPt) C('s-best-params').textContent = 'C='+bestPt.x.toFixed(2)+' g='+bestPt.y.toFixed(2);
+    C('s-efficiency').textContent = ((bestScore/budget*pts.length)*100).toFixed(0)+'%';
+    await delay(currentStrategy==='bayes'?80:40);
+  }
+  searchRunning = false;
+  C('search-btn').textContent = 'Run search';
+}
+
+function resetSearch() {
+  searchRunning = false;
+  clearTimeout(searchAnim);
+  searchPoints = [];
+  C('s-evals').textContent = '0';
+  C('s-best').textContent = '--';
+  C('s-best-params').textContent = '--';
+  C('s-efficiency').textContent = '--';
+  drawSearch(STRATEGY_META[currentStrategy].color, null);
+}
+
+function drawSearch(col, bestPt) {
+  var W=SC.width, H=SC.height, pad=50;
+  SX.clearRect(0,0,W,H);
+  SX.fillStyle=bg(); SX.fillRect(0,0,W,H);
+
+  // Draw true landscape (unknown to searcher)
+  var res=4;
+  for(var px=pad;px<W-pad;px+=res) {
+    for(var py=pad;py<H-pad;py+=res) {
+      var nx=(px-pad)/(W-2*pad), ny=(py-pad)/(H-2*pad);
+      var v=Math.max(0,objective(nx,ny)-0.05);
+      var alpha=v*0.35;
+      SX.fillStyle='rgba(240,165,0,'+alpha+')';
+      SX.fillRect(px,py,res,res);
+    }
+  }
+
+  // Axis labels
+  SX.strokeStyle=gc(); SX.lineWidth=0.5;
+  for(var i=0;i<=5;i++) {
+    var x=pad+i*(W-2*pad)/5, y=pad+i*(H-2*pad)/5;
+    SX.beginPath();SX.moveTo(x,pad);SX.lineTo(x,H-pad);SX.stroke();
+    SX.beginPath();SX.moveTo(pad,y);SX.lineTo(W-pad,y);SX.stroke();
+    SX.fillStyle=tc();SX.font='10px monospace';SX.textAlign='center';
+    SX.fillText((i/5).toFixed(1),x,H-pad+14);
+  }
+  SX.fillStyle=tc();SX.font='11px sans-serif';SX.textAlign='center';
+  SX.fillText('C (log scale)',W/2,H-4);
+  SX.save();SX.translate(14,H/2);SX.rotate(-Math.PI/2);SX.fillText('gamma (log scale)',0,0);SX.restore();
+
+  // Searched points
+  searchPoints.forEach(function(p,i) {
+    var x=pad+p.x*(W-2*pad), y=pad+p.y*(H-2*pad);
+    var alpha=0.3+0.7*(i/Math.max(searchPoints.length-1,1));
+    SX.beginPath();SX.arc(x,y,4,0,Math.PI*2);
+    SX.fillStyle=p.color+(Math.round(alpha*255).toString(16).padStart(2,'0'));
+    SX.fill();
+  });
+
+  // Best point marker
+  if(bestPt) {
+    var bx=pad+bestPt.x*(W-2*pad), by=pad+bestPt.y*(H-2*pad);
+    SX.beginPath();SX.arc(bx,by,10,0,Math.PI*2);
+    SX.strokeStyle='#f0a500';SX.lineWidth=2.5;SX.stroke();
+    SX.beginPath();SX.arc(bx,by,5,0,Math.PI*2);
+    SX.fillStyle='#f0a500';SX.fill();
+    SX.fillStyle='#f0a500';SX.font='bold 10px sans-serif';SX.textAlign='center';
+    SX.fillText('best',bx,by-14);
+  }
+}
+
+/* ═══════════════════════════════════════
+   SECTION 2: PARAM HEATMAP
+═══════════════════════════════════════ */
+var HC=C('heatmap-canvas'), HX=HC.getContext('2d');
+
+function drawHeatmap(noise) {
+  var W=HC.width, H=HC.height;
+  var pad={l:70,r:20,t:40,b:50};
+  HX.clearRect(0,0,W,H);HX.fillStyle=bg();HX.fillRect(0,0,W,H);
+
+  var Cs = [0.001,0.01,0.1,1,10,100,1000];
+  var gammas = [0.001,0.01,0.1,1,10,100];
+  var nC=Cs.length, nG=gammas.length;
+  var cw=(W-pad.l-pad.r)/nC, ch=(H-pad.t-pad.b)/nG;
+
+  // Generate score landscape
+  var scores=[];
+  for(var gi=0;gi<nG;gi++) {
+    scores.push([]);
+    for(var ci=0;ci<nC;ci++) {
+      // Best at C=10, gamma=0.1
+      var sc=Math.exp(-Math.pow(Math.log10(Cs[ci])-1,2)/2-Math.pow(Math.log10(gammas[gi])+1,2)/2);
+      sc += (Math.random()-0.5)*noise/100;
+      sc = Math.max(0,Math.min(1,sc));
+      scores[gi].push(sc);
+    }
+  }
+
+  // Draw cells
+  var maxS=Math.max.apply(null,scores.map(function(r){return Math.max.apply(null,r);}));
+  var bestCi=0,bestGi=0;
+  scores.forEach(function(row,gi){
+    row.forEach(function(s,ci){
+      var t=s/maxS;
+      var r=Math.round(isDark()?t*240:240-t*160);
+      var g=Math.round(isDark()?t*165:165-t*80);
+      var b=isDark()?0:Math.round(255-t*255);
+      HX.fillStyle='rgb('+r+','+g+','+b+')';
+      HX.fillRect(pad.l+ci*cw,pad.t+gi*ch,cw-1,ch-1);
+      // Score label
+      HX.fillStyle=t>0.5?'#000':'rgba(255,255,255,0.8)';
+      HX.font='bold 10px monospace';HX.textAlign='center';
+      HX.fillText((s*100).toFixed(0)+'%',pad.l+ci*cw+cw/2,pad.t+gi*ch+ch/2+4);
+      if(s===maxS*1||s>=maxS-0.01){bestCi=ci;bestGi=gi;}
+    });
+  });
+
+  // Best marker
+  HX.strokeStyle='#f0a500';HX.lineWidth=2.5;
+  HX.strokeRect(pad.l+bestCi*cw-1,pad.t+bestGi*ch-1,cw+1,ch+1);
+
+  // Axis labels
+  HX.fillStyle=tc();HX.font='10px monospace';HX.textAlign='center';
+  Cs.forEach(function(c,i){HX.fillText(c,pad.l+i*cw+cw/2,H-pad.b+16);});
+  HX.font='11px sans-serif';HX.fillText('C',W/2,H-4);
+
+  HX.textAlign='right';
+  gammas.forEach(function(g,i){HX.fillText(g,pad.l-6,pad.t+i*ch+ch/2+4);});
+  HX.save();HX.translate(12,H/2);HX.rotate(-Math.PI/2);
+  HX.textAlign='center';HX.fillText('gamma',0,0);HX.restore();
+
+  HX.fillStyle='#f0a500';HX.font='bold 10px sans-serif';HX.textAlign='center';
+  HX.fillText('★ Best: C='+Cs[bestCi]+' gamma='+gammas[bestGi],W/2,pad.t-10);
+}
+
+/* ═══════════════════════════════════════
+   SECTION 4: BUDGET SIMULATOR
+═══════════════════════════════════════ */
+var BC=C('budget-canvas'), BX=BC.getContext('2d');
+
+async function runBudgetSim() {
+  C('sim-status').textContent = 'Simulating...';
+  var maxBudget=50, runs=20;
+  var results = {grid:[], random:[], bayes:[]};
+
+  // For each strategy, simulate 'runs' runs and average
+  Object.keys(results).forEach(function(strat) {
+    for(var b=1;b<=maxBudget;b++) {
+      var total=0;
+      for(var r=0;r<runs;r++) {
+        var pts=generateSearchPoints(strat,b);
+        var best=-Infinity;
+        pts.forEach(function(p){
+          var s=objective(p.x,p.y);
+          if(s>best)best=s;
+        });
+        total+=best;
+      }
+      results[strat].push(total/runs);
+    }
+  });
+
+  drawBudgetChart(results);
+  C('sim-status').textContent = 'Done';
+}
+
+function drawBudgetChart(results) {
+  var W=BC.width,H=BC.height,pad={l:50,r:20,t:20,b:40};
+  BX.clearRect(0,0,W,H);BX.fillStyle=bg();BX.fillRect(0,0,W,H);
+
+  var maxB=results.grid.length;
+  var allVals=[].concat(results.grid,results.random,results.bayes);
+  var minV=Math.min.apply(null,allVals),maxV=Math.max.apply(null,allVals);
+
+  BX.strokeStyle=gc();BX.lineWidth=0.5;
+  for(var i=0;i<=5;i++){
+    var y=pad.t+(H-pad.t-pad.b)*i/5;
+    BX.beginPath();BX.moveTo(pad.l,y);BX.lineTo(W-pad.r,y);BX.stroke();
+    var v=maxV-(i/5)*(maxV-minV);
+    BX.fillStyle=tc();BX.font='10px monospace';BX.textAlign='right';
+    BX.fillText(v.toFixed(3),pad.l-4,y+3);
+  }
+  BX.fillStyle=tc();BX.font='11px sans-serif';BX.textAlign='center';
+  BX.fillText('Evaluations (budget)',W/2,H-4);
+
+  var colors={grid:'#4b96ff',random:'#3ecf8e',bayes:'#a78bfa'};
+  var labels={grid:'Grid Search',random:'Random Search',bayes:'Bayesian'};
+
+  Object.keys(results).forEach(function(strat){
+    var vals=results[strat];
+    BX.beginPath();BX.strokeStyle=colors[strat];BX.lineWidth=2.5;
+    vals.forEach(function(v,i){
+      var x=pad.l+i*(W-pad.l-pad.r)/(maxB-1);
+      var y=pad.t+(H-pad.t-pad.b)*(1-(v-minV)/(maxV-minV));
+      i===0?BX.moveTo(x,y):BX.lineTo(x,y);
+    });
+    BX.stroke();
+    // End label
+    var last=vals[vals.length-1];
+    var ly=pad.t+(H-pad.t-pad.b)*(1-(last-minV)/(maxV-minV));
+    BX.fillStyle=colors[strat];BX.font='bold 11px sans-serif';BX.textAlign='left';
+    BX.fillText(labels[strat],W-pad.r-85,ly+4);
+  });
+}
+
+function clearBudgetSim(){BX.clearRect(0,0,BC.width,BC.height);C('sim-status').textContent='';}
+
+/* ═══════════════════════════════════════
+   LIVE EDITOR
+═══════════════════════════════════════ */
+var SNIPPETS=[
+  {file:'grid_search.py',label:'Grid Search',code:`from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.datasets import make_classification
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+X, y = make_classification(n_samples=500, n_features=10,
+                            n_informative=6, random_state=42)
+sc = StandardScaler()
+X_s = sc.fit_transform(X)
+
+# Baseline with defaults
+baseline = cross_val_score(
+    RandomForestClassifier(random_state=42), X_s, y, cv=5).mean()
+print(f"Baseline (defaults): {baseline:.4f}")
+
+# Grid Search
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 5, 10],
+    'min_samples_split': [2, 5, 10],
+}
+# Total: 3x3x3 = 27 fits * 5 folds = 135 model fits
+
+gs = GridSearchCV(
+    RandomForestClassifier(random_state=42),
+    param_grid,
+    cv=5,
+    scoring='accuracy',
+    n_jobs=-1,
+    verbose=0
+)
+gs.fit(X_s, y)
+
+print(f"Grid Search best:    {gs.best_score_:.4f}")
+print(f"Best params: {gs.best_params_}")
+print(f"Improvement: +{(gs.best_score_-baseline)*100:.2f}%")`},
+  {file:'random_search.py',label:'Random Search',code:`from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV, cross_val_score
+from sklearn.datasets import make_classification
+from sklearn.preprocessing import StandardScaler
+from scipy.stats import randint, loguniform
+import numpy as np
+
+X, y = make_classification(n_samples=500, n_features=10,
+                            n_informative=6, random_state=42)
+sc = StandardScaler()
+X_s = sc.fit_transform(X)
+
+# Wider search space with distributions
+param_dist = {
+    'n_estimators': randint(50, 500),
+    'max_depth': [None] + list(range(3, 25)),
+    'min_samples_split': randint(2, 20),
+    'min_samples_leaf': randint(1, 10),
+    'max_features': ['sqrt', 'log2', None],
+}
+
+rs = RandomizedSearchCV(
+    RandomForestClassifier(random_state=42),
+    param_dist,
+    n_iter=50,         # only 50 fits * 3 folds = 150 model fits
+    cv=3,
+    scoring='accuracy',
+    random_state=42,
+    n_jobs=-1,
+)
+rs.fit(X_s, y)
+
+print(f"Random Search best:  {rs.best_score_:.4f}")
+print(f"Best params:")
+for k, v in rs.best_params_.items():
+    print(f"  {k}: {v}")
+
+# Top 5 results
+import pandas as pd
+results = pd.DataFrame(rs.cv_results_)
+top5 = results.nlargest(5, 'mean_test_score')[['mean_test_score','std_test_score','params']]
+print()
+print("Top 5 configurations:")
+for i, row in top5.iterrows():
+    print(f"  {row['mean_test_score']:.4f} +/- {row['std_test_score']:.4f}")`},
+  {file:'optuna_bayes.py',label:'Optuna (Bayesian)',code:`# Optuna: Bayesian-style hyperparameter optimisation
+# pip install optuna
+try:
+    import optuna
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    HAS_OPTUNA = True
+except ImportError:
+    HAS_OPTUNA = False
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.datasets import make_classification
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+X, y = make_classification(n_samples=500, n_features=10,
+                            n_informative=6, random_state=42)
+sc = StandardScaler()
+X_s = sc.fit_transform(X)
+
+if HAS_OPTUNA:
+    def objective(trial):
+        n_estimators = trial.suggest_int('n_estimators', 50, 500)
+        max_depth    = trial.suggest_int('max_depth', 2, 20)
+        min_split    = trial.suggest_int('min_samples_split', 2, 20)
+        max_features = trial.suggest_categorical('max_features', ['sqrt','log2'])
+
+        model = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            min_samples_split=min_split,
+            max_features=max_features,
+            random_state=42
+        )
+        return cross_val_score(model, X_s, y, cv=3).mean()
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=40, show_progress_bar=False)
+
+    print(f"Best score: {study.best_value:.4f}")
+    print(f"Best params: {study.best_params}")
+else:
+    print("Optuna not available in this environment.")
+    print("Showing RandomizedSearchCV as equivalent fallback:")
+
+    from sklearn.model_selection import RandomizedSearchCV
+    from scipy.stats import randint
+    param_dist = {'n_estimators':randint(50,500),'max_depth':randint(2,20)}
+    rs = RandomizedSearchCV(RandomForestClassifier(random_state=42),
+                            param_dist, n_iter=40, cv=3, random_state=42)
+    rs.fit(X_s, y)
+    print(f"Best score: {rs.best_score_:.4f}")
+    print(f"Best params: {rs.best_params_}")`},
+  {file:'nested_cv.py',label:'Nested CV (no leakage)',code:`# Nested cross-validation: unbiased estimate when tuning + evaluating
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import (cross_val_score,
+    GridSearchCV, KFold)
+from sklearn.datasets import make_classification
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+X, y = make_classification(n_samples=300, n_features=10,
+                            n_informative=5, random_state=42)
+sc = StandardScaler()
+X_s = sc.fit_transform(X)
+
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 5, 10],
+}
+
+# Wrong way: tune then evaluate on same CV
+gs_wrong = GridSearchCV(
+    RandomForestClassifier(random_state=42),
+    param_grid, cv=5)
+wrong_score = cross_val_score(gs_wrong, X_s, y, cv=5).mean()
+
+# Right way: nested CV
+# Outer loop = unbiased performance estimate
+# Inner loop = hyperparameter selection
+outer_cv = KFold(n_splits=5, shuffle=True, random_state=42)
+inner_cv = KFold(n_splits=3, shuffle=True, random_state=42)
+
+gs_inner = GridSearchCV(
+    RandomForestClassifier(random_state=42),
+    param_grid, cv=inner_cv)
+
+nested_scores = cross_val_score(gs_inner, X_s, y, cv=outer_cv)
+
+print(f"Without nested CV: {wrong_score:.4f}  (optimistically biased)")
+print(f"Nested CV:         {nested_scores.mean():.4f} +/- {nested_scores.std():.4f}")
+print()
+print("The gap is how much we were overfitting the validation set.")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn','scipy']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){
+      out.textContent='Failed to load Pyodide.';out.className='editor-output error';
+      btn.disabled=false;btn.textContent='Run';return;
+    }
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){
+        if(cm.somethingSelected())cm.indentSelection('add');
+        else cm.replaceSelection('    ','end');
+      }}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  resetSearch();
+  drawHeatmap(10);
+  initEditor();
+  new MutationObserver(function(){
+    resetSearch();drawHeatmap(parseInt(C('noise-hp').value));
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

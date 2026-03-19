@@ -1,0 +1,1345 @@
+<!-- classification-metrics.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Classification Metrics — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(62,207,142,.09),rgba(45,212,191,.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(62,207,142,.12) 0%,transparent 70%);pointer-events:none;}
+
+    /* confusion matrix */
+    .cm-grid{display:grid;grid-template-columns:auto 1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:3px;margin-bottom:16px;max-width:440px;}
+    .cm-header{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:flex;align-items:center;justify-content:center;padding:8px;}
+    .cm-cell{border-radius:var(--r-md);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;cursor:pointer;transition:all .2s;position:relative;}
+    .cm-cell-tp{background:rgba(62,207,142,.2);border:2px solid rgba(62,207,142,.5);}
+    .cm-cell-tn{background:rgba(62,207,142,.2);border:2px solid rgba(62,207,142,.5);}
+    .cm-cell-fp{background:rgba(240,96,96,.2);border:2px solid rgba(240,96,96,.5);}
+    .cm-cell-fn{background:rgba(240,96,96,.2);border:2px solid rgba(240,96,96,.5);}
+    .cm-cell:hover{transform:scale(1.04);}
+    .cm-val{font-family:var(--font-display);font-size:32px;font-weight:700;line-height:1;}
+    .cm-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+    .cm-abbr{font-size:10px;color:var(--text-3);margin-top:2px;}
+    .cm-ctrl{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+    .cm-ctrl-label{font-size:12px;color:var(--text-2);min-width:80px;}
+    .cm-ctrl-val{font-family:var(--font-mono);font-size:12px;font-weight:700;min-width:40px;}
+
+    /* metric cards */
+    .metric-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+    .ms-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .2s;}
+    .ms-card:hover{border-color:var(--border-hi);}
+    .ms-val{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .3s;}
+    .ms-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .ms-bar{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .ms-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* threshold explorer */
+    .thresh-result{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    .tr-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;text-align:center;}
+    .tr-val{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;margin-bottom:3px;transition:color .3s,transform .2s;}
+    .tr-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+
+    /* comparison table */
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:18px;}
+    .cmp-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:9px 14px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:left;}
+    .cmp-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;line-height:1.5;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-hover);}
+    .badge-g{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--green-surf);color:var(--green);}
+    .badge-y{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--accent-surface);color:var(--accent);}
+    .badge-r{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--red-surf);color:var(--red);}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}.editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}.CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}.CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}.cm-s-one-dark .cm-def{color:#60a5fa;}.cm-s-one-dark .cm-string{color:#4ade80;}.cm-s-one-dark .cm-number{color:#fb923c;}.cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}.cm-s-one-dark .cm-property{color:#2dd4bf;}.cm-s-one-dark .cm-operator{color:#94a3b8;}.cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}.CodeMirror-cursor{border-left:2px solid #f0a500!important;}.CodeMirror-selected{background:rgba(62,207,142,.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}[data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}[data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}[data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}[data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}[data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}.editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}[data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--green);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}.run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}.py-status.ready{color:var(--green);}
+    @media(max-width:700px){.metric-strip{grid-template-columns:repeat(3,1fr);}.thresh-result{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="classification-metrics">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">Classification Metrics</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Classification</a><span class="sep">/</span>
+            <span class="current">Classification Metrics</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(62,207,142,.3);background:var(--green-surf);color:var(--green);margin-bottom:14px;">Classification · Model Evaluation</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Classification Metrics</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Accuracy alone lies. A model that predicts "not sick" for every patient
+              gets 99% accuracy on a rare disease dataset — but catches zero sick people.
+              You need <strong>Precision, Recall, F1, ROC-AUC</strong> to understand what your model actually does.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 24 min</span>
+              <span class="topic-meta-item">◆ Beginner–Intermediate</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — CONFUSION MATRIX ═══ -->
+          <section class="section" id="confusion-matrix">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⊞</div>
+              The confusion matrix — foundation of all metrics
+            </h2>
+            <p>
+              Every classification metric comes from just four numbers: <strong>TP, TN, FP, FN</strong>.
+              Use the sliders below to build any confusion matrix and watch all metrics update live.
+            </p>
+            <p>
+              <strong>Real example — spam filter:</strong> TP = spam correctly caught, TN = normal email left alone,
+              FP = normal email wrongly flagged as spam, FN = spam that sneaked through.
+            </p>
+
+            <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;margin-bottom:20px;">
+              <!-- Sliders -->
+              <div style="flex:1;min-width:260px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:12px;">Adjust the confusion matrix values</div>
+                <div class="cm-ctrl">
+                  <span class="cm-ctrl-label" style="color:#3ecf8e;">True Positive</span>
+                  <input type="range" min="0" max="100" value="70" class="ctrl-slider" id="sl-tp" oninput="updateCM()" style="flex:1;"/>
+                  <span class="cm-ctrl-val" id="v-tp" style="color:#3ecf8e;">70</span>
+                </div>
+                <div class="cm-ctrl">
+                  <span class="cm-ctrl-label" style="color:#3ecf8e;">True Negative</span>
+                  <input type="range" min="0" max="100" value="80" class="ctrl-slider" id="sl-tn" oninput="updateCM()" style="flex:1;"/>
+                  <span class="cm-ctrl-val" id="v-tn" style="color:#3ecf8e;">80</span>
+                </div>
+                <div class="cm-ctrl">
+                  <span class="cm-ctrl-label" style="color:#f06060;">False Positive</span>
+                  <input type="range" min="0" max="100" value="20" class="ctrl-slider" id="sl-fp" oninput="updateCM()" style="flex:1;"/>
+                  <span class="cm-ctrl-val" id="v-fp" style="color:#f06060;">20</span>
+                </div>
+                <div class="cm-ctrl">
+                  <span class="cm-ctrl-label" style="color:#f06060;">False Negative</span>
+                  <input type="range" min="0" max="100" value="30" class="ctrl-slider" id="sl-fn" oninput="updateCM()" style="flex:1;"/>
+                  <span class="cm-ctrl-val" id="v-fn" style="color:#f06060;">30</span>
+                </div>
+
+                <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+                  <button class="ctrl-btn" onclick="setScenario('balanced')">Balanced</button>
+                  <button class="ctrl-btn" onclick="setScenario('imbalanced')">Imbalanced (99% neg)</button>
+                  <button class="ctrl-btn" onclick="setScenario('highprecision')">High precision</button>
+                  <button class="ctrl-btn" onclick="setScenario('highrecall')">High recall</button>
+                </div>
+              </div>
+
+              <!-- Confusion matrix grid -->
+              <div>
+                <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;text-align:center;">Predicted →</div>
+                <div class="cm-grid" id="cm-grid">
+                  <div></div>
+                  <div class="cm-header">Predicted POS</div>
+                  <div class="cm-header">Predicted NEG</div>
+                  <div class="cm-header" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;">Actual POS</div>
+                  <div class="cm-cell cm-cell-tp" id="cell-tp">
+                    <div class="cm-val" id="cm-tp" style="color:#3ecf8e;">70</div>
+                    <div class="cm-label" style="color:#3ecf8e;">TP</div>
+                    <div class="cm-abbr">True Positive</div>
+                  </div>
+                  <div class="cm-cell cm-cell-fn" id="cell-fn">
+                    <div class="cm-val" id="cm-fn" style="color:#f06060;">30</div>
+                    <div class="cm-label" style="color:#f06060;">FN</div>
+                    <div class="cm-abbr">False Negative</div>
+                  </div>
+                  <div class="cm-header" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;">Actual NEG</div>
+                  <div class="cm-cell cm-cell-fp" id="cell-fp">
+                    <div class="cm-val" id="cm-fp" style="color:#f06060;">20</div>
+                    <div class="cm-label" style="color:#f06060;">FP</div>
+                    <div class="cm-abbr">False Positive</div>
+                  </div>
+                  <div class="cm-cell cm-cell-tn" id="cell-tn">
+                    <div class="cm-val" id="cm-tn" style="color:#3ecf8e;">80</div>
+                    <div class="cm-label" style="color:#3ecf8e;">TN</div>
+                    <div class="cm-abbr">True Negative</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live metrics strip -->
+            <div class="metric-strip">
+              <div class="ms-card">
+                <div class="ms-val" id="ms-acc" style="color:var(--blue);">—</div>
+                <div class="ms-lbl">Accuracy</div>
+                <div class="ms-bar"><div class="ms-fill" id="mf-acc" style="background:var(--blue);width:0%;"></div></div>
+              </div>
+              <div class="ms-card">
+                <div class="ms-val" id="ms-prec" style="color:var(--teal);">—</div>
+                <div class="ms-lbl">Precision</div>
+                <div class="ms-bar"><div class="ms-fill" id="mf-prec" style="background:var(--teal);width:0%;"></div></div>
+              </div>
+              <div class="ms-card">
+                <div class="ms-val" id="ms-rec" style="color:var(--orange);">—</div>
+                <div class="ms-lbl">Recall</div>
+                <div class="ms-bar"><div class="ms-fill" id="mf-rec" style="background:var(--orange);width:0%;"></div></div>
+              </div>
+              <div class="ms-card">
+                <div class="ms-val" id="ms-f1" style="color:var(--purple);">—</div>
+                <div class="ms-lbl">F1 Score</div>
+                <div class="ms-bar"><div class="ms-fill" id="mf-f1" style="background:var(--purple);width:0%;"></div></div>
+              </div>
+              <div class="ms-card">
+                <div class="ms-val" id="ms-spec" style="color:var(--green);">—</div>
+                <div class="ms-lbl">Specificity</div>
+                <div class="ms-bar"><div class="ms-fill" id="mf-spec" style="background:var(--green);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>Click "Imbalanced (99% neg)" above.</strong> You will see accuracy jump to ~99% while recall crashes near zero. This is why accuracy is misleading on imbalanced datasets — the model can score high just by predicting the majority class every time.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — METRICS EXPLAINED ═══ -->
+          <section class="section" id="metrics-explained">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">📋</div>
+              Each metric explained — with the formula
+            </h2>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Formula visualiser — what each metric measures</span>
+              </div>
+              <canvas id="formula-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p>
+                <strong>Precision</strong> = "Of all the positives I predicted, how many were actually positive?" (TP / (TP + FP)) — minimise false alarms.<br/>
+                <strong>Recall</strong> = "Of all the actual positives, how many did I catch?" (TP / (TP + FN)) — minimise missed positives.<br/>
+                <strong>F1</strong> = harmonic mean of precision and recall — balances both. Use when you can't sacrifice either.
+              </p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — THRESHOLD EXPLORER ═══ -->
+          <section class="section" id="threshold">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">θ</div>
+              Threshold — the dial that trades precision for recall
+            </h2>
+            <p>
+              Your model outputs a <em>probability</em> (0 to 1). The threshold decides what probability counts as "positive".
+              Lower the threshold → catch more positives (higher recall) but also more false alarms (lower precision).
+              Raise it → fewer false alarms but miss more positives.
+            </p>
+            <p>
+              <strong>This is a business decision, not a model parameter.</strong> Drag the threshold below and watch
+              precision, recall, and F1 shift in real time on a simulated dataset.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Threshold vs precision / recall / F1</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Threshold:</span>
+                  <input type="range" min="0.01" max="0.99" value="0.5" step="0.01" class="ctrl-slider"
+                    id="thresh-slider" oninput="updateThreshold(this.value)" style="width:130px;"/>
+                  <span class="ctrl-value" id="thresh-val" style="color:var(--orange);">0.50</span>
+                </div>
+                <button class="ctrl-btn" onclick="animateThreshold()">▶ Sweep all</button>
+              </div>
+              <canvas id="thresh-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="thresh-result">
+              <div class="tr-card"><div class="tr-val" id="tr-prec" style="color:var(--teal);">—</div><div class="tr-lbl">Precision</div></div>
+              <div class="tr-card"><div class="tr-val" id="tr-rec" style="color:var(--orange);">—</div><div class="tr-lbl">Recall</div></div>
+              <div class="tr-card"><div class="tr-val" id="tr-f1" style="color:var(--purple);">—</div><div class="tr-lbl">F1 Score</div></div>
+              <div class="tr-card"><div class="tr-val" id="tr-acc" style="color:var(--blue);">—</div><div class="tr-lbl">Accuracy</div></div>
+            </div>
+
+            <!-- Threshold use-case guide -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--red);margin-bottom:6px;">Low threshold (0.2–0.3)</div>
+                <div style="font-size:13px;color:var(--text-2);line-height:1.55;">High recall, lower precision. Use when missing a positive is very costly. <em>Cancer screening, fraud detection.</em></div>
+              </div>
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin-bottom:6px;">Medium threshold (0.5)</div>
+                <div style="font-size:13px;color:var(--text-2);line-height:1.55;">Default balance. Good when false positives and false negatives have similar costs. <em>General classification.</em></div>
+              </div>
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--green);margin-bottom:6px;">High threshold (0.7–0.9)</div>
+                <div style="font-size:13px;color:var(--text-2);line-height:1.55;">High precision, lower recall. Use when false positives are very costly. <em>Spam filter, loan approval.</em></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — ROC CURVE ═══ -->
+          <section class="section" id="roc-curve">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">ROC</div>
+              ROC curve and AUC — threshold-independent evaluation
+            </h2>
+            <p>
+              The ROC (Receiver Operating Characteristic) curve shows <strong>all possible precision-recall tradeoffs at once</strong>
+              by sweeping the threshold from 0 to 1 and plotting True Positive Rate vs False Positive Rate.
+              The area under this curve (AUC) summarises the model's discriminative power in a single number.
+            </p>
+            <p>
+              <strong>AUC = probability that the model ranks a random positive higher than a random negative.</strong>
+              AUC = 0.5 means random guessing. AUC = 1.0 means perfect separation.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">ROC curve — animated threshold sweep</span>
+                <button class="ctrl-btn active" onclick="runROC()">▶ Animate ROC</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Model quality:</span>
+                  <input type="range" min="0" max="100" value="70" step="1" class="ctrl-slider"
+                    id="model-quality" oninput="onModelQuality(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="mq-val" style="color:var(--purple);">70%</span>
+                </div>
+              </div>
+              <canvas id="roc-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="roc-auc" style="color:var(--purple);">—</span><span class="stat-pill-lbl">AUC</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="roc-interp" style="font-size:12px;color:var(--accent);">—</span><span class="stat-pill-lbl">Quality</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="roc-thresh" style="color:var(--orange);">—</span><span class="stat-pill-lbl">Threshold</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — PRECISION-RECALL CURVE ═══ -->
+          <section class="section" id="pr-curve">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">PR</div>
+              Precision-Recall curve — better for imbalanced data
+            </h2>
+            <p>
+              When classes are very imbalanced (e.g., 1% fraud, 99% normal), ROC-AUC looks optimistic
+              because the large true negative pool inflates performance. The <strong>PR curve focuses only on
+              the positive class</strong> — it is the better choice for imbalanced datasets.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">PR curve — sweep threshold on imbalanced data</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Positive rate:</span>
+                  <input type="range" min="1" max="50" value="10" step="1" class="ctrl-slider"
+                    id="pos-rate" oninput="drawPRCurve()" style="width:100px;"/>
+                  <span class="ctrl-value" id="pos-rate-val" style="color:var(--teal);">10%</span>
+                </div>
+                <button class="ctrl-btn" onclick="drawPRCurve()">Redraw</button>
+              </div>
+              <canvas id="pr-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="pr-auc" style="color:var(--teal);">—</span><span class="stat-pill-lbl">PR-AUC</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pr-ap" style="color:var(--orange);">—</span><span class="stat-pill-lbl">Avg Precision</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="pr-baseline" style="color:var(--text-3);">—</span><span class="stat-pill-lbl">Baseline (random)</span></div>
+              </div>
+            </div>
+
+            <div class="callout success">
+              <span class="callout-icon">✓</span>
+              <p><strong>Rule of thumb:</strong> Use ROC-AUC when classes are roughly balanced. Use PR-AUC (Average Precision) when the positive class is rare (fraud, disease, rare events). A perfect PR-AUC = 1.0, random baseline = positive_rate% (e.g. 10% for a 10% positive rate).</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — WHEN TO USE ═══ -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">?</div>
+              When to use which metric
+            </h2>
+            <table class="cmp-table">
+              <thead>
+                <tr><th>Metric</th><th>Best when</th><th>Watch out</th><th>Imbalanced?</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong style="color:var(--blue);">Accuracy</strong></td>
+                  <td>Classes are balanced, all errors cost the same</td>
+                  <td>Misleading on imbalanced data</td>
+                  <td><span class="badge-r">Avoid</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--teal);">Precision</strong></td>
+                  <td>False positives are costly (spam filter, ad targeting)</td>
+                  <td>Ignores how many positives you miss</td>
+                  <td><span class="badge-y">With care</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--orange);">Recall</strong></td>
+                  <td>False negatives are costly (disease detection, fraud)</td>
+                  <td>A model predicting all as positive gets 100% recall</td>
+                  <td><span class="badge-g">Good</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--purple);">F1 Score</strong></td>
+                  <td>Balance precision and recall, class imbalance</td>
+                  <td>Treats FP and FN equally — not always right</td>
+                  <td><span class="badge-g">Good</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--purple);">ROC-AUC</strong></td>
+                  <td>Compare models across all thresholds, balanced classes</td>
+                  <td>Optimistic on imbalanced data</td>
+                  <td><span class="badge-y">With care</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="color:var(--teal);">PR-AUC</strong></td>
+                  <td>Rare positive class (fraud, disease, anomaly)</td>
+                  <td>Harder to interpret than ROC-AUC</td>
+                  <td><span class="badge-g">Best choice</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor — beginner-friendly step-by-step
+            </h2>
+            <p>All code uses plain Python loops so you can follow every calculation. No complex one-liners.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">metrics_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using accuracy on imbalanced data.</strong> If 99% of samples are negative, a model that always says "negative" gets 99% accuracy. Use F1, PR-AUC, or ROC-AUC instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not picking a threshold based on business context.</strong> 0.5 is not always the right threshold. Cancer screening needs low threshold (catch everything). Loan approval needs high threshold (be very sure).</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Optimising precision OR recall, not both.</strong> Predicting all as positive gives 100% recall. Predicting only the single most-confident case as positive gives 100% precision. Always report both, or use F1.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using ROC-AUC on very imbalanced data.</strong> ROC-AUC can look great (0.97) while the model has poor precision on rare positives. Use PR-AUC / Average Precision when positives are rare.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>All metrics come from 4 numbers: TP, TN, FP, FN. Build the confusion matrix first.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Accuracy</strong> is misleading on imbalanced data. Always check Precision, Recall, F1 too.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Threshold is a business decision</strong> — low for safety-critical (catch everything), high when false alarms are costly.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>ROC-AUC</strong> = best for balanced datasets. <strong>PR-AUC</strong> = best for rare positive class (fraud, disease).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>F1 score</strong> = harmonic mean of precision and recall. Use when you need one number that balances both.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="svm.html">
+              <span class="pn-dir">← Previous</span><span class="pn-title">SVM</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="../trees/entropy.html">
+              <span class="pn-dir">Next →</span><span class="pn-title">Entropy</span>
+            </a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#confusion-matrix">Confusion matrix</a></li>
+            <li class="toc-item"><a href="#metrics-explained">Metrics explained</a></li>
+            <li class="toc-item"><a href="#threshold">Threshold explorer</a></li>
+            <li class="toc-item"><a href="#roc-curve">ROC curve</a></li>
+            <li class="toc-item"><a href="#pr-curve">PR curve</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use which</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ════ HELPERS ════ */
+function C(id) { return document.getElementById(id); }
+function isDark() { return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg() { return isDark() ? '#18181d' : '#e9e7e1'; }
+function bgIn() { return isDark() ? '#1e1e25' : '#e2e0d9'; }
+function gc() { return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'; }
+function tc() { return isDark() ? '#a09e98' : '#5c5a54'; }
+function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+/* ════ SECTION 1 — CONFUSION MATRIX ════ */
+var cmVals = { tp: 70, tn: 80, fp: 20, fn: 30 };
+
+function updateCM() {
+  cmVals.tp = parseInt(C('sl-tp').value);
+  cmVals.tn = parseInt(C('sl-tn').value);
+  cmVals.fp = parseInt(C('sl-fp').value);
+  cmVals.fn = parseInt(C('sl-fn').value);
+
+  C('v-tp').textContent = cmVals.tp;
+  C('v-tn').textContent = cmVals.tn;
+  C('v-fp').textContent = cmVals.fp;
+  C('v-fn').textContent = cmVals.fn;
+
+  C('cm-tp').textContent = cmVals.tp;
+  C('cm-tn').textContent = cmVals.tn;
+  C('cm-fp').textContent = cmVals.fp;
+  C('cm-fn').textContent = cmVals.fn;
+
+  computeMetrics();
+  drawFormulaCanvas();
+}
+
+function setScenario(s) {
+  if (s === 'balanced') {
+    C('sl-tp').value = 70; C('sl-tn').value = 75;
+    C('sl-fp').value = 25; C('sl-fn').value = 30;
+  } else if (s === 'imbalanced') {
+    C('sl-tp').value = 5;  C('sl-tn').value = 90;
+    C('sl-fp').value = 5;  C('sl-fn').value = 0;
+  } else if (s === 'highprecision') {
+    C('sl-tp').value = 40; C('sl-tn').value = 90;
+    C('sl-fp').value = 5;  C('sl-fn').value = 65;
+  } else if (s === 'highrecall') {
+    C('sl-tp').value = 90; C('sl-tn').value = 60;
+    C('sl-fp').value = 35; C('sl-fn').value = 15;
+  }
+  updateCM();
+}
+
+function computeMetrics() {
+  var tp = cmVals.tp, tn = cmVals.tn, fp = cmVals.fp, fn = cmVals.fn;
+  var total = tp + tn + fp + fn;
+  if (!total) return;
+
+  // Accuracy = (TP + TN) / total
+  var acc = (tp + tn) / total;
+
+  // Precision = TP / (TP + FP)   — of all predicted positive, how many correct?
+  var prec = (tp + fp) > 0 ? tp / (tp + fp) : 0;
+
+  // Recall = TP / (TP + FN)  — of all actual positive, how many did we catch?
+  var rec = (tp + fn) > 0 ? tp / (tp + fn) : 0;
+
+  // F1 = 2 * (precision * recall) / (precision + recall)
+  var f1 = (prec + rec) > 0 ? 2 * prec * rec / (prec + rec) : 0;
+
+  // Specificity = TN / (TN + FP)  — of all actual negative, how many did we correctly ignore?
+  var spec = (tn + fp) > 0 ? tn / (tn + fp) : 0;
+
+  // Update metric strip
+  C('ms-acc').textContent  = (acc  * 100).toFixed(0) + '%';
+  C('ms-prec').textContent = (prec * 100).toFixed(0) + '%';
+  C('ms-rec').textContent  = (rec  * 100).toFixed(0) + '%';
+  C('ms-f1').textContent   = f1.toFixed(3);
+  C('ms-spec').textContent = (spec * 100).toFixed(0) + '%';
+
+  C('mf-acc').style.width  = (acc  * 100) + '%';
+  C('mf-prec').style.width = (prec * 100) + '%';
+  C('mf-rec').style.width  = (rec  * 100) + '%';
+  C('mf-f1').style.width   = (f1   * 100) + '%';
+  C('mf-spec').style.width = (spec * 100) + '%';
+
+  // Color accuracy based on value
+  var accColor = acc > 0.85 ? 'var(--green)' : acc > 0.7 ? 'var(--accent)' : 'var(--red)';
+  C('ms-acc').style.color = accColor;
+}
+
+/* ════ SECTION 2 — FORMULA CANVAS ════ */
+function drawFormulaCanvas() {
+  var cv = C('formula-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  var tp = cmVals.tp, tn = cmVals.tn, fp = cmVals.fp, fn = cmVals.fn;
+  var total = tp + tn + fp + fn || 1;
+  var acc  = (tp + tn) / total;
+  var prec = (tp + fp) > 0 ? tp / (tp + fp) : 0;
+  var rec  = (tp + fn) > 0 ? tp / (tp + fn) : 0;
+  var f1   = (prec + rec) > 0 ? 2 * prec * rec / (prec + rec) : 0;
+  var spec = (tn + fp) > 0 ? tn / (tn + fp) : 0;
+
+  var metrics = [
+    { name: 'Accuracy', formula: '(TP+TN) / Total', val: acc, color: '#4b96ff',
+      num: tp + tn, den: total },
+    { name: 'Precision', formula: 'TP / (TP + FP)', val: prec, color: '#2dd4bf',
+      num: tp, den: tp + fp },
+    { name: 'Recall', formula: 'TP / (TP + FN)', val: rec, color: '#fb8c40',
+      num: tp, den: tp + fn },
+    { name: 'F1 Score', formula: '2·P·R / (P + R)', val: f1, color: '#a78bfa',
+      num: null, den: null },
+    { name: 'Specificity', formula: 'TN / (TN + FP)', val: spec, color: '#3ecf8e',
+      num: tn, den: tn + fp }
+  ];
+
+  var colW = (W - 40) / metrics.length;
+  var barMaxH = H - 100;
+
+  metrics.forEach(function(m, i) {
+    var x = 20 + i * colW + colW / 2;
+    var barH = Math.max(4, m.val * barMaxH);
+    var barY = H - 60 - barH;
+
+    // Bar background
+    ctx.fillStyle = m.color + '20';
+    ctx.fillRect(x - 30, H - 60 - barMaxH, 60, barMaxH);
+
+    // Bar fill
+    ctx.fillStyle = m.color;
+    ctx.fillRect(x - 30, barY, 60, barH);
+
+    // Value label
+    ctx.fillStyle = m.color;
+    ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText((m.val * 100).toFixed(0) + '%', x, barY - 8);
+
+    // Metric name
+    ctx.fillStyle = isDark() ? '#f2f0ec' : '#1a1916';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(m.name, x, H - 40);
+
+    // Formula
+    ctx.fillStyle = tc(); ctx.font = '10px monospace';
+    ctx.fillText(m.formula, x, H - 24);
+
+    // Fraction if available
+    if (m.num !== null) {
+      ctx.fillStyle = m.color + '90'; ctx.font = '11px sans-serif';
+      ctx.fillText(m.num + ' / ' + m.den, x, H - 8);
+    }
+  });
+
+  ctx.textAlign = 'start';
+}
+
+/* ════ SECTION 3 — THRESHOLD ════ */
+// Simulate model outputs: 100 samples with predicted probabilities
+var simData = [];
+function initSimData() {
+  simData = [];
+  // 40 actual positives with higher predicted probabilities
+  for (var i = 0; i < 40; i++) {
+    simData.push({ actual: 1, prob: 0.3 + Math.random() * 0.65 });
+  }
+  // 60 actual negatives with lower predicted probabilities
+  for (var i = 0; i < 60; i++) {
+    simData.push({ actual: 0, prob: Math.random() * 0.7 });
+  }
+  // Sort by probability
+  simData.sort(function(a, b) { return b.prob - a.prob; });
+}
+
+function computeAtThreshold(thresh) {
+  var tp = 0, tn = 0, fp = 0, fn = 0;
+  simData.forEach(function(d) {
+    var pred = d.prob >= thresh ? 1 : 0;
+    if (pred === 1 && d.actual === 1) tp++;
+    else if (pred === 1 && d.actual === 0) fp++;
+    else if (pred === 0 && d.actual === 1) fn++;
+    else tn++;
+  });
+  var prec = (tp + fp) > 0 ? tp / (tp + fp) : 0;
+  var rec  = (tp + fn) > 0 ? tp / (tp + fn) : 0;
+  var f1   = (prec + rec) > 0 ? 2 * prec * rec / (prec + rec) : 0;
+  var acc  = (tp + tn) / simData.length;
+  return { tp: tp, tn: tn, fp: fp, fn: fn, prec: prec, rec: rec, f1: f1, acc: acc };
+}
+
+var currentThresh = 0.5;
+function updateThreshold(v) {
+  currentThresh = parseFloat(v);
+  C('thresh-val').textContent = parseFloat(v).toFixed(2);
+  drawThreshCanvas();
+}
+
+function drawThreshCanvas() {
+  var cv = C('thresh-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 50, r: 20, t: 20, b: 40 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  // Build curves by sweeping thresholds
+  var threshPoints = [];
+  for (var t = 0.05; t <= 0.95; t += 0.02) {
+    var r = computeAtThreshold(t);
+    threshPoints.push({ t: t, prec: r.prec, rec: r.rec, f1: r.f1, acc: r.acc });
+  }
+
+  var toX = function(t) { return (t - 0.05) / 0.9 * (W - pad.l - pad.r) + pad.l; };
+  var toY = function(v) { return (1 - v) * (H - pad.t - pad.b) + pad.t; };
+
+  // Grid
+  ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+  [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(v) {
+    ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'right';
+    ctx.fillText((v * 100).toFixed(0) + '%', pad.l - 4, toY(v) + 4);
+  });
+  ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Threshold', W / 2, H - 4);
+
+  // Draw curves
+  var curves = [
+    { key: 'prec', color: '#2dd4bf', label: 'Precision' },
+    { key: 'rec',  color: '#fb8c40', label: 'Recall' },
+    { key: 'f1',   color: '#a78bfa', label: 'F1' },
+    { key: 'acc',  color: '#4b96ff', label: 'Accuracy' }
+  ];
+
+  curves.forEach(function(curve) {
+    ctx.beginPath();
+    threshPoints.forEach(function(p, i) {
+      var x = toX(p.t), y = toY(p[curve.key]);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = curve.color; ctx.lineWidth = 2; ctx.stroke();
+
+    // Dot at current threshold
+    var cur = computeAtThreshold(currentThresh);
+    ctx.beginPath(); ctx.arc(toX(currentThresh), toY(cur[curve.key]), 5, 0, Math.PI * 2);
+    ctx.fillStyle = curve.color; ctx.fill();
+  });
+
+  // Current threshold line
+  ctx.beginPath(); ctx.moveTo(toX(currentThresh), pad.t); ctx.lineTo(toX(currentThresh), H - pad.b);
+  ctx.strokeStyle = 'rgba(240,165,0,0.6)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#f0a500'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('t=' + currentThresh.toFixed(2), toX(currentThresh), pad.t + 12);
+
+  // Legend
+  var lx = pad.l;
+  curves.forEach(function(c) {
+    ctx.beginPath(); ctx.moveTo(lx, pad.t + 8); ctx.lineTo(lx + 20, pad.t + 8);
+    ctx.strokeStyle = c.color; ctx.lineWidth = 2; ctx.setLineDash([]); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(c.label, lx + 24, pad.t + 12); lx += 80;
+  });
+
+  // Update result cards
+  var r = computeAtThreshold(currentThresh);
+  C('tr-prec').textContent = (r.prec * 100).toFixed(0) + '%';
+  C('tr-rec').textContent  = (r.rec  * 100).toFixed(0) + '%';
+  C('tr-f1').textContent   = r.f1.toFixed(3);
+  C('tr-acc').textContent  = (r.acc  * 100).toFixed(0) + '%';
+
+  // Color code
+  C('tr-prec').style.color = r.prec > 0.7 ? 'var(--green)' : r.prec > 0.5 ? 'var(--accent)' : 'var(--red)';
+  C('tr-rec').style.color  = r.rec  > 0.7 ? 'var(--green)' : r.rec  > 0.5 ? 'var(--accent)' : 'var(--red)';
+  C('tr-f1').style.color   = r.f1   > 0.7 ? 'var(--green)' : r.f1   > 0.5 ? 'var(--accent)' : 'var(--red)';
+  ctx.textAlign = 'start';
+}
+
+async function animateThreshold() {
+  for (var t = 0.95; t >= 0.05; t -= 0.02) {
+    currentThresh = parseFloat(t.toFixed(2));
+    C('thresh-slider').value = currentThresh;
+    C('thresh-val').textContent = currentThresh.toFixed(2);
+    drawThreshCanvas();
+    await delay(40);
+  }
+}
+
+/* ════ SECTION 4 — ROC CURVE ════ */
+var rocAnimRunning = false;
+var rocQuality = 0.7;
+
+function onModelQuality(v) {
+  rocQuality = parseFloat(v) / 100;
+  C('mq-val').textContent = v + '%';
+  drawROC(null);
+}
+
+function generateROCData(quality) {
+  // Generate simulated ROC curve based on quality
+  var points = [];
+  for (var i = 0; i <= 100; i++) {
+    var fpr = i / 100;
+    // A perfect model has a concave curve; quality controls how concave
+    var tpr = Math.min(1, Math.pow(fpr, Math.pow(1 - quality, 2)) * (1 + quality * (1 - fpr)));
+    // Add slight noise
+    tpr = Math.max(fpr, Math.min(1, tpr + (Math.random() - 0.5) * 0.02));
+    points.push({ fpr: fpr, tpr: tpr });
+  }
+  // AUC approximation
+  var auc = 0;
+  for (var i = 1; i < points.length; i++) {
+    var dFpr = points[i].fpr - points[i-1].fpr;
+    auc += (points[i].tpr + points[i-1].tpr) / 2 * dFpr;
+  }
+  return { points: points, auc: auc };
+}
+
+async function runROC() {
+  if (rocAnimRunning) return;
+  rocAnimRunning = true;
+  var data = generateROCData(rocQuality);
+  var cv = C('roc-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 55, r: 20, t: 20, b: 50 };
+
+  var toX = function(fpr) { return fpr * (W - pad.l - pad.r) + pad.l; };
+  var toY = function(tpr) { return (1 - tpr) * (H - pad.t - pad.b) + pad.t; };
+
+  for (var step = 0; step <= data.points.length; step += 3) {
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+    [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(function(v) {
+      ctx.beginPath(); ctx.moveTo(toX(v), pad.t); ctx.lineTo(toX(v), H - pad.b); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke();
+      ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'center';
+      ctx.fillText(v.toFixed(1), toX(v), H - pad.b + 14);
+      ctx.textAlign = 'right';
+      ctx.fillText(v.toFixed(1), pad.l - 4, toY(v) + 4);
+    });
+    ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('False Positive Rate', W / 2, H - pad.b + 28);
+    ctx.save(); ctx.translate(14, H / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('True Positive Rate (Recall)', 0, 0); ctx.restore();
+
+    // Random line
+    ctx.beginPath(); ctx.moveTo(pad.l, H - pad.b); ctx.lineTo(W - pad.r, pad.t);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = tc(); ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('Random (AUC=0.5)', W - pad.r - 4, toY(0.85));
+
+    // AUC fill
+    var drawnPts = data.points.slice(0, step + 1);
+    if (drawnPts.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(pad.l, H - pad.b);
+      drawnPts.forEach(function(p) { ctx.lineTo(toX(p.fpr), toY(p.tpr)); });
+      ctx.lineTo(W - pad.r, H - pad.b);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(167,139,250,0.1)'; ctx.fill();
+    }
+
+    // ROC curve
+    ctx.beginPath();
+    drawnPts.forEach(function(p, i) {
+      i === 0 ? ctx.moveTo(toX(p.fpr), toY(p.tpr)) : ctx.lineTo(toX(p.fpr), toY(p.tpr));
+    });
+    ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2.5; ctx.stroke();
+
+    // Current point
+    var cur = drawnPts[drawnPts.length - 1];
+    if (cur) {
+      ctx.beginPath(); ctx.arc(toX(cur.fpr), toY(cur.tpr), 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#f0a500'; ctx.fill();
+    }
+
+    // AUC label
+    var partialAUC = data.auc * (step / data.points.length);
+    ctx.fillStyle = '#a78bfa'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('AUC = ' + data.auc.toFixed(3), pad.l + 10, pad.t + 24);
+
+    await delay(12);
+  }
+
+  C('roc-auc').textContent = data.auc.toFixed(3);
+  var quality = data.auc > 0.9 ? 'Excellent' : data.auc > 0.8 ? 'Good' : data.auc > 0.7 ? 'Fair' : 'Poor';
+  C('roc-interp').textContent = quality;
+  C('roc-thresh').textContent = '0.5';
+  rocAnimRunning = false;
+  ctx.textAlign = 'start';
+}
+
+function drawROC(existing) {
+  var cv = C('roc-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 55, r: 20, t: 20, b: 50 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = tc(); ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Click "Animate ROC" to see the curve build step by step', W / 2, H / 2);
+  ctx.textAlign = 'start';
+}
+
+/* ════ SECTION 5 — PR CURVE ════ */
+function drawPRCurve() {
+  var posRate = parseInt(C('pos-rate').value) / 100;
+  C('pos-rate-val').textContent = parseInt(C('pos-rate').value) + '%';
+
+  var cv = C('pr-canvas'), ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var pad = { l: 55, r: 20, t: 20, b: 50 };
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = bg(); ctx.fillRect(0, 0, W, H);
+
+  var toX = function(rec) { return rec * (W - pad.l - pad.r) + pad.l; };
+  var toY = function(prec) { return (1 - prec) * (H - pad.t - pad.b) + pad.t; };
+
+  // Grid
+  ctx.strokeStyle = gc(); ctx.lineWidth = 0.5;
+  [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(function(v) {
+    ctx.beginPath(); ctx.moveTo(toX(v), pad.t); ctx.lineTo(toX(v), H - pad.b); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke();
+    ctx.fillStyle = tc(); ctx.font = '10px mono'; ctx.textAlign = 'center';
+    ctx.fillText(v.toFixed(1), toX(v), H - pad.b + 14);
+    ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(1), pad.l - 4, toY(v) + 4);
+  });
+  ctx.fillStyle = tc(); ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Recall', W / 2, H - pad.b + 28);
+  ctx.save(); ctx.translate(14, H / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Precision', 0, 0); ctx.restore();
+
+  // Baseline: random model on imbalanced data
+  var baselinePrec = posRate;
+  ctx.beginPath(); ctx.moveTo(pad.l, toY(baselinePrec)); ctx.lineTo(W - pad.r, toY(baselinePrec));
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tc(); ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('Baseline = ' + (posRate * 100).toFixed(0) + '%', W - pad.r - 4, toY(baselinePrec) - 5);
+
+  // PR curve — decreasing precision as recall increases (typical shape)
+  var prPoints = [];
+  for (var r = 0.05; r <= 1.0; r += 0.05) {
+    // Simulated: precision decreases as recall increases, with some noise
+    var prec = Math.max(posRate, (1 - r * 0.6) * (0.7 + posRate * 0.3) + (Math.random() - 0.5) * 0.04);
+    prPoints.push({ rec: r, prec: Math.min(1, prec) });
+  }
+
+  // AUC fill
+  ctx.beginPath();
+  ctx.moveTo(pad.l, H - pad.b);
+  prPoints.forEach(function(p) { ctx.lineTo(toX(p.rec), toY(p.prec)); });
+  ctx.lineTo(W - pad.r, H - pad.b);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(45,212,191,0.1)'; ctx.fill();
+
+  ctx.beginPath();
+  prPoints.forEach(function(p, i) {
+    i === 0 ? ctx.moveTo(toX(p.rec), toY(p.prec)) : ctx.lineTo(toX(p.rec), toY(p.prec));
+  });
+  ctx.strokeStyle = '#2dd4bf'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // Compute AUC
+  var prauc = 0;
+  for (var i = 1; i < prPoints.length; i++) {
+    var dr = prPoints[i].rec - prPoints[i-1].rec;
+    prauc += (prPoints[i].prec + prPoints[i-1].prec) / 2 * dr;
+  }
+
+  ctx.fillStyle = '#2dd4bf'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('PR-AUC = ' + prauc.toFixed(3), pad.l + 10, pad.t + 20);
+
+  C('pr-auc').textContent = prauc.toFixed(3);
+  C('pr-ap').textContent = prauc.toFixed(3);
+  C('pr-baseline').textContent = (posRate * 100).toFixed(0) + '%';
+  ctx.textAlign = 'start';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS = [
+  {
+    file: 'metrics_scratch.py',
+    label: 'From scratch',
+    code: `# Classification Metrics — written from scratch
+# We only need 4 numbers: TP, TN, FP, FN
+
+# Example: spam classifier results
+# 1 = spam (positive), 0 = not spam (negative)
+actual    = [1, 1, 0, 0, 1, 0, 1, 0, 0, 1]
+predicted = [1, 0, 0, 0, 1, 1, 1, 0, 0, 0]
+
+# Step 1: Count TP, TN, FP, FN
+TP = 0  # predicted spam, actually spam     (correct!)
+TN = 0  # predicted not spam, actually not  (correct!)
+FP = 0  # predicted spam, actually not spam (false alarm!)
+FN = 0  # predicted not spam, actually spam (missed spam!)
+
+for a, p in zip(actual, predicted):
+    if a == 1 and p == 1:
+        TP += 1   # caught spam correctly
+    elif a == 0 and p == 0:
+        TN += 1   # correctly left normal email alone
+    elif a == 0 and p == 1:
+        FP += 1   # wrongly flagged normal email as spam
+    elif a == 1 and p == 0:
+        FN += 1   # missed spam that slipped through
+
+print("Confusion Matrix:")
+print(f"  TP={TP}  FN={FN}")
+print(f"  FP={FP}  TN={TN}")
+print()
+
+# Step 2: Calculate metrics
+total = TP + TN + FP + FN
+
+# Accuracy: what fraction did we get right overall?
+accuracy = (TP + TN) / total
+print(f"Accuracy  = {TP+TN}/{total} = {accuracy:.2%}")
+
+# Precision: of all emails we said were spam, how many actually were?
+precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+print(f"Precision = {TP}/{TP+FP} = {precision:.2%}")
+print("  (How trustworthy are our spam predictions?)")
+
+# Recall: of all actual spam, how much did we catch?
+recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+print(f"Recall    = {TP}/{TP+FN} = {recall:.2%}")
+print("  (How much spam did we let through?)")
+
+# F1: harmonic mean of precision and recall
+if precision + recall > 0:
+    f1 = 2 * precision * recall / (precision + recall)
+else:
+    f1 = 0
+print(f"F1 Score  = {f1:.4f}")
+print("  (Balance between precision and recall)")
+`
+  },
+  {
+    file: 'metrics_sklearn.py',
+    label: 'sklearn metrics',
+    code: `# Classification Metrics using sklearn
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report,
+    roc_auc_score
+)
+
+# Sample data
+actual    = [1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0]
+predicted = [1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0]
+
+# Calculate each metric
+acc   = accuracy_score(actual, predicted)
+prec  = precision_score(actual, predicted)
+rec   = recall_score(actual, predicted)
+f1    = f1_score(actual, predicted)
+
+print("Individual metrics:")
+print(f"  Accuracy  = {acc:.2%}")
+print(f"  Precision = {prec:.2%}")
+print(f"  Recall    = {rec:.2%}")
+print(f"  F1 Score  = {f1:.4f}")
+
+# The confusion matrix
+print()
+print("Confusion matrix:")
+cm = confusion_matrix(actual, predicted)
+print(f"  [[TN={cm[0,0]}  FP={cm[0,1]}]")
+print(f"   [FN={cm[1,0]}  TP={cm[1,1]}]]")
+
+# classification_report shows everything at once
+print()
+print("Full report:")
+print(classification_report(actual, predicted,
+      target_names=['Not Spam', 'Spam']))
+`
+  },
+  {
+    file: 'imbalanced_demo.py',
+    label: 'Imbalanced data',
+    code: `# Why accuracy is misleading on imbalanced data
+from sklearn.metrics import (
+    accuracy_score, precision_score,
+    recall_score, f1_score, confusion_matrix
+)
+
+# Scenario: fraud detection
+# Only 5% of transactions are fraud (class 1)
+# 95% are normal (class 0)
+import random
+random.seed(42)
+
+n = 1000
+# Ground truth: 50 fraud, 950 normal
+actual = [1] * 50 + [0] * 950
+
+# Model A: "Never predict fraud" — just say everything is normal
+# This is the laziest possible model
+model_a = [0] * 1000
+
+# Model B: A real fraud detector
+# Gets most right but misses some
+model_b = []
+for label in actual:
+    if label == 1:
+        # Catches 70% of fraud
+        pred = 1 if random.random() < 0.70 else 0
+    else:
+        # Incorrectly flags 5% of normal transactions
+        pred = 1 if random.random() < 0.05 else 0
+    model_b.append(pred)
+
+print("=== Model A: Always predicts 'not fraud' ===")
+print(f"Accuracy  = {accuracy_score(actual, model_a):.2%}  <- looks great!")
+print(f"Precision = {precision_score(actual, model_a, zero_division=0):.2%}")
+print(f"Recall    = {recall_score(actual, model_a):.2%}   <- catches ZERO fraud")
+print(f"F1 Score  = {f1_score(actual, model_a, zero_division=0):.4f}")
+cm = confusion_matrix(actual, model_a)
+print(f"  TN={cm[0,0]}  FP={cm[0,1]}")
+print(f"  FN={cm[1,0]}  TP={cm[1,1]}  <- no fraud caught!")
+
+print()
+print("=== Model B: Real fraud detector ===")
+print(f"Accuracy  = {accuracy_score(actual, model_b):.2%}  <- slightly lower")
+print(f"Precision = {precision_score(actual, model_b):.2%}")
+print(f"Recall    = {recall_score(actual, model_b):.2%}   <- catches most fraud!")
+print(f"F1 Score  = {f1_score(actual, model_b):.4f}  <- much better")
+cm = confusion_matrix(actual, model_b)
+print(f"  TN={cm[0,0]}  FP={cm[0,1]}")
+print(f"  FN={cm[1,0]}  TP={cm[1,1]}  <- real fraud detection!")
+
+print()
+print("Lesson: Model A has higher accuracy but is completely useless!")
+print("Always use Precision, Recall, F1 on imbalanced data.")
+`
+  },
+  {
+    file: 'threshold_choice.py',
+    label: 'Threshold tuning',
+    code: `# How changing the threshold affects precision and recall
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+# Simulate model probability outputs
+# actual: 1=positive (sick), 0=negative (healthy)
+actual = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# Predicted probabilities (model confidence of being positive)
+probs  = [0.9, 0.8, 0.7, 0.4, 0.3, 0.6, 0.5, 0.4, 0.3, 0.2,
+          0.1, 0.1, 0.05, 0.05, 0.01]
+
+print(f"{'Threshold':>9}  {'Prec':>7}  {'Recall':>8}  {'F1':>8}  {'Predicted +ve'}")
+print("-" * 55)
+
+for threshold in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+    # Convert probabilities to predictions using this threshold
+    predictions = [1 if p >= threshold else 0 for p in probs]
+
+    # Count positives predicted
+    pos_predicted = sum(predictions)
+
+    # Calculate metrics
+    prec = precision_score(actual, predictions, zero_division=0)
+    rec  = recall_score(actual, predictions, zero_division=0)
+    f1   = f1_score(actual, predictions, zero_division=0)
+
+    print(f"{threshold:>9.1f}  {prec:>7.2%}  {rec:>8.2%}  {f1:>8.4f}  {pos_predicted} of 15")
+
+print()
+print("Key observations:")
+print("  Low threshold (0.1): high recall, low precision — catches everything!")
+print("  High threshold (0.9): high precision, low recall — very selective")
+print("  For disease detection: use LOW threshold (don't miss sick people)")
+print("  For spam filter: use HIGH threshold (don't block important emails)")
+`
+  }
+];
+
+var currentTab = 0, pyodide = null, pyLoading = false, cmEditor = null;
+
+function buildTabs() {
+  C('editor-tabs').innerHTML = SNIPPETS.map(function(s, i) {
+    return '<button class="editor-tab' + (i === 0 ? ' active' : '') + '" onclick="switchTab(' + i + ')">' + s.label + '</button>';
+  }).join('');
+}
+
+function switchTab(i) {
+  currentTab = i;
+  document.querySelectorAll('.editor-tab').forEach(function(b, j) { b.classList.toggle('active', j === i); });
+  if (cmEditor) { cmEditor.setValue(SNIPPETS[i].code); cmEditor.refresh(); }
+  C('editor-filename').textContent = SNIPPETS[i].file;
+  C('editor-output').textContent = 'Click ▶ Run to execute...';
+  C('editor-output').className = 'editor-output idle';
+}
+
+function resetEditor() { if (cmEditor) cmEditor.setValue(SNIPPETS[currentTab].code); }
+function clearOutput() { C('editor-output').textContent = ''; C('editor-output').className = 'editor-output idle'; }
+
+async function runEditor() {
+  var btn = C('run-btn'), out = C('editor-output');
+  var code = cmEditor ? cmEditor.getValue() : '';
+  btn.disabled = true; btn.textContent = 'Running...';
+  out.className = 'editor-output'; out.textContent = 'Loading Python...';
+  var t0 = Date.now();
+  if (!pyodide) {
+    var st = C('py-status'); st.textContent = 'Loading...';
+    try {
+      if (!pyLoading) {
+        pyLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r, j) { sc.onload = r; sc.onerror = j; });
+        pyodide = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+        await pyodide.loadPackage(['numpy', 'scikit-learn']);
+        pyLoading = false;
+      } else {
+        while (pyLoading) await new Promise(function(r) { setTimeout(r, 100); });
+      }
+      st.textContent = '● Python ready'; st.className = 'py-status ready';
+    } catch (e) {
+      out.textContent = 'Failed to load Python.';
+      out.className = 'editor-output error';
+      btn.disabled = false; btn.textContent = '▶ Run'; return;
+    }
+  }
+  out.textContent = 'Running...';
+  try {
+    pyodide.runPython('import sys, io as _io; _b = _io.StringIO(); sys.stdout = _b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout = sys.__stdout__');
+    var res = pyodide.runPython('_b.getvalue()');
+    out.textContent = res || '(no output)';
+    out.className = 'editor-output';
+    C('run-time').textContent = (Date.now() - t0) + 'ms';
+  } catch (e) {
+    try { pyodide.runPython('import sys; sys.stdout = sys.__stdout__'); } catch (ig) {}
+    out.textContent = 'Error: ' + (e.message || String(e));
+    out.className = 'editor-output error';
+  }
+  btn.disabled = false; btn.textContent = '▶ Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load', function() {
+  updateCM();
+  drawFormulaCanvas();
+  initSimData();
+  updateThreshold(0.5);
+  drawROC(null);
+  drawPRCurve();
+
+  // CodeMirror — poll until CDN loads
+  (function poll() {
+    if (typeof CodeMirror === 'undefined') { setTimeout(poll, 60); return; }
+    buildTabs();
+    var mount = C('cm-editor-mount');
+    if (!mount) return;
+    cmEditor = CodeMirror(mount, {
+      value: SNIPPETS[0].code,
+      mode: 'python',
+      theme: 'one-dark',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      lineWrapping: false,
+      extraKeys: {
+        Tab: function(cm) {
+          if (cm.somethingSelected()) cm.indentSelection('add');
+          else cm.replaceSelection('    ', 'end');
+        }
+      }
+    });
+    cmEditor.setSize('100%', null);
+    setTimeout(function() { cmEditor.refresh(); }, 100);
+    setTimeout(function() { cmEditor.refresh(); }, 500);
+  })();
+
+  // Redraw on theme toggle
+  new MutationObserver(function() {
+    drawFormulaCanvas();
+    drawThreshCanvas();
+    drawROC(null);
+    drawPRCurve();
+    if (cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+</script>
+</body>
+</html>

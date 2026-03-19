@@ -1,0 +1,1218 @@
+<!-- kmeans.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>K-Means Clustering — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(52,211,153,0.09),rgba(96,165,250,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:16px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:#34d399;font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+    .derive-step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:26px;height:26px;border-radius:50%;background:rgba(52,211,153,0.1);border:1.5px solid #34d399;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#34d399;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border-left:3px solid #34d399;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(52,211,153,0.15)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#059669;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.12);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}}
+  </style>
+</head>
+<body data-topic-id="kmeans">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">K-Means Clustering</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Unsupervised</a><span class="sep">/</span>
+            <span class="current">K-Means Clustering</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(52,211,153,.3);background:rgba(52,211,153,0.08);color:#34d399;margin-bottom:14px;">Unsupervised Learning · Clustering</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">K-Means Clustering</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              No labels, no teacher. K-Means finds <strong>natural groups in your data</strong>
+              by repeatedly asking: "which cluster centre am I closest to?"
+              It is one of the most used algorithms in all of machine learning.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#8987; 20 min</span>
+              <span class="topic-meta-item">&#9670; Beginner</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1 — INTUITION -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#127760;</div>
+              Intuition — sorting marbles into groups
+            </h2>
+            <p>
+              Imagine you have 100 marbles scattered on a table and you want to sort them
+              into 3 groups by colour. You don't have labels — you just look at them.
+              K-Means does exactly this, but for any kind of data.
+            </p>
+            <p>
+              The algorithm is beautifully simple. It repeats just two steps until nothing changes:
+            </p>
+            <ol style="margin:12px 0 16px 20px;line-height:2.2;color:var(--text-2);">
+              <li><strong>Assign</strong> — for every point, find which cluster centre (centroid) it is closest to. Assign the point to that cluster.</li>
+              <li><strong>Update</strong> — move each centroid to the average position of all points currently assigned to it.</li>
+            </ol>
+            <div class="callout info">
+              <span class="callout-icon">&#128161;</span>
+              <p><strong>Key difference from supervised learning:</strong> K-Means has no labels.
+              You do not tell it "this point is category A". It discovers the groups entirely on its own
+              by finding points that are close together. This is called <strong>unsupervised</strong> learning.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2 — ANIMATED K-MEANS -->
+          <section class="section" id="animation">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#9654;</div>
+              Watch K-Means run — step by step animation
+            </h2>
+            <p>
+              Click <strong>Step</strong> to see one iteration at a time, or <strong>Run all</strong>
+              to watch the algorithm converge. Click anywhere on the canvas to place your own data points.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">K-Means animation — click canvas to add points</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K =</span>
+                  <input type="range" min="2" max="6" value="3" step="1" class="ctrl-slider"
+                    id="k-slider" oninput="setK(parseInt(this.value))" style="width:80px;"/>
+                  <span class="ctrl-value" id="k-val" style="color:#34d399;font-weight:700;">3</span>
+                </div>
+                <button class="ctrl-btn active" onclick="stepKMeans()">&#9654; Step</button>
+                <button class="ctrl-btn" onclick="runAllKMeans()">&#9654;&#9654; Run all</button>
+                <button class="ctrl-btn" onclick="resetKMeans()">&#8635; Reset</button>
+                <button class="ctrl-btn" onclick="loadPreset('blobs')">Load blobs</button>
+                <button class="ctrl-btn" onclick="loadPreset('ring')">Load ring</button>
+              </div>
+              <canvas id="km-canvas" width="700" height="400" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div style="padding:8px 18px;font-size:12px;color:var(--text-3);" id="km-step-label">
+                Click canvas to add points, then press Step or Run all
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="km-iter" style="color:#34d399;">0</span><span class="stat-pill-lbl">Iteration</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="km-inertia">—</span><span class="stat-pill-lbl">Inertia (WCSS)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="km-moved">—</span><span class="stat-pill-lbl">Centroids moved</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="km-converged" style="font-size:13px;">—</span><span class="stat-pill-lbl">Status</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3 — CHOOSING K (ELBOW) -->
+          <section class="section" id="choosing-k">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#9730;</div>
+              How to choose K — the Elbow Method
+            </h2>
+            <p>
+              K-Means needs you to say how many clusters you want upfront. But how do you know
+              the right number? The <strong>Elbow Method</strong> tries K = 1, 2, 3, ... and
+              plots the inertia (total distance of points from their centroid).
+              The "elbow" in the curve — where adding more K stops helping much — is the best K.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Elbow method — inertia vs K</span>
+                <button class="ctrl-btn active" onclick="runElbow()">&#9654; Run elbow method</button>
+                <select class="ctrl-select" id="elbow-dataset" onchange="runElbow()">
+                  <option value="3">3 true clusters</option>
+                  <option value="4">4 true clusters</option>
+                  <option value="5">5 true clusters</option>
+                  <option value="2">2 true clusters</option>
+                </select>
+                <span id="elbow-status" style="font-size:12px;color:var(--text-3);"></span>
+              </div>
+              <canvas id="elbow-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                The elbow (sharp bend) points to the best K. Past the elbow, adding clusters gives little improvement.
+              </div>
+            </div>
+
+            <!-- Silhouette Score -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Silhouette score — another way to choose K</span>
+                <button class="ctrl-btn active" onclick="runSilhouette()">&#9654; Run silhouette</button>
+                <span id="sil-status" style="font-size:12px;color:var(--text-3);"></span>
+              </div>
+              <canvas id="sil-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Silhouette score ranges from -1 to 1. Higher is better. The K with the highest score is best.
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4 — HYPERPARAMETER TUNING -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(52,211,153,0.1);color:#34d399;">&#9881;</div>
+              Hyperparameter tuning — K, init method, and more
+            </h2>
+            <p>
+              K-Means has a few key settings. The most important is K (number of clusters).
+              The init method affects how quickly it converges. Change them below and watch
+              how the clustering changes.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="hp-inertia" style="color:#34d399;">—</div>
+                <div class="acc-label">Inertia (WCSS)</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-inertia-bar" style="background:#34d399;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-silhouette" style="color:var(--blue);">—</div>
+                <div class="acc-label">Silhouette Score</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-sil-bar" style="background:var(--blue);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-iters" style="color:var(--teal);">—</div>
+                <div class="acc-label">Iterations</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-iter-bar" style="background:var(--teal);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="hp-quality" style="font-size:15px;color:var(--green);">—</div>
+                <div class="acc-label">Cluster quality</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-q-bar" style="background:var(--green);width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:16px;">&#9881; K-Means settings</div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">n_clusters (K)</span><span class="hp-val" id="hp-k-val">3</span></div>
+                  <input type="range" min="1" max="10" value="3" step="1" class="ctrl-slider" id="hp-k" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Number of clusters. The most important choice — use Elbow or Silhouette to guide this.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">n_init (restarts)</span><span class="hp-val" id="hp-ni-val">10</span></div>
+                  <input type="range" min="1" max="20" value="10" step="1" class="ctrl-slider" id="hp-ni" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">How many times to restart with different initial centroids. Higher = more reliable but slower.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Dataset shape</span><span class="hp-val" id="hp-shape-val">Blobs</span></div>
+                  <input type="range" min="1" max="4" value="1" step="1" class="ctrl-slider" id="hp-shape" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">1=Blobs, 2=Moons, 3=Circles, 4=Random. K-Means works well only on blob-shaped clusters!</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Noise level</span><span class="hp-val" id="hp-noise-val">0.5</span></div>
+                  <input type="range" min="0.1" max="2" value="0.5" step="0.1" class="ctrl-slider" id="hp-noise" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">More noise = harder to separate clusters. Watch silhouette score drop with high noise.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Live clustering result with current settings</span>
+              </div>
+              <canvas id="hp-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- SECTION 5 — LIMITATIONS -->
+          <section class="section" id="limitations">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">&#9888;</div>
+              When K-Means fails — know its limitations
+            </h2>
+            <p>
+              K-Means makes assumptions about cluster shape. It works perfectly for
+              round blob-shaped clusters. It completely fails on ring-shaped or
+              crescent-shaped clusters. See for yourself:
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">K-Means vs different cluster shapes</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="ctrl-btn active" id="shape-blobs" onclick="showShape('blobs')">Blobs (works)</button>
+                  <button class="ctrl-btn" id="shape-moons" onclick="showShape('moons')">Moons (fails)</button>
+                  <button class="ctrl-btn" id="shape-circles" onclick="showShape('circles')">Circles (fails)</button>
+                </div>
+              </div>
+              <canvas id="shape-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);" id="shape-note">
+                Blobs: K-Means works perfectly. The clusters are round and well-separated.
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 6 — MATH -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#8721;</div>
+              The algorithm — two steps repeated
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Initialise — place K centroids</div>
+                  <div class="derive-desc">Pick K starting centroid positions. Random init picks random data points. K-Means++ picks spread-out starting positions (much better, this is the default in sklearn).</div>
+                  <div class="derive-formula">Random init:   pick K random points from data as centroids
+KMeans++ init: 1. pick first centroid randomly
+               2. for each remaining centroid:
+                  pick a point with probability proportional
+                  to distance^2 from nearest existing centroid
+               This spreads centroids out, avoiding bad starts</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Assign — each point joins nearest centroid</div>
+                  <div class="derive-desc">Calculate the Euclidean distance from every point to every centroid. Assign each point to the cluster whose centroid is closest.</div>
+                  <div class="derive-formula">For each point x_i:
+  cluster(x_i) = argmin_k  ||x_i - centroid_k||^2
+
+This is just: which centroid am I closest to?</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Update — move each centroid to the mean</div>
+                  <div class="derive-desc">For each cluster, compute the average (mean) position of all points currently in that cluster. Move the centroid to that mean position. This is why it is called K-MEANS.</div>
+                  <div class="derive-formula">For each cluster k:
+  centroid_k = mean of all x_i where cluster(x_i) == k
+             = (1/|C_k|) * sum of all x_i in cluster k</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Repeat until convergence</div>
+                  <div class="derive-desc">Keep alternating assign and update until the centroids stop moving (or move less than a tiny threshold). The algorithm is guaranteed to converge, but may find a local optimum, not the global best.</div>
+                  <div class="derive-formula">Objective: minimise Inertia (WCSS = Within-Cluster Sum of Squares)
+
+Inertia = sum over all points: ||x_i - centroid of its cluster||^2
+
+K-Means always decreases inertia each iteration.
+It stops when inertia change is below tolerance (default 1e-4).</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(62,207,142,0.1);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">kmeans_intro.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9654; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,96,96,0.1);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not scaling features.</strong> K-Means uses Euclidean distance. A feature measured in thousands dominates features measured in units. Always use StandardScaler before K-Means.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Assuming clusters must be round.</strong> K-Means only finds round (convex) clusters. For crescent, ring or irregular shapes, use DBSCAN or hierarchical clustering instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Running K-Means only once.</strong> Results depend on random initialisation. Always set n_init=10 or higher to run multiple times and pick the best result. sklearn does this by default.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Picking K by guessing.</strong> Always use the Elbow Method and Silhouette Score to guide your K selection. Also consider domain knowledge — what makes sense in your problem?</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Thinking cluster labels have meaning.</strong> K-Means labels are arbitrary. Cluster 0 today might be cluster 2 next time you run. Labels are only meaningful relative to each other, not in absolute terms.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(240,165,0,0.1);color:var(--accent);">&#9733;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>K-Means alternates between <strong>assign</strong> (each point joins nearest centroid) and <strong>update</strong> (move centroid to mean of its cluster) until convergence.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>K-Means minimises <strong>inertia</strong> (total distance of points to their centroid). Use the Elbow Method or Silhouette Score to find the best K.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always scale features first.</strong> K-Means uses Euclidean distance, so feature scales matter enormously.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>K-Means only finds <strong>round, convex clusters</strong>. For irregular shapes, use DBSCAN or hierarchical clustering.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>init='k-means++'</strong> (default) and <strong>n_init=10</strong> (default) for reliable results across random starts.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" href="../algorithms/ensembles/stacking-blending.html">
+              <span class="pn-dir">&#8592; Previous</span>
+              <span class="pn-title">Stacking &amp; Blending</span>
+            </a>
+            <a class="pn-card next" href="hierarchical.html">
+              <span class="pn-dir">Next &#8594;</span>
+              <span class="pn-title">Hierarchical Clustering</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Intuition</a></li>
+            <li class="toc-item"><a href="#animation">Step-by-step animation</a></li>
+            <li class="toc-item"><a href="#choosing-k">Choosing K</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#limitations">When it fails</a></li>
+            <li class="toc-item"><a href="#math">The algorithm</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+function C(id){ return document.getElementById(id); }
+function isDark(){ return document.documentElement.getAttribute('data-theme') !== 'light'; }
+function bg(){ return isDark() ? '#18181d' : '#e9e7e1'; }
+function bgIn(){ return isDark() ? '#1e1e25' : '#e2e0d9'; }
+function tc(){ return isDark() ? '#a09e98' : '#5c5a54'; }
+function gc(){ return isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'; }
+function delay(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+var seed = 42;
+function srnd(){ seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+function rseed(s){ seed = s||42; }
+
+var CLUSTER_COLORS = ['#34d399','#60a5fa','#fb923c','#e879f9','#f0a500','#f06060'];
+
+/* ─────────────────────────────────────
+   Distance helper
+───────────────────────────────────── */
+function dist2(a, b){
+  return (a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y);
+}
+
+/* ─────────────────────────────────────
+   SECTION 2 — K-MEANS ANIMATION
+───────────────────────────────────── */
+var kmPts = [];        // {x, y, cluster}
+var kmCentroids = [];  // {x, y}
+var kmK = 3;
+var kmIteration = 0;
+var kmRunning = false;
+
+function setK(k){
+  kmK = k;
+  C('k-val').textContent = k;
+}
+
+// Add point on click
+C('km-canvas').addEventListener('click', function(e){
+  var r = this.getBoundingClientRect();
+  kmPts.push({ x:(e.clientX-r.left)*this.width/r.width, y:(e.clientY-r.top)*this.height/r.height, cluster:-1 });
+  drawKM();
+});
+
+function loadPreset(type){
+  rseed(42);
+  kmPts = [];
+  kmCentroids = [];
+  kmIteration = 0;
+  var W=700, H=400;
+  if(type === 'blobs'){
+    var centres = [{x:W*0.25,y:H*0.3},{x:W*0.7,y:H*0.25},{x:W*0.5,y:H*0.75}];
+    centres.forEach(function(c){ for(var i=0;i<30;i++) kmPts.push({x:c.x+(srnd()-0.5)*100, y:c.y+(srnd()-0.5)*100, cluster:-1}); });
+  } else {
+    // Ring shape
+    for(var i=0;i<60;i++){
+      var angle = srnd()*Math.PI*2;
+      var r2 = 100 + (srnd()-0.5)*30;
+      kmPts.push({x:W/2+Math.cos(angle)*r2, y:H/2+Math.sin(angle)*r2, cluster:-1});
+    }
+    for(var i=0;i<30;i++) kmPts.push({x:W/2+(srnd()-0.5)*80, y:H/2+(srnd()-0.5)*80, cluster:-1});
+  }
+  drawKM();
+  C('km-step-label').textContent = 'Data loaded. Press Step to initialise centroids.';
+}
+
+function resetKMeans(){
+  kmCentroids = [];
+  kmIteration = 0;
+  kmPts.forEach(function(p){ p.cluster = -1; });
+  C('km-iter').textContent = '0';
+  C('km-inertia').textContent = '—';
+  C('km-moved').textContent = '—';
+  C('km-converged').textContent = '—';
+  C('km-step-label').textContent = 'Centroids reset. Press Step to re-initialise.';
+  drawKM();
+}
+
+function initCentroids(){
+  // KMeans++ init
+  rseed(Date.now() & 0xffff);
+  if(kmPts.length < kmK){ C('km-step-label').textContent = 'Add more points first!'; return false; }
+  kmCentroids = [];
+  var first = kmPts[Math.floor(srnd()*kmPts.length)];
+  kmCentroids.push({x:first.x, y:first.y});
+  while(kmCentroids.length < kmK){
+    var dists = kmPts.map(function(p){
+      return Math.min.apply(null, kmCentroids.map(function(c){ return dist2(p,c); }));
+    });
+    var total = dists.reduce(function(s,d){ return s+d; }, 0);
+    var r2 = srnd()*total, cumul=0;
+    for(var i=0;i<dists.length;i++){
+      cumul+=dists[i];
+      if(cumul>=r2){ kmCentroids.push({x:kmPts[i].x,y:kmPts[i].y}); break; }
+    }
+  }
+  return true;
+}
+
+function assignStep(){
+  kmPts.forEach(function(p){
+    var best=0, bestD=Infinity;
+    kmCentroids.forEach(function(c,k){
+      var d=dist2(p,c);
+      if(d<bestD){ bestD=d; best=k; }
+    });
+    p.cluster=best;
+  });
+}
+
+function updateStep(){
+  var moved = 0;
+  kmCentroids.forEach(function(c,k){
+    var members = kmPts.filter(function(p){ return p.cluster===k; });
+    if(!members.length) return;
+    var newX = members.reduce(function(s,p){ return s+p.x; },0)/members.length;
+    var newY = members.reduce(function(s,p){ return s+p.y; },0)/members.length;
+    moved += Math.sqrt((newX-c.x)*(newX-c.x)+(newY-c.y)*(newY-c.y));
+    c.x=newX; c.y=newY;
+  });
+  return moved;
+}
+
+function calcInertia(){
+  return kmPts.reduce(function(s,p){
+    if(p.cluster<0||!kmCentroids[p.cluster]) return s;
+    return s+dist2(p, kmCentroids[p.cluster]);
+  },0);
+}
+
+function stepKMeans(){
+  if(!kmPts.length){ C('km-step-label').textContent='Add points first by clicking the canvas!'; return; }
+  if(!kmCentroids.length){
+    if(!initCentroids()) return;
+    assignStep();
+    C('km-step-label').textContent = 'Step 0: Centroids initialised with K-Means++. Assigned points to nearest centroid.';
+    drawKM();
+    return;
+  }
+  var moved = updateStep();
+  assignStep();
+  kmIteration++;
+  var inertia = calcInertia();
+  C('km-iter').textContent = kmIteration;
+  C('km-inertia').textContent = Math.round(inertia).toLocaleString();
+  C('km-moved').textContent = moved.toFixed(1) + 'px';
+  var converged = moved < 1;
+  C('km-converged').textContent = converged ? 'Converged!' : 'Running...';
+  C('km-converged').style.color = converged ? 'var(--green)' : 'var(--accent)';
+  C('km-step-label').textContent = converged
+    ? 'Converged after ' + kmIteration + ' iterations! Inertia = ' + Math.round(inertia).toLocaleString()
+    : 'Iteration ' + kmIteration + ': centroids moved ' + moved.toFixed(1) + 'px total';
+  drawKM();
+}
+
+async function runAllKMeans(){
+  if(kmRunning) return;
+  if(!kmPts.length){ C('km-step-label').textContent='Add points first!'; return; }
+  kmRunning = true;
+  if(!kmCentroids.length){ if(!initCentroids()) return; }
+  for(var i=0;i<50;i++){
+    stepKMeans();
+    await delay(120);
+    if(calcInertia() >= 0 && C('km-converged').textContent === 'Converged!') break;
+  }
+  kmRunning = false;
+}
+
+function drawKM(){
+  var cv = C('km-canvas'), ctx = cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  // Voronoi regions (colour background by nearest centroid)
+  if(kmCentroids.length){
+    var res=8;
+    for(var px=0;px<W;px+=res){
+      for(var py=0;py<H;py+=res){
+        var best=0,bestD=Infinity;
+        kmCentroids.forEach(function(c,k){ var d=(px-c.x)*(px-c.x)+(py-c.y)*(py-c.y); if(d<bestD){bestD=d;best=k;} });
+        var col=CLUSTER_COLORS[best%CLUSTER_COLORS.length];
+        ctx.fillStyle=col.replace(')',',0.12)').replace('rgb','rgba').replace('#34d399','rgba(52,211,153,0.12)').replace('#60a5fa','rgba(96,165,250,0.12)').replace('#fb923c','rgba(251,146,60,0.12)').replace('#e879f9','rgba(232,121,249,0.12)').replace('#f0a500','rgba(240,165,0,0.12)').replace('#f06060','rgba(240,96,96,0.12)');
+        ctx.fillRect(px,py,res,res);
+      }
+    }
+  }
+
+  // Points
+  kmPts.forEach(function(p){
+    ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2);
+    var col = p.cluster>=0 ? CLUSTER_COLORS[p.cluster%CLUSTER_COLORS.length] : (isDark()?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.4)');
+    ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)'; ctx.lineWidth=1; ctx.stroke();
+  });
+
+  // Centroids (big X markers)
+  kmCentroids.forEach(function(c,k){
+    var col=CLUSTER_COLORS[k%CLUSTER_COLORS.length];
+    ctx.beginPath(); ctx.arc(c.x,c.y,14,0,Math.PI*2);
+    ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke();
+    ctx.fillStyle=col; ctx.globalAlpha=0.15; ctx.fill(); ctx.globalAlpha=1;
+    // Cross inside
+    ctx.beginPath(); ctx.moveTo(c.x-8,c.y-8); ctx.lineTo(c.x+8,c.y+8);
+    ctx.beginPath(); ctx.moveTo(c.x-8,c.y-8); ctx.lineTo(c.x+8,c.y+8); ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(c.x+8,c.y-8); ctx.lineTo(c.x-8,c.y+8); ctx.stroke();
+    ctx.fillStyle=col; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('C'+(k+1), c.x, c.y-18);
+  });
+
+  if(!kmPts.length){
+    ctx.fillStyle=tc(); ctx.font='14px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Click to add points, or use the preset buttons above', W/2, H/2);
+    ctx.fillText('Then press Step to run K-Means', W/2, H/2+24);
+  }
+  ctx.textAlign='start';
+}
+
+/* ─────────────────────────────────────
+   SECTION 3 — ELBOW METHOD
+───────────────────────────────────── */
+function makeBlobs(n, k, noise){
+  rseed(42);
+  var W=600,H=400, pts=[];
+  var centres=[];
+  for(var i=0;i<k;i++) centres.push({x:100+srnd()*(W-200), y:60+srnd()*(H-120)});
+  for(var i=0;i<n;i++){
+    var c=centres[i%k];
+    pts.push({x:c.x+(srnd()-0.5)*2*(noise||80), y:c.y+(srnd()-0.5)*2*(noise||80)});
+  }
+  return pts;
+}
+
+function runKMeansOnPts(pts, k, iters){
+  rseed(99);
+  // Random init
+  var cents=[];
+  for(var i=0;i<k;i++) cents.push({x:pts[Math.floor(srnd()*pts.length)].x, y:pts[Math.floor(srnd()*pts.length)].y});
+  var labels=new Array(pts.length).fill(0);
+  for(var iter=0;iter<(iters||20);iter++){
+    // Assign
+    pts.forEach(function(p,i){
+      var best=0,bestD=Infinity;
+      cents.forEach(function(c,k2){ var d=(p.x-c.x)*(p.x-c.x)+(p.y-c.y)*(p.y-c.y); if(d<bestD){bestD=d;best=k2;} });
+      labels[i]=best;
+    });
+    // Update
+    cents.forEach(function(c,k2){
+      var members=pts.filter(function(_,i){ return labels[i]===k2; });
+      if(!members.length) return;
+      c.x=members.reduce(function(s,p){ return s+p.x; },0)/members.length;
+      c.y=members.reduce(function(s,p){ return s+p.y; },0)/members.length;
+    });
+  }
+  // Inertia
+  var inertia=pts.reduce(function(s,p,i){ var c=cents[labels[i]]; return s+(p.x-c.x)*(p.x-c.x)+(p.y-c.y)*(p.y-c.y); },0);
+  // Silhouette (simplified)
+  var sil=0;
+  if(k>1){
+    pts.forEach(function(p,i){
+      var myK=labels[i];
+      var myMembers=pts.filter(function(_,j){ return labels[j]===myK && j!==i; });
+      var a=myMembers.length?myMembers.reduce(function(s,q){ return s+Math.sqrt((p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)); },0)/myMembers.length:0;
+      var b=Infinity;
+      for(var k2=0;k2<k;k2++){
+        if(k2===myK) continue;
+        var otherMembers=pts.filter(function(_,j){ return labels[j]===k2; });
+        if(!otherMembers.length) continue;
+        var avgD=otherMembers.reduce(function(s,q){ return s+Math.sqrt((p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)); },0)/otherMembers.length;
+        if(avgD<b) b=avgD;
+      }
+      if(b===Infinity) b=0;
+      sil += (b-a)/Math.max(a,b);
+    });
+    sil /= pts.length;
+  }
+  return {inertia:inertia, silhouette:sil, labels:labels, centroids:cents};
+}
+
+async function runElbow(){
+  var trueK = parseInt(C('elbow-dataset').value);
+  var pts = makeBlobs(120, trueK, 70);
+  var results = [];
+  C('elbow-status').textContent = 'Running...';
+  for(var k=1;k<=9;k++){
+    var r = runKMeansOnPts(pts, k);
+    results.push({k:k, inertia:r.inertia});
+    drawElbow(results);
+    await delay(80);
+  }
+  C('elbow-status').textContent = 'Best K is near the elbow (~' + trueK + ')';
+}
+
+function drawElbow(results){
+  var cv=C('elbow-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:60,r:30,t:20,b:40};
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+  if(!results.length) return;
+  var maxI=results[0].inertia;
+  var toX=function(k){ return pad.l+(k-1)/8*(W-pad.l-pad.r); };
+  var toY=function(v){ return H-pad.b-(v/maxI)*(H-pad.t-pad.b); };
+
+  // Grid
+  ctx.strokeStyle=gc(); ctx.lineWidth=0.5;
+  [0,0.25,0.5,0.75,1].forEach(function(v){
+    ctx.beginPath(); ctx.moveTo(pad.l,toY(v*maxI)); ctx.lineTo(W-pad.r,toY(v*maxI)); ctx.stroke();
+  });
+  for(var k=1;k<=9;k++){
+    ctx.fillStyle=tc(); ctx.font='11px mono'; ctx.textAlign='center';
+    ctx.fillText(k, toX(k), H-pad.b+18);
+  }
+  ctx.fillStyle=tc(); ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('K (number of clusters)', W/2, H-4);
+  ctx.save(); ctx.translate(14,H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Inertia', 0, 0); ctx.restore();
+
+  // Line
+  ctx.beginPath();
+  results.forEach(function(r,i){ i===0?ctx.moveTo(toX(r.k),toY(r.inertia)):ctx.lineTo(toX(r.k),toY(r.inertia)); });
+  ctx.strokeStyle='#34d399'; ctx.lineWidth=2.5; ctx.stroke();
+  // Dots
+  results.forEach(function(r){
+    ctx.beginPath(); ctx.arc(toX(r.k),toY(r.inertia),5,0,Math.PI*2);
+    ctx.fillStyle='#34d399'; ctx.fill();
+  });
+  ctx.textAlign='start';
+}
+
+async function runSilhouette(){
+  var trueK = parseInt(C('elbow-dataset').value);
+  var pts = makeBlobs(100, trueK, 70);
+  var results = [];
+  C('sil-status').textContent = 'Running...';
+  for(var k=2;k<=8;k++){
+    var r = runKMeansOnPts(pts,k);
+    results.push({k:k, sil:r.silhouette});
+    drawSilhouette(results);
+    await delay(80);
+  }
+  var best = results.reduce(function(m,r){ return r.sil>m.sil?r:m; }, results[0]);
+  C('sil-status').textContent = 'Best K = ' + best.k + ' (silhouette = ' + best.sil.toFixed(3) + ')';
+}
+
+function drawSilhouette(results){
+  var cv=C('sil-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:60,r:30,t:20,b:40};
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+  if(!results.length) return;
+  var toX=function(k){ return pad.l+(k-2)/6*(W-pad.l-pad.r); };
+  var toY=function(v){ return H-pad.b-(v+0.2)/1.2*(H-pad.t-pad.b); };
+
+  [0,0.2,0.4,0.6,0.8].forEach(function(v){
+    ctx.beginPath(); ctx.moveTo(pad.l,toY(v)); ctx.lineTo(W-pad.r,toY(v));
+    ctx.strokeStyle=gc(); ctx.lineWidth=0.5; ctx.stroke();
+    ctx.fillStyle=tc(); ctx.font='10px mono'; ctx.textAlign='right';
+    ctx.fillText(v.toFixed(1), pad.l-4, toY(v)+4);
+  });
+  for(var k=2;k<=8;k++){
+    ctx.fillStyle=tc(); ctx.font='11px mono'; ctx.textAlign='center';
+    ctx.fillText(k, toX(k), H-pad.b+16);
+  }
+  ctx.fillStyle=tc(); ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('K', W/2, H-4);
+
+  var best=results.reduce(function(m,r){ return r.sil>m.sil?r:m; }, results[0]);
+  ctx.beginPath();
+  results.forEach(function(r,i){ i===0?ctx.moveTo(toX(r.k),toY(r.sil)):ctx.lineTo(toX(r.k),toY(r.sil)); });
+  ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2.5; ctx.stroke();
+  results.forEach(function(r){
+    ctx.beginPath(); ctx.arc(toX(r.k),toY(r.sil),6,0,Math.PI*2);
+    var isBest=r.k===best.k;
+    ctx.fillStyle=isBest?'#f0a500':'#60a5fa'; ctx.fill();
+    if(isBest){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle='#f0a500'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Best K='+r.k, toX(r.k), toY(r.sil)-14);
+    }
+  });
+  ctx.textAlign='start';
+}
+
+/* ─────────────────────────────────────
+   SECTION 4 — HYPERPARAMETER TUNING
+───────────────────────────────────── */
+function makeShapeData(shapeIdx, noise, n){
+  rseed(42); n=n||120;
+  var pts=[];
+  if(shapeIdx===1){
+    var k2=3;
+    for(var i=0;i<n;i++){
+      var c2=i%k2;
+      var cx2=[150,450,300][c2], cy2=[130,130,340][c2];
+      pts.push({x:cx2+(srnd()-0.5)*2*noise*60, y:cy2+(srnd()-0.5)*2*noise*60});
+    }
+  } else if(shapeIdx===2){
+    // Moons
+    for(var i=0;i<n/2;i++){
+      var t=Math.PI*i/(n/2);
+      pts.push({x:150+200*Math.cos(t)+(srnd()-0.5)*noise*40, y:200+100*Math.sin(t)+(srnd()-0.5)*noise*40});
+      pts.push({x:350-200*Math.cos(t)+(srnd()-0.5)*noise*40, y:240-100*Math.sin(t)+(srnd()-0.5)*noise*40});
+    }
+  } else if(shapeIdx===3){
+    // Circles
+    for(var i=0;i<n;i++){
+      var angle=srnd()*Math.PI*2;
+      var r2=(i<n/2?80:190)+(srnd()-0.5)*noise*30;
+      pts.push({x:300+Math.cos(angle)*r2, y:210+Math.sin(angle)*r2});
+    }
+  } else {
+    // Random
+    for(var i=0;i<n;i++) pts.push({x:50+srnd()*520, y:30+srnd()*340});
+  }
+  return pts;
+}
+
+function onHPChange(){
+  var k=parseInt(C('hp-k').value);
+  var ni=parseInt(C('hp-ni').value);
+  var shape=parseInt(C('hp-shape').value);
+  var noise=parseFloat(C('hp-noise').value);
+  var shapeNames=['','Blobs','Moons','Circles','Random'];
+  C('hp-k-val').textContent=k;
+  C('hp-ni-val').textContent=ni;
+  C('hp-shape-val').textContent=shapeNames[shape];
+  C('hp-noise-val').textContent=noise.toFixed(1);
+
+  var pts=makeShapeData(shape,noise);
+  var bestInertia=Infinity, bestLabels=null, bestCents=null, bestSil=0, itersSum=0;
+  for(var run=0;run<Math.min(ni,5);run++){
+    seed=run*137+42;
+    var r=runKMeansOnPts(pts,k,30);
+    itersSum+=15;
+    if(r.inertia<bestInertia){bestInertia=r.inertia;bestLabels=r.labels;bestCents=r.centroids;bestSil=r.silhouette;}
+  }
+
+  C('hp-inertia').textContent=Math.round(bestInertia/1000)+'k';
+  C('hp-silhouette').textContent=bestSil.toFixed(3);
+  C('hp-iters').textContent=Math.round(itersSum/Math.min(ni,5));
+  var quality=bestSil>0.6?'Excellent':bestSil>0.4?'Good':bestSil>0.2?'Fair':'Poor';
+  C('hp-quality').textContent=quality;
+  C('hp-quality').style.color=bestSil>0.6?'var(--green)':bestSil>0.4?'#34d399':bestSil>0.2?'var(--accent)':'var(--red)';
+  C('hp-inertia-bar').style.width=Math.min(100,100-bestInertia/50000*100)+'%';
+  C('hp-sil-bar').style.width=Math.max(0,bestSil*100)+'%';
+
+  drawHPCanvas(pts,bestLabels,bestCents,k);
+}
+
+function drawHPCanvas(pts,labels,cents,k){
+  var cv=C('hp-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  // Background regions
+  if(cents){
+    var res=7;
+    for(var px=0;px<W;px+=res){
+      for(var py=0;py<H;py+=res){
+        var best=0,bestD=Infinity;
+        cents.forEach(function(c,k2){ var d=(px-c.x)*(px-c.x)+(py-c.y)*(py-c.y); if(d<bestD){bestD=d;best=k2;} });
+        var c=CLUSTER_COLORS[best%CLUSTER_COLORS.length];
+        ctx.fillStyle='rgba('+hexToRgb(c)+',0.1)';
+        ctx.fillRect(px,py,res,res);
+      }
+    }
+  }
+
+  pts.forEach(function(p,i){
+    ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2);
+    ctx.fillStyle=CLUSTER_COLORS[(labels?labels[i]:0)%CLUSTER_COLORS.length];
+    ctx.globalAlpha=0.8; ctx.fill(); ctx.globalAlpha=1;
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+  });
+  if(cents) cents.forEach(function(c,k2){
+    ctx.beginPath(); ctx.arc(c.x,c.y,12,0,Math.PI*2);
+    ctx.fillStyle=CLUSTER_COLORS[k2%CLUSTER_COLORS.length]; ctx.globalAlpha=0.3; ctx.fill(); ctx.globalAlpha=1;
+    ctx.strokeStyle=CLUSTER_COLORS[k2%CLUSTER_COLORS.length]; ctx.lineWidth=3; ctx.stroke();
+    ctx.fillStyle=CLUSTER_COLORS[k2%CLUSTER_COLORS.length]; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('C'+(k2+1),c.x,c.y-15);
+  });
+  ctx.textAlign='start';
+}
+
+function hexToRgb(hex){
+  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return r+','+g+','+b;
+}
+
+/* ─────────────────────────────────────
+   SECTION 5 — SHAPE LIMITATIONS
+───────────────────────────────────── */
+function showShape(type){
+  ['blobs','moons','circles'].forEach(function(t){ C('shape-'+t).classList.toggle('active',t===type); });
+  var notes={
+    blobs:'Blobs: K-Means works perfectly. The clusters are round and well-separated.',
+    moons:'Moons: K-Means fails badly! It draws a straight boundary between crescent shapes. Use DBSCAN instead.',
+    circles:'Circles: K-Means splits the ring cluster into halves! It cannot understand ring-shaped groups. Use DBSCAN.'
+  };
+  C('shape-note').textContent=notes[type];
+  rseed(42);
+  var pts=makeShapeData(type==='blobs'?1:type==='moons'?2:3, 0.8, 100);
+  var k2=type==='blobs'?3:2;
+  var r=runKMeansOnPts(pts,k2,30);
+
+  var cv=C('shape-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=bg(); ctx.fillRect(0,0,W,H);
+
+  var res=7;
+  r.centroids.forEach(function(c,k3){
+    for(var px=0;px<W;px+=res){
+      for(var py=0;py<H;py+=res){
+        var best=0,bestD=Infinity;
+        r.centroids.forEach(function(cc,k4){ var d=(px-cc.x)*(px-cc.x)+(py-cc.y)*(py-cc.y); if(d<bestD){bestD=d;best=k4;} });
+        ctx.fillStyle='rgba('+hexToRgb(CLUSTER_COLORS[best%CLUSTER_COLORS.length])+',0.1)';
+        ctx.fillRect(px,py,res,res);
+      }
+    }
+  });
+
+  pts.forEach(function(p,i){
+    ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2);
+    ctx.fillStyle=CLUSTER_COLORS[r.labels[i]%CLUSTER_COLORS.length]; ctx.globalAlpha=0.85; ctx.fill(); ctx.globalAlpha=1;
+    ctx.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+  });
+  r.centroids.forEach(function(c,k3){
+    ctx.beginPath(); ctx.arc(c.x,c.y,12,0,Math.PI*2);
+    ctx.strokeStyle=CLUSTER_COLORS[k3%CLUSTER_COLORS.length]; ctx.lineWidth=3; ctx.stroke();
+    ctx.fillStyle=CLUSTER_COLORS[k3%CLUSTER_COLORS.length]; ctx.globalAlpha=0.2; ctx.fill(); ctx.globalAlpha=1;
+  });
+  if(type!=='blobs'){
+    ctx.fillStyle='rgba(240,96,96,0.85)'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('K-Means fails here! Boundaries are wrong.', W/2, 24);
+  } else {
+    ctx.fillStyle='rgba(52,211,153,0.85)'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('K-Means works well on blob-shaped clusters.', W/2, 24);
+  }
+  ctx.textAlign='start';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'kmeans_intro.py', label:'K-Means basics', code:`import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import make_blobs
+
+# Step 1: Create some data with 3 natural clusters
+X, true_labels = make_blobs(n_samples=150, centers=3, random_state=42)
+
+# Step 2: ALWAYS scale features before K-Means
+# (K-Means uses distance, so scale matters!)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Step 3: Fit K-Means
+kmeans = KMeans(
+    n_clusters=3,    # number of clusters
+    init='k-means++',  # smart initialisation (default)
+    n_init=10,         # run 10 times, pick best result
+    random_state=42
+)
+kmeans.fit(X_scaled)
+
+# Results
+print("Cluster labels (first 10):", kmeans.labels_[:10])
+print("Cluster centres shape:", kmeans.cluster_centers_.shape)
+print("Inertia:", round(kmeans.inertia_, 2))
+print("Iterations to converge:", kmeans.n_iter_)
+print()
+
+# Predict cluster for new points
+new_point = scaler.transform([[1.5, -0.5]])
+print("New point belongs to cluster:", kmeans.predict(new_point)[0])
+`},
+{file:'elbow_method.py', label:'Elbow + Silhouette', code:`import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.datasets import make_blobs
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+
+# Data with 4 true clusters
+X, _ = make_blobs(n_samples=200, centers=4, cluster_std=0.8, random_state=42)
+X = StandardScaler().fit_transform(X)
+
+# Try K from 1 to 9
+print("K    Inertia    Silhouette")
+print("-" * 32)
+for k in range(1, 10):
+    km = KMeans(n_clusters=k, random_state=42, n_init=10)
+    km.fit(X)
+    inertia = round(km.inertia_, 1)
+    # Silhouette needs k >= 2
+    sil = silhouette_score(X, km.labels_) if k >= 2 else float('nan')
+    marker = " <-- elbow?" if k == 4 else ""
+    print(f"  {k}    {inertia:>8.1f}    {sil:>8.3f}{marker}")
+
+print()
+print("Rule: pick K at the 'elbow' of inertia curve.")
+print("Rule: pick K with the highest silhouette score.")
+`},
+{file:'kmeans_from_scratch.py', label:'From scratch', code:`import numpy as np
+
+# K-Means from scratch — clear, simple code
+
+def assign_clusters(X, centroids):
+    # For each point, find which centroid is closest
+    distances = np.array([
+        np.sqrt(np.sum((X - c)**2, axis=1))
+        for c in centroids
+    ])  # shape: (k, n_samples)
+    return np.argmin(distances, axis=0)  # index of closest centroid
+
+def update_centroids(X, labels, k):
+    # Move each centroid to the mean of its cluster
+    new_centroids = []
+    for cluster_id in range(k):
+        # Get all points in this cluster
+        cluster_points = X[labels == cluster_id]
+        if len(cluster_points) > 0:
+            new_centroids.append(cluster_points.mean(axis=0))
+        else:
+            new_centroids.append(X[np.random.randint(len(X))])
+    return np.array(new_centroids)
+
+def kmeans(X, k, max_iter=100, random_state=42):
+    np.random.seed(random_state)
+    # Random initialisation (choose k random points)
+    idx = np.random.choice(len(X), k, replace=False)
+    centroids = X[idx].copy()
+
+    for iteration in range(max_iter):
+        # Step 1: Assign each point to nearest centroid
+        labels = assign_clusters(X, centroids)
+
+        # Step 2: Move centroids to cluster means
+        new_centroids = update_centroids(X, labels, k)
+
+        # Check if converged (centroids stopped moving)
+        shift = np.sqrt(np.sum((new_centroids - centroids)**2))
+        centroids = new_centroids
+        print(f"  Iteration {iteration+1}: centroid shift = {shift:.4f}")
+
+        if shift < 1e-4:
+            print(f"  Converged!")
+            break
+
+    # Inertia = total squared distance to centroid
+    inertia = sum(np.sum((X[labels==k2] - centroids[k2])**2)
+                  for k2 in range(k) if np.any(labels==k2))
+    return labels, centroids, inertia
+
+# Test it
+from sklearn.datasets import make_blobs
+X, _ = make_blobs(n_samples=100, centers=3, random_state=42)
+X = (X - X.mean(0)) / X.std(0)  # scale manually
+
+print("Running K-Means from scratch (k=3):")
+labels, centroids, inertia = kmeans(X, k=3)
+print(f"Final inertia: {inertia:.2f}")
+print(f"Cluster sizes: {[np.sum(labels==k2) for k2 in range(3)]}")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='Run';
+}
+
+window.addEventListener('load',function(){
+  loadPreset('blobs');
+  showShape('blobs');
+  onHPChange();
+
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawKM();showShape('blobs');onHPChange();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

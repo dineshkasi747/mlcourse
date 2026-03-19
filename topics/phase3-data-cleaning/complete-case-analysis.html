@@ -1,0 +1,771 @@
+<!-- complete-case-analysis.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Complete Case Analysis — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(75,150,255,0.09),rgba(62,207,142,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .algo-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+    .algo-step{display:flex;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;transition:border-color .2s;}
+    .algo-step:hover{border-color:rgba(75,150,255,0.4);}
+    .algo-step-num{width:38px;height:38px;border-radius:50%;background:var(--blue-surf);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--blue);flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--blue-surf);color:var(--blue);margin-bottom:7px;letter-spacing:.04em;}
+    .algo-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:10px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid var(--blue);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--blue);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+  </style>
+</head>
+<body data-topic-id="complete-case-analysis">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Complete Case Analysis</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <span class="current">Complete Case Analysis</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-3" style="border-color:rgba(75,150,255,.25);margin-bottom:14px;">Phase 3 &middot; Data Cleaning</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Complete Case Analysis</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">The simplest strategy: drop every row that contains any missing value. Safe only under MCAR. Drag the sliders to see exactly when dropping rows becomes dangerous — and when it's perfectly fine.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">15 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: LIVE DROPOUT VISUALISER -->
+          <section class="section" id="dropout-viz">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">~</div>
+              Live row dropout visualiser
+            </h2>
+            <p>Each dot is a data row. Red dots have at least one missing value. Drag sliders to see how many rows survive dropna() — and watch the mean shift when missing is NOT random.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Complete case analysis simulator</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Columns:</span>
+                  <input type="range" min="2" max="10" value="4" class="ctrl-slider" id="col-slider" style="width:80px;" oninput="updateCCA()"/>
+                  <span class="ctrl-value" id="col-val" style="color:var(--blue);">4</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Miss % per col:</span>
+                  <input type="range" min="1" max="50" value="15" class="ctrl-slider" id="miss-slider" style="width:90px;" oninput="updateCCA()"/>
+                  <span class="ctrl-value" id="miss-val" style="color:var(--red);">15%</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Mechanism:</span>
+                  <select class="ctrl-select" id="mech-select" onchange="updateCCA()">
+                    <option value="mcar">MCAR (random)</option>
+                    <option value="mar">MAR (age-dependent)</option>
+                    <option value="mnar">MNAR (high-val hidden)</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="regenerateCCA()">Regenerate</button>
+              </div>
+              <canvas id="cca-canvas" width="700" height="340" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cca-total">200</span><span class="stat-pill-lbl">Total rows</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cca-kept" style="color:var(--green);">-</span><span class="stat-pill-lbl">Kept (complete)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cca-dropped" style="color:var(--red);">-</span><span class="stat-pill-lbl">Dropped</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cca-pct-kept">-</span><span class="stat-pill-lbl">% data retained</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cca-bias" style="font-size:12px;">-</span><span class="stat-pill-lbl">Mean bias</span></div>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">!</span>
+              <p><strong>Power of independence:</strong> If 4 columns each have 15% missing independently (MCAR), you lose <strong>1 - 0.85⁴ = 48%</strong> of your rows. With 10 columns it's 80% gone. Always check how many rows survive before using CCA.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: BIAS DETECTOR -->
+          <section class="section" id="bias-detector">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">B</div>
+              Bias detector — before vs after dropna()
+            </h2>
+            <p>After dropping rows, do the surviving rows represent the full population? Drag the mechanism selector and watch the distribution shift. <strong>MCAR = safe. MAR/MNAR = biased sample.</strong></p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Distribution before vs after dropna()</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Mechanism:</span>
+                  <button class="ctrl-btn active" id="bd-mcar" onclick="setBiasDS('mcar')">MCAR</button>
+                  <button class="ctrl-btn" id="bd-mar" onclick="setBiasDS('mar')">MAR</button>
+                  <button class="ctrl-btn" id="bd-mnar" onclick="setBiasDS('mnar')">MNAR</button>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Missing %:</span>
+                  <input type="range" min="5" max="60" value="25" class="ctrl-slider" id="bias-miss" style="width:90px;" oninput="drawBiasDetector()"/>
+                  <span class="ctrl-value" id="bias-miss-val" style="color:var(--red);">25%</span>
+                </div>
+              </div>
+              <canvas id="bias-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="bd-full-mean" style="color:var(--blue);">-</span><span class="stat-pill-lbl">Full mean</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bd-cca-mean" style="color:var(--green);">-</span><span class="stat-pill-lbl">CCA mean</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bd-bias-amt" style="color:var(--red);">-</span><span class="stat-pill-lbl">Bias</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bd-verdict" style="font-size:12px;">-</span><span class="stat-pill-lbl">CCA safe?</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: RETENTION CALCULATOR -->
+          <section class="section" id="retention-calc">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">%</div>
+              Row retention calculator &mdash; the independence formula
+            </h2>
+            <p>Under MCAR, the expected fraction of complete rows is (1 - p)^k where p is the missing rate per column and k is the number of columns. This grows dangerous fast.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Survival rate vs missing % and column count</span>
+              </div>
+              <canvas id="retention-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ret-k" style="color:var(--teal);">-</span><span class="stat-pill-lbl">Columns</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ret-p">-</span><span class="stat-pill-lbl">Miss % per col</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ret-survive" style="color:var(--green);">-</span><span class="stat-pill-lbl">% rows survive</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ret-verdict" style="font-size:12px;">-</span><span class="stat-pill-lbl">Recommendation</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: WHEN TO USE -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">✓</div>
+              When CCA is appropriate — decision guide
+            </h2>
+            <div class="algo-steps">
+              <div class="algo-step">
+                <div class="algo-step-num">✓</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag" style="background:rgba(62,207,142,0.15);color:var(--green);">Use CCA when</div>
+                  <div class="algo-step-title">Missingness is MCAR and &lt;5% of rows are affected</div>
+                  <div class="algo-step-desc">When data is missing completely at random and very little of it, dropping rows loses minimal information and introduces no bias. This is the only situation where CCA is unambiguously safe.</div>
+                  <div class="algo-step-formula">missing_pct = df.isnull().any(axis=1).mean()
+if missing_pct &lt; 0.05:    # less than 5% rows affected
+    df_clean = df.dropna()  # safe to use CCA</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">✓</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag" style="background:rgba(62,207,142,0.15);color:var(--green);">Use CCA when</div>
+                  <div class="algo-step-title">You need a quick baseline model</div>
+                  <div class="algo-step-desc">For a first quick model to establish a baseline, CCA is fast and simple. You can always come back with better imputation later. Document that you used CCA as a baseline.</div>
+                  <div class="algo-step-formula">df_baseline = df.dropna()  # fast baseline
+model.fit(df_baseline.drop('target', axis=1), df_baseline['target'])
+# Later: replace with proper imputation pipeline</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">x</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag" style="background:rgba(240,96,96,0.15);color:var(--red);">Avoid CCA when</div>
+                  <div class="algo-step-title">More than 5-10% of rows would be dropped</div>
+                  <div class="algo-step-desc">At 5% missing per column with 10 columns you lose 40% of data. At 20 columns you lose 64%. The loss compounds multiplicatively. Use imputation instead.</div>
+                  <div class="algo-step-formula">rows_lost = 1 - (1 - p_miss_per_col) ** n_cols
+# Example: p=0.05, n=10 → 40% rows lost
+# If rows_lost &gt; 0.05: use imputation instead</div>
+                </div>
+              </div>
+              <div class="algo-step">
+                <div class="algo-step-num">x</div>
+                <div class="algo-step-body">
+                  <div class="algo-step-tag" style="background:rgba(240,96,96,0.15);color:var(--red);">Avoid CCA when</div>
+                  <div class="algo-step-title">Missing is MAR or MNAR</div>
+                  <div class="algo-step-desc">If younger people are less likely to report income (MAR), dropping them gives you a sample biased toward older people. Your model learns from the wrong distribution. The bias is systematic and silent.</div>
+                  <div class="algo-step-formula"># Detect MAR: correlate missingness indicator with other columns
+miss_ind = df['income'].isnull().astype(int)
+# If corr(miss_ind, age) is large → MAR → do NOT use CCA</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">cca_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using CCA without checking how many rows are lost.</strong> Always print df.shape before and after dropna(). If you lose more than 5%, switch to imputation.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using CCA on MAR data.</strong> The rows you drop are a non-random subset. Your model trains on a biased sample and will fail on the full production distribution.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Forgetting that df.dropna() drops the entire row for one missing value.</strong> A row with 19 perfect values and 1 missing is dropped entirely. Consider dropping only columns with high missingness first.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Applying CCA after train-test split on the test set.</strong> Never drop rows from the test set — you need to evaluate on all rows. Only clean the training data.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>CCA (dropna) is safe ONLY under MCAR with &lt;5% rows affected. All other cases need imputation.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Row loss compounds: with p=10% per column and k=10 columns, you lose 65% of rows.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always compare distribution before and after dropna() to detect bias.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>CCA is useful for quick baselines, but always replace with a proper imputation pipeline.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Never drop rows from the test set — only clean training data.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="missing-values-types.html"><span class="pn-dir">Previous</span><span class="pn-title">Missing Values Types</span></a>
+            <a class="pn-card next" id="next-card" href="simple-imputation.html"><span class="pn-dir">Next</span><span class="pn-title">Simple Imputation</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#dropout-viz">Row dropout visualiser</a></li>
+            <li class="toc-item"><a href="#bias-detector">Bias detector</a></li>
+            <li class="toc-item"><a href="#retention-calc">Retention calculator</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function normalRand(mu,sigma){var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return(mu||0)+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ══ SECTION 1: CCA VISUALISER ══ */
+var CCAC=C('cca-canvas'),CCAX=CCAC.getContext('2d');
+var ccaData=[];
+
+function generateCCAData(){
+  var n=200, cols=parseInt(C('col-slider').value);
+  var missPct=parseInt(C('miss-slider').value)/100;
+  var mech=C('mech-select').value;
+  ccaData=[];
+  for(var i=0;i<n;i++){
+    var age=18+Math.random()*60;
+    var val=40+age*0.8+normalRand(0,1)*15;
+    var missing=new Array(cols).fill(false);
+    for(var c=0;c<cols;c++){
+      var p=missPct;
+      if(mech==='mar') p=missPct*(age<35?2.2:age<50?1.0:0.3);
+      else if(mech==='mnar') p=missPct*(val>70?2.2:val>55?1.0:0.3);
+      missing[c]=Math.random()<Math.min(0.95,p);
+    }
+    var anyMissing=missing.some(function(m){return m;});
+    ccaData.push({age:age,val:val,missing:missing,anyMissing:anyMissing});
+  }
+}
+
+function updateCCA(){
+  C('col-val').textContent=C('col-slider').value;
+  C('miss-val').textContent=C('miss-slider').value+'%';
+  generateCCAData();
+  drawCCA();
+}
+
+function regenerateCCA(){generateCCAData();drawCCA();}
+
+function drawCCA(){
+  var W=CCAC.width,H=CCAC.height,pad={l:55,r:20,t:30,b:50};
+  CCAX.clearRect(0,0,W,H);CCAX.fillStyle=bg();CCAX.fillRect(0,0,W,H);
+
+  var kept=ccaData.filter(function(p){return!p.anyMissing;});
+  var dropped=ccaData.filter(function(p){return p.anyMissing;});
+  var n=ccaData.length;
+  var iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+
+  // Axes
+  CCAX.strokeStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.15)';CCAX.lineWidth=1;
+  CCAX.beginPath();CCAX.moveTo(pad.l,H-pad.b);CCAX.lineTo(W-pad.r,H-pad.b);CCAX.stroke();
+  CCAX.beginPath();CCAX.moveTo(pad.l,pad.t);CCAX.lineTo(pad.l,H-pad.b);CCAX.stroke();
+
+  // Grid
+  CCAX.strokeStyle=gc();CCAX.lineWidth=0.5;
+  for(var i=0;i<=5;i++){
+    var gy=pad.t+i*iH/5,gx=pad.l+i*iW/5;
+    CCAX.beginPath();CCAX.moveTo(pad.l,gy);CCAX.lineTo(W-pad.r,gy);CCAX.stroke();
+    CCAX.beginPath();CCAX.moveTo(gx,pad.t);CCAX.lineTo(gx,H-pad.b);CCAX.stroke();
+    CCAX.fillStyle=tc();CCAX.font='9px monospace';CCAX.textAlign='right';
+    CCAX.fillText((100-i*20),pad.l-3,gy+3);
+    CCAX.textAlign='center';CCAX.fillText((18+i*12),gx,H-pad.b+13);
+  }
+  CCAX.fillStyle=tc();CCAX.font='11px sans-serif';CCAX.textAlign='center';CCAX.fillText('Age',W/2,H-4);
+  CCAX.save();CCAX.translate(14,H/2);CCAX.rotate(-Math.PI/2);CCAX.fillText('Value',0,0);CCAX.restore();
+
+  var xC=function(a){return pad.l+(a-18)/60*iW;};
+  var yC=function(v){return H-pad.b-Math.max(0,Math.min(1,(v-0)/120))*iH;};
+
+  // Dropped (red X)
+  dropped.forEach(function(p){
+    var x=xC(p.age),y=yC(p.val);
+    CCAX.beginPath();CCAX.arc(x,y,5,0,Math.PI*2);
+    CCAX.fillStyle='rgba(240,96,96,0.15)';CCAX.fill();
+    CCAX.strokeStyle='rgba(240,96,96,0.5)';CCAX.lineWidth=1.5;CCAX.setLineDash([2,2]);CCAX.stroke();CCAX.setLineDash([]);
+    CCAX.beginPath();CCAX.strokeStyle='rgba(240,96,96,0.6)';CCAX.lineWidth=1.5;
+    CCAX.moveTo(x-4,y-4);CCAX.lineTo(x+4,y+4);CCAX.stroke();
+    CCAX.moveTo(x+4,y-4);CCAX.lineTo(x-4,y+4);CCAX.stroke();
+  });
+
+  // Kept (blue dots)
+  kept.forEach(function(p){
+    CCAX.beginPath();CCAX.arc(xC(p.age),yC(p.val),5,0,Math.PI*2);
+    CCAX.fillStyle='rgba(75,150,255,0.75)';CCAX.fill();
+    CCAX.strokeStyle='rgba(75,150,255,0.9)';CCAX.lineWidth=1;CCAX.stroke();
+  });
+
+  // Means
+  var fullMean=ccaData.reduce(function(s,p){return s+p.val;},0)/n;
+  var ccaMean=kept.length?kept.reduce(function(s,p){return s+p.val;},0)/kept.length:0;
+  var bias=Math.abs(ccaMean-fullMean);
+
+  CCAX.beginPath();CCAX.strokeStyle='rgba(75,150,255,0.5)';CCAX.lineWidth=1.5;CCAX.setLineDash([5,4]);
+  CCAX.moveTo(pad.l,yC(ccaMean));CCAX.lineTo(W-pad.r,yC(ccaMean));CCAX.stroke();CCAX.setLineDash([]);
+  CCAX.fillStyle='rgba(75,150,255,0.7)';CCAX.font='bold 10px sans-serif';CCAX.textAlign='right';
+  CCAX.fillText('CCA mean='+ccaMean.toFixed(1),W-pad.r,yC(ccaMean)-4);
+
+  CCAX.beginPath();CCAX.strokeStyle='rgba(240,165,0,0.5)';CCAX.lineWidth=1.5;CCAX.setLineDash([3,3]);
+  CCAX.moveTo(pad.l,yC(fullMean));CCAX.lineTo(W-pad.r,yC(fullMean));CCAX.stroke();CCAX.setLineDash([]);
+  CCAX.fillStyle='rgba(240,165,0,0.7)';CCAX.font='bold 10px sans-serif';CCAX.textAlign='right';
+  CCAX.fillText('Full mean='+fullMean.toFixed(1),W-pad.r,yC(fullMean)+12);
+
+  // Legend
+  CCAX.beginPath();CCAX.arc(pad.l,pad.t-8,4,0,Math.PI*2);CCAX.fillStyle='rgba(75,150,255,0.75)';CCAX.fill();
+  CCAX.fillStyle=tc();CCAX.font='11px sans-serif';CCAX.textAlign='left';CCAX.fillText('Kept ('+kept.length+')',pad.l+10,pad.t-4);
+  CCAX.fillStyle='rgba(240,96,96,0.6)';CCAX.fillText('× Dropped ('+dropped.length+')',pad.l+90,pad.t-4);
+
+  C('cca-total').textContent=n;
+  C('cca-kept').textContent=kept.length;
+  C('cca-dropped').textContent=dropped.length;
+  C('cca-pct-kept').textContent=(kept.length/n*100).toFixed(1)+'%';
+  var biasLabel=bias<1?'None':bias<3?'Small':bias<8?'Moderate':'Large!';
+  C('cca-bias').textContent=biasLabel+(bias>0?' ('+bias.toFixed(1)+')':'');
+  C('cca-bias').style.color=bias<1?'var(--green)':bias<3?'var(--accent)':bias<8?'var(--orange)':'var(--red)';
+}
+
+/* ══ SECTION 2: BIAS DETECTOR ══ */
+var BDC=C('bias-canvas'),BDX=BDC.getContext('2d');
+var bdMech='mcar';
+
+function setBiasDS(m){
+  bdMech=m;
+  ['mcar','mar','mnar'].forEach(function(k){C('bd-'+k).classList.toggle('active',k===m);});
+  drawBiasDetector();
+}
+
+function drawBiasDetector(){
+  var pct=parseInt(C('bias-miss').value)/100;
+  C('bias-miss-val').textContent=parseInt(C('bias-miss').value)+'%';
+
+  var n=400,fullData=[],ccaData2=[];
+  for(var i=0;i<n;i++){
+    var age=18+Math.random()*60;
+    var v=normalRand(50,15);
+    var miss=false;
+    if(bdMech==='mcar') miss=Math.random()<pct;
+    else if(bdMech==='mar') miss=Math.random()<pct*(age<35?2.5:age<50?1.0:0.3);
+    else miss=Math.random()<pct*(v>60?2.5:v>45?1.0:0.3);
+    fullData.push(v);
+    if(!miss) ccaData2.push(v);
+  }
+
+  var W=BDC.width,H=BDC.height,pad={l:45,r:20,t:25,b:35};
+  BDX.clearRect(0,0,W,H);BDX.fillStyle=bg();BDX.fillRect(0,0,W,H);
+
+  var minV=0,maxV=100,nb=25,bw=(maxV-minV)/nb,iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  var fullCounts=new Array(nb).fill(0),ccaCounts=new Array(nb).fill(0);
+  fullData.forEach(function(v){var b=Math.min(Math.floor((v-minV)/bw),nb-1);fullCounts[b]++;});
+  ccaData2.forEach(function(v){var b=Math.min(Math.floor((v-minV)/bw),nb-1);ccaCounts[b]++;});
+  var mc=Math.max(Math.max.apply(null,fullCounts),Math.max.apply(null,ccaCounts));
+
+  // Grid
+  BDX.strokeStyle=gc();BDX.lineWidth=0.5;
+  for(var gi=0;gi<=5;gi++){var gy=pad.t+gi*iH/5;BDX.beginPath();BDX.moveTo(pad.l,gy);BDX.lineTo(W-pad.r,gy);BDX.stroke();}
+
+  fullCounts.forEach(function(c,i){
+    var x=pad.l+i*(iW/nb),bw2=iW/nb,bh=(c/mc)*iH;
+    BDX.fillStyle='rgba(75,150,255,0.35)';BDX.fillRect(x+1,H-pad.b-bh,bw2-2,bh);
+  });
+  ccaCounts.forEach(function(c,i){
+    var x=pad.l+i*(iW/nb),bw2=iW/nb,bh=(c/mc)*iH;
+    BDX.strokeStyle='rgba(62,207,142,0.9)';BDX.lineWidth=1.5;
+    BDX.strokeRect(x+1,H-pad.b-bh,bw2-2,bh);
+  });
+
+  var fullMean=fullData.reduce(function(a,b){return a+b;},0)/fullData.length;
+  var ccaMean2=ccaData2.length?ccaData2.reduce(function(a,b){return a+b;},0)/ccaData2.length:0;
+  var bias=ccaMean2-fullMean;
+  var xC=function(v){return pad.l+(v-minV)/(maxV-minV)*iW;};
+
+  BDX.beginPath();BDX.strokeStyle='rgba(75,150,255,0.7)';BDX.lineWidth=2;BDX.setLineDash([5,4]);
+  BDX.moveTo(xC(fullMean),pad.t);BDX.lineTo(xC(fullMean),H-pad.b);BDX.stroke();BDX.setLineDash([]);
+  BDX.beginPath();BDX.strokeStyle='rgba(62,207,142,0.9)';BDX.lineWidth=2;
+  BDX.moveTo(xC(ccaMean2),pad.t);BDX.lineTo(xC(ccaMean2),H-pad.b);BDX.stroke();
+
+  BDX.fillStyle=tc();BDX.font='9px monospace';BDX.textAlign='center';
+  for(var xi=0;xi<=5;xi++) BDX.fillText((xi*20),pad.l+xi*iW/5,H-pad.b+13);
+
+  // Legend
+  BDX.fillStyle='rgba(75,150,255,0.35)';BDX.fillRect(pad.l,pad.t+2,14,12);
+  BDX.fillStyle=tc();BDX.font='11px sans-serif';BDX.textAlign='left';BDX.fillText('Full data (n='+fullData.length+')',pad.l+18,pad.t+12);
+  BDX.strokeStyle='rgba(62,207,142,0.9)';BDX.lineWidth=1.5;BDX.strokeRect(pad.l+170,pad.t+2,14,12);
+  BDX.fillText('After dropna (n='+ccaData2.length+')',pad.l+188,pad.t+12);
+
+  C('bd-full-mean').textContent=fullMean.toFixed(2);
+  C('bd-cca-mean').textContent=ccaMean2.toFixed(2);
+  C('bd-bias-amt').textContent=(bias>0?'+':'')+bias.toFixed(2);
+  C('bd-bias-amt').style.color=Math.abs(bias)<0.5?'var(--green)':Math.abs(bias)<2?'var(--accent)':'var(--red)';
+  var safe=Math.abs(bias)<0.5;
+  C('bd-verdict').textContent=safe?'Yes (low bias)':'No! Biased sample';
+  C('bd-verdict').style.color=safe?'var(--green)':'var(--red)';
+}
+
+/* ══ SECTION 3: RETENTION CALCULATOR ══ */
+var RCC=C('retention-canvas'),RCX=RCC.getContext('2d');
+
+function drawRetentionChart(){
+  var W=RCC.width,H=RCC.height,pad={l:50,r:20,t:25,b:40};
+  RCX.clearRect(0,0,W,H);RCX.fillStyle=bg();RCX.fillRect(0,0,W,H);
+
+  var iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  var kValues=[2,4,6,8,10,15,20];
+  var colors=['#4b96ff','#3ecf8e','#f0a500','#a78bfa','#f06060','#2dd4bf','#fb8c40'];
+
+  // Grid
+  RCX.strokeStyle=gc();RCX.lineWidth=0.5;
+  [0,25,50,75,100].forEach(function(pct){
+    var y=pad.t+(1-pct/100)*iH;
+    RCX.beginPath();RCX.moveTo(pad.l,y);RCX.lineTo(W-pad.r,y);RCX.stroke();
+    RCX.fillStyle=tc();RCX.font='9px monospace';RCX.textAlign='right';RCX.fillText(pct+'%',pad.l-3,y+3);
+  });
+  for(var xi=0;xi<=10;xi++){
+    var x=pad.l+xi*iW/10;
+    RCX.beginPath();RCX.moveTo(x,pad.t);RCX.lineTo(x,H-pad.b);RCX.stroke();
+    RCX.fillStyle=tc();RCX.font='9px monospace';RCX.textAlign='center';RCX.fillText((xi*5)+'%',x,H-pad.b+13);
+  }
+
+  // Danger zone
+  RCX.fillStyle='rgba(240,96,96,0.07)';RCX.fillRect(pad.l,H-pad.b-iH*0.95,iW,iH*0.90);
+
+  kValues.forEach(function(k,ki){
+    RCX.beginPath();RCX.strokeStyle=colors[ki];RCX.lineWidth=2;
+    for(var px=0;px<=iW;px+=3){
+      var p=px/iW*0.5;
+      var survive=Math.pow(1-p,k)*100;
+      var x=pad.l+px,y=pad.t+(1-survive/100)*iH;
+      px===0?RCX.moveTo(x,y):RCX.lineTo(x,y);
+    }
+    RCX.stroke();
+    // Label at end
+    var pEnd=0.5,surviveEnd=Math.pow(1-pEnd,k)*100;
+    RCX.fillStyle=colors[ki];RCX.font='bold 9px monospace';RCX.textAlign='left';
+    RCX.fillText('k='+k,W-pad.r+2,pad.t+(1-surviveEnd/100)*iH+3);
+  });
+
+  // Current point marker (5% miss, 4 cols)
+  var p0=0.05,k0=4,s0=Math.pow(1-p0,k0)*100;
+  var mx=pad.l+p0/0.5*iW,my=pad.t+(1-s0/100)*iH;
+  RCX.beginPath();RCX.arc(mx,my,6,0,Math.PI*2);RCX.fillStyle='#f0a500';RCX.fill();
+  RCX.strokeStyle='#fff';RCX.lineWidth=2;RCX.stroke();
+
+  // 5% threshold line
+  RCX.beginPath();RCX.strokeStyle='rgba(240,165,0,0.5)';RCX.lineWidth=1;RCX.setLineDash([4,4]);
+  RCX.moveTo(pad.l,H-pad.b-iH*0.95);RCX.lineTo(W-pad.r,H-pad.b-iH*0.95);RCX.stroke();RCX.setLineDash([]);
+  RCX.fillStyle='rgba(240,165,0,0.7)';RCX.font='bold 10px sans-serif';RCX.textAlign='right';
+  RCX.fillText('95% retention threshold',W-pad.r,H-pad.b-iH*0.95-4);
+
+  RCX.fillStyle=tc();RCX.font='11px sans-serif';RCX.textAlign='center';
+  RCX.fillText('Missing % per column (p)',W/2,H-4);
+
+  // Stats for 5% miss, k=4
+  C('ret-k').textContent='4 cols';C('ret-p').textContent='5%';
+  C('ret-survive').textContent=s0.toFixed(1)+'%';
+  C('ret-verdict').textContent=s0>95?'CCA ok':'Use imputation';
+  C('ret-verdict').style.color=s0>95?'var(--green)':'var(--red)';
+}
+
+/* LIVE EDITOR */
+var SNIPPETS=[
+{file:'cca_basics.py',label:'CCA basics',code:`import pandas as pd
+import numpy as np
+
+np.random.seed(42)
+n = 500
+
+df = pd.DataFrame({
+    'age'    : np.random.normal(38, 12, n).clip(18, 75).astype(int),
+    'income' : np.random.lognormal(10.5, 0.7, n),
+    'score'  : np.random.normal(70, 15, n).clip(0, 100),
+    'bmi'    : np.random.normal(25, 4, n).clip(15, 45),
+})
+
+# Introduce MCAR missing (~8% per column)
+for col in ['income', 'score', 'bmi']:
+    mask = np.random.random(n) < 0.08
+    df.loc[mask, col] = np.nan
+
+print("Before dropna():")
+print(f"  Shape: {df.shape}")
+print(f"  Missing per column:")
+print(df.isnull().sum().to_frame('missing').assign(pct=lambda x: (x.missing/n*100).round(1)))
+
+# Complete Case Analysis
+df_cca = df.dropna()
+
+print(f"\\nAfter dropna():")
+print(f"  Shape: {df_cca.shape}")
+pct_kept = len(df_cca)/n*100
+print(f"  Rows kept: {len(df_cca)}/{n} ({pct_kept:.1f}%)")
+print(f"  Rows lost: {n-len(df_cca)} ({100-pct_kept:.1f}%)")
+
+# Compare means before/after
+print("\\nMean comparison (full vs CCA):")
+for col in df.select_dtypes('float64').columns:
+    full_mean = df[col].mean()
+    cca_mean  = df_cca[col].mean()
+    bias = cca_mean - full_mean
+    print(f"  {col:10}: full={full_mean:.2f}  cca={cca_mean:.2f}  bias={bias:+.2f}")`},
+{file:'cca_safe_check.py',label:'Safety check',code:`import pandas as pd
+import numpy as np
+from scipy import stats
+
+np.random.seed(0)
+n = 400
+age    = np.random.normal(38, 12, n).clip(18, 75)
+income = 30000 + age * 800 + np.random.normal(0, 10000, n)
+df = pd.DataFrame({'age': age, 'income': income, 'score': np.random.normal(70, 15, n)})
+
+# MAR: younger people more likely to skip income
+miss_prob = np.where(age < 30, 0.55, np.where(age < 40, 0.20, 0.05))
+df.loc[np.random.binomial(1, miss_prob).astype(bool), 'income'] = np.nan
+
+def cca_safety_check(df, target_col=None):
+    print("CCA Safety Check")
+    print("=" * 50)
+
+    # 1. How many rows survive?
+    complete = df.dropna()
+    pct_kept = len(complete)/len(df)*100
+    print(f"Rows kept: {len(complete)}/{len(df)} ({pct_kept:.1f}%)")
+    if pct_kept < 95:
+        print(f"  WARNING: {100-pct_kept:.1f}% of data lost!")
+
+    # 2. Is missingness random? Correlate indicator with other columns
+    print("\\nMissingness correlations (MAR detection):")
+    miss_ind = df.isnull().any(axis=1).astype(int)
+    for col in df.select_dtypes('number').columns:
+        if df[col].isnull().sum() == 0:
+            r, p = stats.pointbiserialr(miss_ind, df[col])
+            flag = " <-- MAR signal!" if p < 0.05 and abs(r) > 0.1 else ""
+            print(f"  {col}: r={r:.3f}  p={p:.3f}{flag}")
+
+    # 3. Distribution shift check
+    if target_col:
+        full_m  = df[target_col].mean()
+        cca_m   = complete[target_col].mean()
+        print(f"\\nDistribution check for {target_col}:")
+        print(f"  Full mean: {full_m:.2f}")
+        print(f"  CCA mean:  {cca_m:.2f}")
+        print(f"  Bias:      {cca_m-full_m:+.2f}")
+        print(f"  Safe to use CCA: {abs(cca_m-full_m) < 0.5 * df[target_col].std()}")
+
+cca_safety_check(df, target_col='income')`},
+{file:'cca_threshold.py',label:'Threshold formula',code:`import numpy as np
+
+# The independence formula: P(row complete) = (1-p)^k
+# p = missing probability per column (assuming independent)
+# k = number of columns
+
+print("Row retention under MCAR (% rows that survive dropna)")
+print("=" * 60)
+print(f"{'Miss %':>8}", end="")
+for k in [1, 2, 4, 6, 8, 10, 15, 20]:
+    print(f"  k={k:>2}", end="")
+print()
+print("-" * 60)
+
+for p_pct in [1, 2, 5, 10, 15, 20, 30, 50]:
+    p = p_pct / 100
+    print(f"{p_pct:>7}%", end="")
+    for k in [1, 2, 4, 6, 8, 10, 15, 20]:
+        survive = (1 - p) ** k * 100
+        flag = "*" if survive < 95 else " "
+        print(f"  {survive:4.0f}{flag}", end="")
+    print()
+
+print()
+print("* = less than 95% retention (consider imputation)")
+print()
+print("Rule of thumb:")
+print("  p=5%,  k=4  columns -> 81% survive -> borderline")
+print("  p=10%, k=4  columns -> 66% survive -> use imputation")
+print("  p=5%,  k=10 columns -> 60% survive -> use imputation")
+print("  p=2%,  k=5  columns -> 90% survive -> CCA acceptable")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scipy']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  updateCCA();drawBiasDetector();drawRetentionChart();initEditor();
+  new MutationObserver(function(){
+    updateCCA();drawBiasDetector();drawRetentionChart();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

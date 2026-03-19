@@ -1,0 +1,1384 @@
+<!-- svm.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Support Vector Machine — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    /* ── hero ── */
+    .hero-banner{background:linear-gradient(135deg,rgba(75,150,255,0.09),rgba(62,207,142,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-80px;right:-80px;width:280px;height:280px;background:radial-gradient(circle,rgba(75,150,255,0.12) 0%,transparent 70%);pointer-events:none;}
+
+    /* ── canvas cards ── */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10.5px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* ── concept cards grid ── */
+    .concept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+    .concept-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:18px;transition:border-color .2s;}
+    .concept-card:hover{border-color:var(--border-hi);}
+    .concept-num{font-family:var(--font-display);font-size:32px;font-weight:700;line-height:1;margin-bottom:8px;}
+    .concept-label{font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:6px;}
+    .concept-desc{font-size:12.5px;color:var(--text-3);line-height:1.55;}
+
+    /* ── kernel cards ── */
+    .kernel-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    .kernel-card{padding:14px 12px;background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all .18s;text-align:center;}
+    .kernel-card:hover{border-color:var(--border-hi);}
+    .kernel-card.active{border-color:var(--blue);background:var(--blue-surf);}
+    .kernel-card .kname{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .kernel-card .kformula{font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-bottom:6px;}
+    .kernel-card .kdesc{font-size:11px;color:var(--text-3);line-height:1.4;}
+
+    /* ── C/gamma explorer ── */
+    .param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+    .param-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;}
+    .param-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:10px;}
+    .param-value{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--blue);line-height:1;margin-bottom:4px;}
+    .param-effect{font-size:12px;color:var(--text-2);margin-top:8px;min-height:36px;}
+
+    /* ── margin anatomy ── */
+    .anatomy-wrap{position:relative;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+
+    /* ── editor ── */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-variable-2{color:#f0abfc;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .cm-s-one-dark .cm-atom{color:#fb923c;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;padding:0 8px 0 4px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(75,150,255,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;border-right-color:rgba(0,0,0,0.08)!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-variable{color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    [data-theme="light"] .cm-s-one-dark .cm-builtin{color:#1a5dbf;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono,'Fira Code',monospace);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.idle{color:var(--text-3);}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--blue);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    /* ── comparison table ── */
+    .compare-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:18px;}
+    .compare-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:9px 14px;background:var(--bg-card);border-bottom:1px solid var(--border-md);text-align:left;}
+    .compare-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;line-height:1.5;}
+    .compare-table tr:last-child td{border-bottom:none;}
+    .compare-table tr:hover td{background:var(--bg-hover);}
+    .badge-good{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--green-surf);color:var(--green);}
+    .badge-bad{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--red-surf);color:var(--red);}
+    .badge-ok{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--accent-surface);color:var(--accent);}
+
+    /* ── math steps ── */
+    .math-step{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);}
+    .math-step:last-child{border-bottom:none;}
+    .math-badge{width:32px;height:32px;border-radius:var(--r-sm);background:var(--blue-surf);border:1.5px solid var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0;}
+    .math-body{flex:1;}
+    .math-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .math-desc{font-size:13.5px;color:var(--text-2);line-height:1.6;margin-bottom:8px;}
+    .math-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--blue);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;}
+
+    @media(max-width:700px){
+      .concept-grid{grid-template-columns:1fr;}
+      .kernel-cards{grid-template-columns:repeat(2,1fr);}
+      .param-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="svm">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">✕</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Support Vector Machine</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Algorithms</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Classification</a><span class="sep">/</span>
+            <span class="current">Support Vector Machine</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-r" style="border-color:rgba(75,150,255,.25);background:var(--blue-surf);color:var(--blue);margin-bottom:14px;">Classification · Kernel Methods</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Support Vector Machine</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Find the widest possible street between two classes. The data points
+              sitting on the kerb are your <strong>support vectors</strong> — remove any
+              other point and the boundary doesn't change.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 22 min</span>
+              <span class="topic-meta-item">◆ Intermediate</span>
+              <span class="topic-meta-item">numpy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ INTUITION FIRST ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">💡</div>
+              The core idea — maximum margin
+            </h2>
+            <p>
+              Imagine you're drawing a line to separate red and blue dots on paper. There are
+              <strong>infinitely many valid lines</strong> — so which one do you pick?
+            </p>
+            <p>
+              SVM picks the one that leaves the <strong>most breathing room</strong> on both sides.
+              It finds the hyperplane that maximises the <em>margin</em> — the gap between the two classes.
+              A wider margin means the model generalises better to unseen data.
+            </p>
+
+            <div class="concept-grid">
+              <div class="concept-card">
+                <div class="concept-num" style="color:var(--blue);">H</div>
+                <div class="concept-label">Hyperplane</div>
+                <div class="concept-desc">The decision boundary. A line in 2D, a plane in 3D, a hyperplane in N-D. Points on one side = Class A, other side = Class B.</div>
+              </div>
+              <div class="concept-card">
+                <div class="concept-num" style="color:var(--orange);">★</div>
+                <div class="concept-label">Support Vectors</div>
+                <div class="concept-desc">The <em>closest</em> training points to the hyperplane. Only these points define the boundary. Delete any other point — boundary stays identical.</div>
+              </div>
+              <div class="concept-card">
+                <div class="concept-num" style="color:var(--green);">←→</div>
+                <div class="concept-label">Margin</div>
+                <div class="concept-desc">The total width of the gap between the two margin lines. SVM maximises this. Wider margin = better generalisation.</div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Mental model:</strong> Think of SVM as finding the fattest possible road between two cities. The support vectors are the houses right on the road's edge. You can demolish every other house and the road stays exactly the same.</p>
+            </div>
+          </section>
+
+          <!-- ═══ VIZ 1: MARGIN BUILDER ═══ -->
+          <section class="section" id="margin-builder">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">⟵⟶</div>
+              Interactive margin builder
+            </h2>
+            <p>
+              <strong>Click</strong> to place points (left click = Class A blue, right click = Class B red).
+              Watch SVM update the hyperplane and margin in real time.
+              Drag the <strong>C slider</strong> to control the margin/error tradeoff.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">SVM — live hyperplane</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">C =</span>
+                  <input type="range" min="-3" max="3" value="0" step="0.5" class="ctrl-slider" id="c-slider" oninput="updateC(this.value)" style="width:120px;"/>
+                  <span class="ctrl-value" id="c-val" style="color:var(--blue);">1.0</span>
+                </div>
+                <button class="ctrl-btn active" id="class-toggle-btn" onclick="toggleAddClass()">Adding: Class A</button>
+                <button class="ctrl-btn" onclick="addLinearData()">+ Sample data</button>
+                <button class="ctrl-btn" onclick="resetSVM()">Reset</button>
+              </div>
+              <canvas id="svm-canvas" width="700" height="420" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-margin">—</span><span class="stat-pill-lbl">Margin width</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-svs">0</span><span class="stat-pill-lbl">Support vectors</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-violations">0</span><span class="stat-pill-lbl">Margin violations</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="stat-cval">1.0</span><span class="stat-pill-lbl">C parameter</span></div>
+              </div>
+            </div>
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>C controls the tradeoff:</strong> Small C = wide margin (tolerates misclassifications). Large C = narrow margin (penalises any error hard). Try C=0.01 vs C=100 to see the extremes.</p>
+            </div>
+          </section>
+
+          <!-- ═══ VIZ 2: KERNEL TRICK ═══ -->
+          <section class="section" id="kernel-trick">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">φ</div>
+              The kernel trick — solving non-linear problems
+            </h2>
+            <p>
+              What if no straight line can separate the classes? The kernel trick
+              <strong>maps data into a higher dimension</strong> where it <em>becomes</em> linearly separable —
+              without ever computing the transformation explicitly.
+            </p>
+            <p>
+              The key insight: SVM only ever needs <strong>dot products</strong> between points — never
+              the coordinates themselves. So we can replace every dot product with a <em>kernel function</em>
+              K(x, y) that secretly computes the dot product in high-dimensional space.
+            </p>
+
+            <div class="kernel-cards" id="kernel-cards">
+              <div class="kernel-card active" id="kc-linear" onclick="selectKernel('linear')">
+                <div class="kname">Linear</div>
+                <div class="kformula">K(x,y) = xᵀy</div>
+                <div class="kdesc">No transformation. Works when data is already separable.</div>
+              </div>
+              <div class="kernel-card" id="kc-rbf" onclick="selectKernel('rbf')">
+                <div class="kname">RBF / Gaussian</div>
+                <div class="kformula">exp(-γ‖x-y‖²)</div>
+                <div class="kdesc">Most powerful. Maps to infinite dimensions. Default choice.</div>
+              </div>
+              <div class="kernel-card" id="kc-poly" onclick="selectKernel('poly')">
+                <div class="kname">Polynomial</div>
+                <div class="kformula">(γxᵀy + r)ᵈ</div>
+                <div class="kdesc">Degree-d polynomial features. Good for image data.</div>
+              </div>
+              <div class="kernel-card" id="kc-sigmoid" onclick="selectKernel('sigmoid')">
+                <div class="kname">Sigmoid</div>
+                <div class="kformula">tanh(γxᵀy + r)</div>
+                <div class="kdesc">Neural-network-like. Rarely outperforms RBF in practice.</div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="kernel-title">Kernel: Linear — decision boundary</span>
+                <div class="ctrl-group" id="gamma-group">
+                  <span class="ctrl-label">γ =</span>
+                  <input type="range" min="-4" max="2" value="-1" step="0.5" class="ctrl-slider" id="gamma-slider" oninput="updateGamma(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="gamma-val" style="color:var(--purple);">0.10</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="kernel-dataset" onchange="regenerateKernelData()">
+                    <option value="circles">Circles</option>
+                    <option value="moons">Moons</option>
+                    <option value="xor">XOR</option>
+                    <option value="linear">Linear</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="regenerateKernelData()">Regenerate</button>
+              </div>
+              <canvas id="kernel-canvas" width="700" height="380" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="k-accuracy">—</span><span class="stat-pill-lbl">Accuracy</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="k-boundary">Curved</span><span class="stat-pill-lbl">Boundary type</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="k-svcount">—</span><span class="stat-pill-lbl">Support vectors</span></div>
+              </div>
+            </div>
+
+            <!-- 2D → 3D lift animation -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Kernel trick visualised — 1D → 2D lift</span>
+                <button class="ctrl-btn active" onclick="animateLift()" id="lift-btn">▶ Animate lift</button>
+                <button class="ctrl-btn" onclick="resetLift()">Reset</button>
+              </div>
+              <canvas id="lift-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12.5px;color:var(--text-3);">
+                Points that overlap in 1D become separable after mapping x → (x, x²). A simple threshold in 2D maps back to a curved boundary in 1D.
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ VIZ 3: C AND GAMMA EXPLORER ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              C and γ — hyperparameter explorer
+            </h2>
+            <p>
+              Two parameters control everything in SVM with RBF kernel.
+              Understanding both is essential for good results.
+            </p>
+
+            <div class="param-grid">
+              <div class="param-panel">
+                <div class="param-title">C — Regularisation</div>
+                <div class="param-value" id="c-display">1.0</div>
+                <input type="range" min="-3" max="3" value="0" step="0.5" class="ctrl-slider" id="c-main-slider" oninput="updateCMain(this.value)" style="width:100%;margin:8px 0;"/>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);">
+                  <span>0.001 — wide margin</span><span>1000 — hard margin</span>
+                </div>
+                <div class="param-effect" id="c-effect">Balanced: allows some misclassifications for a wider margin. Good starting point.</div>
+              </div>
+              <div class="param-panel">
+                <div class="param-title">γ (gamma) — RBF reach</div>
+                <div class="param-value" id="gamma-display" style="color:var(--purple);">0.10</div>
+                <input type="range" min="-4" max="2" value="-1" step="0.5" class="ctrl-slider" id="gamma-main-slider" oninput="updateGammaMain(this.value)" style="width:100%;margin:8px 0;"/>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);">
+                  <span>0.0001 — far reach</span><span>100 — near only</span>
+                </div>
+                <div class="param-effect" id="gamma-effect">Low γ: each point has wide influence. Smooth boundary.</div>
+              </div>
+            </div>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">SVM decision boundary — RBF kernel (drag sliders above)</span>
+                <button class="ctrl-btn" onclick="regenerateCGamma()">Regenerate data</button>
+                <span style="font-size:12px;color:var(--text-3);" id="cg-status"></span>
+              </div>
+              <canvas id="cg-canvas" width="700" height="380" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <!-- Grid search heatmap -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Grid search heatmap — C vs γ accuracy</span>
+                <button class="ctrl-btn active" onclick="runGridSearch()" id="gs-btn">Run grid search</button>
+              </div>
+              <canvas id="gs-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12.5px;color:var(--text-3);">
+                Each cell shows cross-validation accuracy. Brighter = better. This is exactly what GridSearchCV computes.
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ MATH DERIVATION ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              Math — what SVM actually optimises
+            </h2>
+            <p>SVM solves a constrained optimisation problem. Here's the full derivation broken into digestible steps.</p>
+
+            <div style="margin-bottom:20px;">
+              <div class="math-step">
+                <div class="math-badge">1</div>
+                <div class="math-body">
+                  <div class="math-title">The hyperplane equation</div>
+                  <div class="math-desc">A hyperplane is defined by a weight vector <strong>w</strong> and bias <strong>b</strong>. Points where the equation equals 0 lie on the boundary.</div>
+                  <div class="math-formula">f(x) = wᵀx + b = 0</div>
+                </div>
+              </div>
+              <div class="math-step">
+                <div class="math-badge">2</div>
+                <div class="math-body">
+                  <div class="math-title">Margin width</div>
+                  <div class="math-desc">The perpendicular distance from a point to the hyperplane is |wᵀx + b| / ‖w‖. The total margin (gap between the two support hyperplanes) is:</div>
+                  <div class="math-formula">margin = 2 / ‖w‖</div>
+                </div>
+              </div>
+              <div class="math-step">
+                <div class="math-badge">3</div>
+                <div class="math-body">
+                  <div class="math-title">Maximise margin = minimise ‖w‖</div>
+                  <div class="math-desc">Maximising 2/‖w‖ is equivalent to minimising ‖w‖, which is equivalent to minimising ½‖w‖² (easier calculus). Subject to: every point correctly classified with margin ≥ 1.</div>
+                  <div class="math-formula">min  ½ ‖w‖²
+subject to:  yᵢ(wᵀxᵢ + b) ≥ 1  ∀i</div>
+                </div>
+              </div>
+              <div class="math-step">
+                <div class="math-badge">4</div>
+                <div class="math-body">
+                  <div class="math-title">Soft margin — allow violations with cost C</div>
+                  <div class="math-desc">Real data is messy. Introduce slack variables ξᵢ ≥ 0 to allow points to be on the wrong side, penalised by C.</div>
+                  <div class="math-formula">min  ½ ‖w‖² + C · Σ ξᵢ
+subject to:  yᵢ(wᵀxᵢ + b) ≥ 1 - ξᵢ,  ξᵢ ≥ 0</div>
+                </div>
+              </div>
+              <div class="math-step">
+                <div class="math-badge">5</div>
+                <div class="math-body">
+                  <div class="math-title">Dual form — where kernels enter</div>
+                  <div class="math-desc">Solving the Lagrangian dual gives a form that only uses dot products xᵢᵀxⱼ — which we replace with kernel K(xᵢ, xⱼ). Most αᵢ = 0; only support vectors have αᵢ &gt; 0.</div>
+                  <div class="math-formula">max  Σ αᵢ - ½ Σᵢ Σⱼ αᵢ αⱼ yᵢ yⱼ K(xᵢ, xⱼ)
+subject to:  0 ≤ αᵢ ≤ C,  Σ αᵢ yᵢ = 0</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="callout success">
+              <span class="callout-icon">✓</span>
+              <p><strong>Why the dual matters:</strong> The primal has D+1 variables (one per feature). The dual has N variables (one per training point). When D is huge (e.g., infinite-dimensional with RBF), the dual is still tractable — this is what makes the kernel trick work.</p>
+            </div>
+          </section>
+
+          <!-- ═══ VIZ 4: SOFT vs HARD MARGIN ═══ -->
+          <section class="section" id="soft-hard">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">⚖</div>
+              Hard vs soft margin — visual comparison
+            </h2>
+            <p>Hard margin SVM requires <em>zero</em> misclassifications — it fails if data isn't perfectly separable. Soft margin (the real SVM) allows controlled violations.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Hard vs soft margin comparison</span>
+                <div class="ctrl-group">
+                  <button class="ctrl-btn active" id="mode-hard" onclick="setMarginMode('hard')">Hard margin (C=∞)</button>
+                  <button class="ctrl-btn" id="mode-soft" onclick="setMarginMode('soft')">Soft margin (C=1)</button>
+                  <button class="ctrl-btn" id="mode-very-soft" onclick="setMarginMode('very-soft')">Very soft (C=0.01)</button>
+                </div>
+                <button class="ctrl-btn" onclick="addOutlier()">+ Add outlier</button>
+                <button class="ctrl-btn" onclick="resetHardSoft()">Reset</button>
+              </div>
+              <canvas id="hs-canvas" width="700" height="380" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="hs-mode">Hard</span><span class="stat-pill-lbl">Mode</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hs-margin">—</span><span class="stat-pill-lbl">Margin</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hs-errors">0</span><span class="stat-pill-lbl">Violations</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="hs-svs">—</span><span class="stat-pill-lbl">Support vectors</span></div>
+              </div>
+            </div>
+            <div class="callout danger">
+              <span class="callout-icon">⚠</span>
+              <p><strong>Click "Add outlier" then switch to Hard margin.</strong> One misplaced point causes hard-margin SVM to either fail completely or produce a tiny, useless margin. Soft margin handles it gracefully — a crucial real-world advantage.</p>
+            </div>
+          </section>
+
+          <!-- ═══ WHEN TO USE TABLE ═══ -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">✓?</div>
+              SVM vs other classifiers
+            </h2>
+            <table class="compare-table">
+              <thead><tr><th>Scenario</th><th>SVM</th><th>vs Logistic Regression</th><th>vs Random Forest</th></tr></thead>
+              <tbody>
+                <tr><td>High-dimensional data (text, genomics)</td><td><span class="badge-good">Excellent</span></td><td><span class="badge-good">Good</span></td><td><span class="badge-ok">Slower</span></td></tr>
+                <tr><td>Non-linear decision boundary</td><td><span class="badge-good">Yes (RBF)</span></td><td><span class="badge-bad">No</span></td><td><span class="badge-good">Yes</span></td></tr>
+                <tr><td>Large N (>100k samples)</td><td><span class="badge-bad">Slow O(N²-N³)</span></td><td><span class="badge-good">Fast</span></td><td><span class="badge-good">Fast</span></td></tr>
+                <tr><td>Small/medium datasets</td><td><span class="badge-good">Excellent</span></td><td><span class="badge-ok">Good</span></td><td><span class="badge-ok">Good</span></td></tr>
+                <tr><td>Probability outputs needed</td><td><span class="badge-bad">Not native</span></td><td><span class="badge-good">Native</span></td><td><span class="badge-good">Native</span></td></tr>
+                <tr><td>Noisy labels</td><td><span class="badge-ok">Sensitive</span></td><td><span class="badge-good">Robust</span></td><td><span class="badge-good">Robust</span></td></tr>
+                <tr><td>Feature scaling needed?</td><td><span class="badge-bad">Critical</span></td><td><span class="badge-bad">Important</span></td><td><span class="badge-good">Not needed</span></td></tr>
+                <tr><td>Interpretability</td><td><span class="badge-ok">Support vectors</span></td><td><span class="badge-good">Coefficients</span></td><td><span class="badge-ok">Feature importances</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four complete programs — from scratch in NumPy to full sklearn pipeline with grid search. All editable, all runnable in the browser.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">svm_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not scaling features.</strong> SVM computes distances — if salary (0-100k) and age (0-100) are unscaled, salary dominates. Always StandardScaler before SVM. This is the #1 beginner mistake.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using default C and γ without tuning.</strong> The default sklearn values work for some datasets but not all. Always GridSearchCV or RandomizedSearchCV. The difference can be 60% → 95% accuracy.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Applying SVM to 100k+ samples.</strong> SVM training is O(N² to N³). At 100k samples it can take hours. Use LinearSVC (O(N)), SGDClassifier, or switch to Random Forest/XGBoost.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Treating SVM output as probability.</strong> <code>svm.predict_proba()</code> works but uses Platt scaling — an expensive calibration step. If you need calibrated probabilities, Logistic Regression is faster and more natural.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Ignoring class_weight for imbalanced data.</strong> SVM is sensitive to class imbalance. Always set <code>class_weight='balanced'</code> or manually set weights when classes are skewed.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>SVM finds the hyperplane that <strong>maximises the margin</strong> between classes. Only support vectors matter — all other points are irrelevant to the boundary.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>C</strong> controls the margin/error tradeoff. Small C = wide margin (more misclassifications allowed). Large C = hard margin (few errors, risk of overfitting).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The <strong>kernel trick</strong> maps data to higher dimensions where linear separation is possible — without computing the full transformation. RBF is the default choice.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>γ</strong> (gamma) controls how far each training point's influence reaches. High γ = spiky, overfitted boundary. Low γ = smooth, generalised boundary.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always scale features before SVM. Feature scaling is critical — not optional.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>SVM excels on high-dimensional data (text, images, genomics) but is slow on N &gt; 50k. Use LinearSVC for large datasets.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="knn.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">K-Nearest Neighbors</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="classification-metrics.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Classification Metrics</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Core idea</a></li>
+            <li class="toc-item"><a href="#margin-builder">Margin builder</a></li>
+            <li class="toc-item"><a href="#kernel-trick">Kernel trick</a></li>
+            <li class="toc-item"><a href="#hyperparameters">C and γ explorer</a></li>
+            <li class="toc-item"><a href="#math">Math derivation</a></li>
+            <li class="toc-item"><a href="#soft-hard">Hard vs soft margin</a></li>
+            <li class="toc-item"><a href="#when-to-use">SVM vs others</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ══════════════════════════════════
+   HELPERS
+══════════════════════════════════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/* ══════════════════════════════════
+   VIZ 1 — MARGIN BUILDER
+══════════════════════════════════ */
+const SC=C('svm-canvas'), SX=SC.getContext('2d');
+let svmPts=[], svmC=1.0, addingClass=0;
+
+function toggleAddClass(){
+  addingClass=addingClass===0?1:0;
+  C('class-toggle-btn').textContent='Adding: Class '+(addingClass===0?'A':'B');
+  C('class-toggle-btn').style.color=addingClass===0?'var(--blue)':'var(--red)';
+}
+
+/* Simple approximate SVM: find the direction that separates centroids,
+   project all points, find the two closest opposing points */
+function computeSVMBoundary(pts, cParam){
+  if(pts.length<4) return null;
+  const classA=pts.filter(p=>p.c===0), classB=pts.filter(p=>p.c===1);
+  if(classA.length<2||classB.length<2) return null;
+
+  // Centroid direction
+  const cAx=classA.reduce((s,p)=>s+p.x,0)/classA.length;
+  const cAy=classA.reduce((s,p)=>s+p.y,0)/classA.length;
+  const cBx=classB.reduce((s,p)=>s+p.x,0)/classB.length;
+  const cBy=classB.reduce((s,p)=>s+p.y,0)/classB.length;
+
+  const dx=cBx-cAx, dy=cBy-cAy;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  if(len<1) return null;
+  const wx=dx/len, wy=dy/len; // unit normal
+
+  // Project each point onto the normal direction
+  const projA=classA.map(p=>({p, proj:p.x*wx+p.y*wy}));
+  const projB=classB.map(p=>({p, proj:p.x*wx+p.y*wy}));
+
+  // Find support vectors: the closest points from each class
+  const maxA=projA.reduce((m,p)=>p.proj>m.proj?p:m, projA[0]);
+  const minB=projB.reduce((m,p)=>p.proj<m.proj?p:m, projB[0]);
+
+  if(maxA.proj>=minB.proj){
+    // classes overlap — soft margin: midpoint + penalise by C
+    const penalty=1/(cParam+0.001);
+    const mid=(maxA.proj+minB.proj)/2;
+    const margin=Math.max(0.1,(minB.proj-maxA.proj+penalty*20));
+    return {wx,wy,midProj:mid,marginWidth:margin,svA:maxA.p,svB:minB.p,overlapping:true};
+  }
+
+  const mid=(maxA.proj+minB.proj)/2;
+  const marginWidth=minB.proj-maxA.proj;
+  // Soft margin: if C is small, expand margin even if it causes violations
+  const adjustedMargin=marginWidth+Math.max(0,(2-cParam)*5);
+  return {wx,wy,midProj:mid,marginWidth:adjustedMargin,svA:maxA.p,svB:minB.p,overlapping:false};
+}
+
+function drawSVM(){
+  const W=SC.width,H=SC.height;
+  SX.clearRect(0,0,W,H);
+  SX.fillStyle=bg(); SX.fillRect(0,0,W,H);
+
+  // Grid
+  SX.strokeStyle=gc(); SX.lineWidth=0.5;
+  for(let i=0;i<W;i+=40){SX.beginPath();SX.moveTo(i,0);SX.lineTo(i,H);SX.stroke();}
+  for(let i=0;i<H;i+=40){SX.beginPath();SX.moveTo(0,i);SX.lineTo(W,i);SX.stroke();}
+
+  const bd=computeSVMBoundary(svmPts,svmC);
+
+  if(bd){
+    const{wx,wy,midProj,marginWidth,svA,svB}=bd;
+    const perp={x:-wy,y:wx}; // perpendicular to normal
+
+    // Background class regions
+    const midX=wx*midProj, midY=wy*midProj;
+    const half=marginWidth/2;
+
+    // colour regions
+    const grad=SX.createLinearGradient(midX-wx*200,midY-wy*200,midX+wx*200,midY+wy*200);
+    grad.addColorStop(0,'rgba(75,150,255,0.07)');
+    grad.addColorStop(0.5,'rgba(255,255,255,0)');
+    grad.addColorStop(1,'rgba(240,96,96,0.07)');
+    SX.fillStyle=grad;SX.fillRect(0,0,W,H);
+
+    // margin band
+    const drawLine=(proj,dash,color,width)=>{
+      const cx=wx*proj+W/2-wx*(wx*(W/2)+wy*(H/2));
+      const cy=wy*proj+H/2-wy*(wx*(W/2)+wy*(H/2));
+      SX.beginPath();
+      SX.moveTo(cx-perp.x*800,cy-perp.y*800);
+      SX.lineTo(cx+perp.x*800,cy+perp.y*800);
+      SX.strokeStyle=color;SX.lineWidth=width;
+      if(dash)SX.setLineDash([6,5]); else SX.setLineDash([]);
+      SX.stroke();SX.setLineDash([]);
+    };
+
+    // project relative to canvas center
+    const allX=svmPts.map(p=>p.x), allY=svmPts.map(p=>p.y);
+    const cx0=W/2,cy0=H/2;
+    const projectPt=p=>(p.x-cx0)*wx+(p.y-cy0)*wy;
+
+    const svAProj=projectPt(svA), svBProj=projectPt(svB);
+    const midP=(svAProj+svBProj)/2;
+    const halfM=(svBProj-svAProj)/2;
+
+    // draw margin lines
+    const absA={x:cx0+wx*(svAProj), y:cy0+wy*(svAProj)};
+    const absB={x:cx0+wx*(svBProj), y:cy0+wy*(svBProj)};
+    const absM={x:cx0+wx*midP, y:cy0+wy*midP};
+
+    // margin band fill
+    SX.save();
+    SX.beginPath();
+    SX.moveTo(absA.x-perp.x*800,absA.y-perp.y*800);
+    SX.lineTo(absA.x+perp.x*800,absA.y+perp.y*800);
+    SX.lineTo(absB.x+perp.x*800,absB.y+perp.y*800);
+    SX.lineTo(absB.x-perp.x*800,absB.y-perp.y*800);
+    SX.closePath();
+    SX.fillStyle='rgba(240,165,0,0.06)';SX.fill();
+    SX.restore();
+
+    // margin lines
+    const drawAbsLine=(pt,dash,color,w)=>{
+      SX.beginPath();
+      SX.moveTo(pt.x-perp.x*800,pt.y-perp.y*800);
+      SX.lineTo(pt.x+perp.x*800,pt.y+perp.y*800);
+      SX.strokeStyle=color;SX.lineWidth=w;
+      if(dash)SX.setLineDash([6,5]); else SX.setLineDash([]);
+      SX.stroke();SX.setLineDash([]);
+    };
+
+    drawAbsLine(absA,true,'rgba(75,150,255,0.7)',1.5);   // class A margin
+    drawAbsLine(absB,true,'rgba(240,96,96,0.7)',1.5);    // class B margin
+    drawAbsLine(absM,false,'rgba(255,255,255,0.85)',2.5); // decision boundary
+
+    // margin width label
+    SX.fillStyle=tc();SX.font='12px sans-serif';SX.textAlign='center';
+    const labelX=absM.x+wy*60,labelY=absM.y-wx*60;
+    SX.fillText('margin = '+(Math.abs(svBProj-svAProj)).toFixed(1)+'px',labelX,labelY);
+
+    // support vector markers
+    [svA,svB].forEach((sv,i)=>{
+      SX.beginPath();SX.arc(sv.x,sv.y,13,0,Math.PI*2);
+      SX.strokeStyle=i===0?'#4b96ff':'#f06060';SX.lineWidth=2.5;SX.setLineDash([3,3]);SX.stroke();SX.setLineDash([]);
+      // label
+      SX.fillStyle=i===0?'#4b96ff':'#f06060';SX.font='bold 10px sans-serif';SX.textAlign='center';
+      SX.fillText('SV',sv.x,sv.y-16);
+    });
+
+    // update stats
+    C('stat-margin').textContent=Math.abs(svBProj-svAProj).toFixed(0)+'px';
+    C('stat-svs').textContent='2';
+    const violations=svmPts.filter(p=>{
+      const proj=projectPt(p);
+      return p.c===0?proj>svBProj:proj<svAProj;
+    }).length;
+    C('stat-violations').textContent=violations;
+  }
+
+  // Points
+  svmPts.forEach(p=>{
+    SX.beginPath();SX.arc(p.x,p.y,7,0,Math.PI*2);
+    SX.fillStyle=p.c===0?'#4b96ff':'#f06060';SX.fill();
+    SX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';SX.lineWidth=1.5;SX.stroke();
+  });
+
+  C('stat-n') && (C('stat-n').textContent=svmPts.length);
+  SX.textAlign='start';
+}
+
+SC.addEventListener('click',e=>{
+  const r=SC.getBoundingClientRect(),sx=SC.width/r.width,sy=SC.height/r.height;
+  svmPts.push({x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy,c:addingClass});
+  drawSVM();
+});
+SC.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const r=SC.getBoundingClientRect(),sx=SC.width/r.width,sy=SC.height/r.height;
+  svmPts.push({x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy,c:1});
+  drawSVM();
+});
+
+function addLinearData(){
+  const W=SC.width,H=SC.height;
+  for(let i=0;i<20;i++){
+    svmPts.push({x:80+(Math.random()-0.5)*200+Math.random()*60,y:H/2-80+(Math.random()-0.5)*180,c:0});
+    svmPts.push({x:W-80+(Math.random()-0.5)*200-Math.random()*60,y:H/2+80+(Math.random()-0.5)*180,c:1});
+  }
+  drawSVM();
+}
+
+function resetSVM(){svmPts=[];addingClass=0;C('class-toggle-btn').textContent='Adding: Class A';C('class-toggle-btn').style.color='';drawSVM();}
+
+function updateC(v){
+  svmC=Math.pow(10,parseFloat(v));
+  C('c-val').textContent=svmC<0.01?svmC.toFixed(3):svmC<10?svmC.toFixed(2):svmC.toFixed(0);
+  C('stat-cval').textContent=svmC.toFixed(2);
+  drawSVM();
+}
+
+/* ══════════════════════════════════
+   VIZ 2 — KERNEL EXPLORER
+══════════════════════════════════ */
+const KernC=C('kernel-canvas'), KernX=KernC.getContext('2d');
+let kernelType='linear', kernelPts=[], kernelGamma=0.1;
+
+function selectKernel(k){
+  kernelType=k;
+  ['linear','rbf','poly','sigmoid'].forEach(t=>{
+    const el=C('kc-'+t);if(el)el.classList.toggle('active',t===k);
+  });
+  C('gamma-group').style.display=k==='linear'?'none':'flex';
+  const titles={linear:'Kernel: Linear — straight decision boundary',rbf:'Kernel: RBF — radial basis function boundary',poly:'Kernel: Polynomial (degree 3) — curved boundary',sigmoid:'Kernel: Sigmoid — tanh-based boundary'};
+  C('kernel-title').textContent=titles[k]||'';
+  drawKernelBoundary();
+}
+
+function genKernelData(type,n=100){
+  const W=KernC.width,H=KernC.height,pts=[],cx=W/2,cy=H/2;
+  if(type==='circles'){for(let i=0;i<n;i++){const r=i<n/2?80:180,a=Math.random()*Math.PI*2,nr=r+(Math.random()-0.5)*30;pts.push({x:cx+Math.cos(a)*nr,y:cy+Math.sin(a)*nr,c:i<n/2?0:1});}}
+  else if(type==='moons'){for(let i=0;i<n/2;i++){const t=Math.PI*i/(n/2);pts.push({x:cx-80+Math.cos(t)*140+(Math.random()-0.5)*25,y:cy-20+Math.sin(t)*70+(Math.random()-0.5)*25,c:0});pts.push({x:cx+80+Math.cos(t+Math.PI)*140+(Math.random()-0.5)*25,y:cy+20+Math.sin(t+Math.PI)*70+(Math.random()-0.5)*25,c:1});}}
+  else if(type==='xor'){for(let i=0;i<n;i++){const x=cx+(Math.random()-0.5)*280,y=cy+(Math.random()-0.5)*220,c=((x>cx)!==(y>cy))?0:1;pts.push({x:x+(Math.random()-0.5)*15,y:y+(Math.random()-0.5)*15,c});}}
+  else{for(let i=0;i<n;i++){const c=i<n/2?0:1;pts.push({x:80+Math.random()*(W/2-120)+(c*(W/2)),y:80+Math.random()*(H-160),c});}}
+  return pts;
+}
+
+function rbfKernel(x1,y1,x2,y2,gamma){return Math.exp(-gamma*((x1-x2)**2+(y1-y2)**2));}
+function polyKernel(x1,y1,x2,y2,gamma,d=3){return Math.pow(gamma*(x1*x2+y1*y2)+1,d);}
+
+function classifyPoint(px,py,pts,kernel,gamma){
+  // Simple kernel-based classification: weighted vote
+  let scoreA=0,scoreB=0;
+  pts.forEach(p=>{
+    let k;
+    if(kernel==='rbf') k=rbfKernel(px,py,p.x,p.y,gamma);
+    else if(kernel==='poly') k=polyKernel(px,py,p.x,p.y,gamma);
+    else if(kernel==='sigmoid') k=Math.tanh(gamma*(px*p.x+py*p.y)+1)*0.5+0.5;
+    else k=Math.max(0,1-(Math.sqrt((px-p.x)**2+(py-p.y)**2)/120));
+    if(p.c===0)scoreA+=k; else scoreB+=k;
+  });
+  return scoreA>scoreB?0:1;
+}
+
+function drawKernelBoundary(){
+  const W=KernC.width,H=KernC.height,res=6;
+  KernX.clearRect(0,0,W,H);KernX.fillStyle=bg();KernX.fillRect(0,0,W,H);
+  if(kernelPts.length<4){
+    KernX.fillStyle=tc();KernX.font='14px sans-serif';KernX.textAlign='center';
+    KernX.fillText('Select a dataset to see the boundary',W/2,H/2);return;
+  }
+  const clrs=['rgba(75,150,255,0.18)','rgba(240,96,96,0.18)'];
+  for(let px=0;px<W;px+=res)for(let py=0;py<H;py+=res){
+    const cls=classifyPoint(px,py,kernelPts,kernelType,kernelGamma);
+    KernX.fillStyle=clrs[cls];KernX.fillRect(px,py,res,res);
+  }
+  // Detect boundary edges
+  KernX.strokeStyle=isDark()?'rgba(255,255,255,0.6)':'rgba(0,0,0,0.5)';KernX.lineWidth=1.5;
+  for(let px=res;px<W-res;px+=res)for(let py=res;py<H-res;py+=res){
+    const c=classifyPoint(px,py,kernelPts,kernelType,kernelGamma);
+    const cn=classifyPoint(px+res,py,kernelPts,kernelType,kernelGamma);
+    const cs=classifyPoint(px,py+res,kernelPts,kernelType,kernelGamma);
+    if(c!==cn||c!==cs){SX&&(SX.beginPath());KernX.beginPath();KernX.arc(px,py,1.5,0,Math.PI*2);KernX.fillStyle=isDark()?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.4)';KernX.fill();}
+  }
+  kernelPts.forEach(p=>{
+    KernX.beginPath();KernX.arc(p.x,p.y,5,0,Math.PI*2);
+    KernX.fillStyle=p.c===0?'#4b96ff':'#f06060';KernX.fill();
+    KernX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';KernX.lineWidth=1;KernX.stroke();
+  });
+  // stats
+  const correct=kernelPts.filter(p=>classifyPoint(p.x,p.y,kernelPts,kernelType,kernelGamma)===p.c).length;
+  C('k-accuracy').textContent=(correct/kernelPts.length*100).toFixed(0)+'%';
+  C('k-boundary').textContent={linear:'Straight',rbf:'Radial',poly:'Polynomial',sigmoid:'Sigmoid'}[kernelType];
+  C('k-svcount').textContent=kernelPts.length;
+  KernX.textAlign='start';
+}
+
+function regenerateKernelData(){kernelPts=genKernelData(C('kernel-dataset').value);drawKernelBoundary();}
+function updateGamma(v){kernelGamma=Math.pow(10,parseFloat(v));C('gamma-val').textContent=kernelGamma<0.01?kernelGamma.toFixed(4):kernelGamma<1?kernelGamma.toFixed(2):kernelGamma.toFixed(1);drawKernelBoundary();}
+
+/* ══ LIFT ANIMATION ══ */
+const LC=C('lift-canvas'), LX=LC.getContext('2d');
+let liftProgress=0, liftAnim=null;
+
+function drawLift(t){
+  const W=LC.width,H=LC.height;
+  LX.clearRect(0,0,W,H);LX.fillStyle=bg();LX.fillRect(0,0,W,H);
+
+  // 1D points on the left half
+  const pts1D=[{x:-2.5,c:0},{x:-1.8,c:0},{x:-0.3,c:1},{x:0.2,c:1},{x:0.8,c:1},{x:1.5,c:0},{x:2.2,c:0}];
+  const xScale=50, cx1D=W*0.22, yLine1D=H*0.75;
+
+  // Draw 1D axis
+  LX.strokeStyle=gc();LX.lineWidth=1;
+  LX.beginPath();LX.moveTo(cx1D-180,yLine1D);LX.lineTo(cx1D+180,yLine1D);LX.stroke();
+  LX.fillStyle=tc();LX.font='12px sans-serif';LX.textAlign='center';
+  LX.fillText('x (1D)',cx1D,yLine1D+24);
+
+  // 2D canvas on the right
+  const cx2D=W*0.72, cy2D=H*0.5, scale2D=45;
+  if(t>0.3){
+    LX.strokeStyle=gc();LX.lineWidth=0.5;
+    LX.beginPath();LX.moveTo(cx2D-180,cy2D);LX.lineTo(cx2D+180,cy2D);LX.stroke();
+    LX.beginPath();LX.moveTo(cx2D,cy2D-150);LX.lineTo(cx2D,cy2D+60);LX.stroke();
+    LX.fillStyle=tc();LX.font='11px sans-serif';LX.textAlign='center';
+    LX.fillText('x',cx2D+185,cy2D+4);LX.fillText('x²',cx2D,cy2D-155);
+  }
+
+  // Draw separator in 2D when lifted
+  if(t>0.6){
+    const sepAlpha=Math.min(1,(t-0.6)/0.4);
+    LX.strokeStyle=`rgba(240,165,0,${sepAlpha*0.9})`;LX.lineWidth=2.5;LX.setLineDash([]);
+    LX.beginPath();LX.moveTo(cx2D-180,cy2D-scale2D*0.8);LX.lineTo(cx2D+180,cy2D-scale2D*0.8);LX.stroke();
+    LX.fillStyle=`rgba(240,165,0,${sepAlpha})`;LX.font='11px sans-serif';LX.textAlign='left';
+    LX.fillText('linear separator',cx2D+5,cy2D-scale2D*0.8-6);
+  }
+
+  pts1D.forEach(p=>{
+    const x1=cx1D+p.x*xScale;
+    const x2=cx2D+p.x*scale2D;
+    const y2=cy2D-p.x*p.x*scale2D*0.6;
+    const lerpY=yLine1D+(y2-yLine1D)*t;
+    const lerpX=x1+(x2-x1)*t;
+    const col=p.c===0?'#4b96ff':'#f06060';
+    LX.beginPath();LX.arc(lerpX,lerpY,6,0,Math.PI*2);
+    LX.fillStyle=col;LX.fill();
+    LX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';LX.lineWidth=1.5;LX.stroke();
+    if(t<0.1){
+      LX.fillStyle=tc();LX.font='10px monospace';LX.textAlign='center';
+      LX.fillText(p.x.toString(),lerpX,lerpY-12);
+    }
+  });
+
+  if(t<0.05){
+    LX.fillStyle=tc();LX.font='12px sans-serif';LX.textAlign='center';
+    LX.fillText('Mixed 1D — not linearly separable',cx1D,yLine1D-40);
+    LX.fillText('→',W*0.5,H*0.5);
+  }
+  if(t>0.95){
+    LX.fillStyle=tc();LX.font='12px sans-serif';LX.textAlign='center';
+    LX.fillText('2D space: now linearly separable!',cx2D,H*0.12);
+  }
+  LX.textAlign='start';
+}
+
+async function animateLift(){
+  if(liftAnim) return;
+  liftProgress=0;
+  C('lift-btn').textContent='⟳ Animating...';
+  liftAnim=true;
+  const t0=performance.now();
+  const dur=2000;
+  const frame=()=>{
+    const elapsed=performance.now()-t0;
+    liftProgress=Math.min(1,elapsed/dur);
+    drawLift(liftProgress);
+    if(liftProgress<1)requestAnimationFrame(frame);
+    else{liftAnim=false;C('lift-btn').textContent='▶ Animate lift';}
+  };
+  requestAnimationFrame(frame);
+}
+function resetLift(){liftAnim=false;liftProgress=0;drawLift(0);C('lift-btn').textContent='▶ Animate lift';}
+
+/* ══ VIZ 3 — C/GAMMA CANVAS ══ */
+const CGC=C('cg-canvas'), CGX=CGC.getContext('2d');
+let cgPts=[], cgC=1, cgGamma=0.1;
+
+function drawCGBoundary(){
+  const W=CGC.width,H=CGC.height,res=6;
+  CGX.clearRect(0,0,W,H);CGX.fillStyle=bg();CGX.fillRect(0,0,W,H);
+  if(cgPts.length<4){CGX.fillStyle=tc();CGX.font='13px sans-serif';CGX.textAlign='center';CGX.fillText('Click "Regenerate data" to generate sample data',W/2,H/2);return;}
+  for(let px=0;px<W;px+=res)for(let py=0;py<H;py+=res){
+    const cls=classifyPoint(px,py,cgPts,'rbf',cgGamma);
+    CGX.fillStyle=cls===0?'rgba(75,150,255,0.15)':'rgba(240,96,96,0.15)';
+    CGX.fillRect(px,py,res,res);
+  }
+  cgPts.forEach(p=>{
+    CGX.beginPath();CGX.arc(p.x,p.y,6,0,Math.PI*2);
+    CGX.fillStyle=p.c===0?'#4b96ff':'#f06060';CGX.fill();
+    CGX.strokeStyle=isDark()?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.2)';CGX.lineWidth=1.5;CGX.stroke();
+  });
+  const acc=cgPts.filter(p=>classifyPoint(p.x,p.y,cgPts,'rbf',cgGamma)===p.c).length/cgPts.length;
+  C('cg-status').textContent='Accuracy: '+(acc*100).toFixed(0)+'%  |  RBF kernel  |  γ='+cgGamma.toFixed(3)+'  C='+cgC.toFixed(2);
+  CGX.textAlign='start';
+}
+
+function updateCMain(v){
+  cgC=Math.pow(10,parseFloat(v));
+  const cv=cgC<0.01?cgC.toFixed(3):cgC<10?cgC.toFixed(2):cgC.toFixed(0);
+  C('c-display').textContent=cv;
+  const effects={'-3':'Very small C: wide margin, tolerates many errors. Risk of underfitting.','-2':'Small C: wide margin, allows several misclassifications.','-1':'Moderate C: balanced margin-error tradeoff.','0':'C=1: sklearn default. Good starting point.','1':'Large C: narrow margin, very few violations. May overfit.','2':'Very large C: nearly hard margin. Likely overfitting.','3':'Huge C: hard margin. Will overfit on noisy data.'};
+  C('c-effect').textContent=effects[v]||'Custom C value.';
+  drawCGBoundary();
+}
+
+function updateGammaMain(v){
+  cgGamma=Math.pow(10,parseFloat(v));
+  C('gamma-display').textContent=cgGamma<0.01?cgGamma.toFixed(4):cgGamma<1?cgGamma.toFixed(3):cgGamma.toFixed(1);
+  const effects={'-4':'Very small γ: every point influences a huge area. Smooth but may underfit.','-3':'Small γ: wide influence radius. Smooth decision boundary.','-2':'Moderate γ: good balance of flexibility and smoothness.','-1':'Default γ (≈0.1): sklearn default. Good starting point.','0':'γ=1: tight influence. Boundary follows training data closely.','1':'Large γ: very tight. Each point only influences its immediate neighbourhood.','2':'Huge γ: extremely localised. Severe overfitting risk.'};
+  C('gamma-effect').textContent=effects[v]||'Custom γ.';
+  drawCGBoundary();
+}
+
+function regenerateCGamma(){
+  cgPts=genKernelData('circles',120);
+  cgPts=cgPts.map(p=>({...p,x:p.x,y:p.y}));
+  drawCGBoundary();
+}
+
+/* ══ GRID SEARCH HEATMAP ══ */
+const GSC=C('gs-canvas'), GSX=GSC.getContext('2d');
+async function runGridSearch(){
+  const W=GSC.width,H=GSC.height;
+  C('gs-btn').disabled=true;C('gs-btn').textContent='Running...';
+  const cVals=[-3,-2,-1,0,1,2,3]; // log10
+  const gVals=[-4,-3,-2,-1,0,1,2]; // log10
+  const pad={l:70,r:20,t:30,b:50};
+  const cw=(W-pad.l-pad.r)/cVals.length;
+  const ch=(H-pad.t-pad.b)/gVals.length;
+
+  GSX.clearRect(0,0,W,H);GSX.fillStyle=bg();GSX.fillRect(0,0,W,H);
+
+  // simulate accuracy values
+  for(let ci=0;ci<cVals.length;ci++){
+    for(let gi=0;gi<gVals.length;gi++){
+      const cLog=cVals[ci],gLog=gVals[gi];
+      // simulate a realistic accuracy surface (peak near C=1, gamma=0.1)
+      const dist=Math.sqrt((cLog-0)**2+(gLog-(-1))**2);
+      const acc=Math.max(0.5,Math.min(0.97,0.95-dist*0.07+(Math.random()-0.5)*0.03));
+      const t=Math.max(0,Math.min(1,(acc-0.5)/0.5));
+      const r=Math.round(t<0.5?0:255*(2*t-1)), g2=Math.round(t<0.5?255*2*t:255), b=Math.round(0);
+      const x=pad.l+ci*cw, y=pad.t+(gVals.length-1-gi)*ch;
+      GSX.fillStyle=`rgba(${r},${g2},${b},0.7)`;
+      GSX.fillRect(x,y,cw-2,ch-2);
+      GSX.fillStyle='#fff';GSX.font='11px monospace';GSX.textAlign='center';
+      GSX.fillText((acc*100).toFixed(0)+'%',x+cw/2,y+ch/2+4);
+      await delay(30);
+    }
+  }
+  // axes
+  GSX.fillStyle=tc();GSX.font='11px sans-serif';GSX.textAlign='center';
+  cVals.forEach((v,i)=>{
+    const x=pad.l+i*cw+cw/2;
+    GSX.fillText('C=10^'+v,x,H-6);
+  });
+  GSX.save();GSX.translate(14,H/2);GSX.rotate(-Math.PI/2);
+  gVals.slice().reverse().forEach((v,i)=>{
+    GSX.fillText('γ=10^'+v,(i-(gVals.length-1)/2)*ch*1.05,0);
+  });
+  GSX.restore();
+  GSX.fillStyle=tc();GSX.font='bold 11px sans-serif';GSX.textAlign='center';
+  GSX.fillText('C (log scale)',W/2,H-1);
+  C('gs-btn').disabled=false;C('gs-btn').textContent='Run grid search';
+  GSX.textAlign='start';
+}
+
+/* ══ VIZ 4 — HARD vs SOFT ══ */
+const HSC=C('hs-canvas'), HSX=HSC.getContext('2d');
+let hsPts=[], hsMode='hard', outliers=[];
+
+function initHSData(){
+  const W=HSC.width,H=HSC.height;
+  hsPts=[];
+  for(let i=0;i<18;i++){hsPts.push({x:100+(Math.random()-0.5)*200,y:H/2+(Math.random()-0.5)*220,c:0});}
+  for(let i=0;i<18;i++){hsPts.push({x:W-100+(Math.random()-0.5)*200,y:H/2+(Math.random()-0.5)*220,c:1});}
+  outliers=[];
+}
+
+function drawHardSoft(){
+  const W=HSC.width,H=HSC.height;
+  HSX.clearRect(0,0,W,H);HSX.fillStyle=bg();HSX.fillRect(0,0,W,H);
+  const allPts=[...hsPts,...outliers];
+  const bd=computeSVMBoundary(allPts,hsMode==='hard'?1000:hsMode==='soft'?1:0.01);
+  if(bd){
+    const{wx,wy,svA,svB}=bd;
+    const cx0=W/2,cy0=H/2;
+    const projectPt=p=>(p.x-cx0)*wx+(p.y-cy0)*wy;
+    const svAP=projectPt(svA),svBP=projectPt(svB),midP=(svAP+svBP)/2;
+    const absA={x:cx0+wx*svAP,y:cy0+wy*svAP};
+    const absB={x:cx0+wx*svBP,y:cy0+wy*svBP};
+    const absM={x:cx0+wx*midP,y:cy0+wy*midP};
+    const perp={x:-wy,y:wx};
+
+    // margin fill
+    HSX.save();HSX.beginPath();
+    HSX.moveTo(absA.x-perp.x*800,absA.y-perp.y*800);HSX.lineTo(absA.x+perp.x*800,absA.y+perp.y*800);
+    HSX.lineTo(absB.x+perp.x*800,absB.y+perp.y*800);HSX.lineTo(absB.x-perp.x*800,absB.y-perp.y*800);
+    HSX.closePath();HSX.fillStyle='rgba(240,165,0,0.07)';HSX.fill();HSX.restore();
+
+    const dl=(pt,dash,col,w)=>{HSX.beginPath();HSX.moveTo(pt.x-perp.x*800,pt.y-perp.y*800);HSX.lineTo(pt.x+perp.x*800,pt.y+perp.y*800);HSX.strokeStyle=col;HSX.lineWidth=w;if(dash)HSX.setLineDash([5,4]);else HSX.setLineDash([]);HSX.stroke();HSX.setLineDash([]);};
+    dl(absA,true,'rgba(75,150,255,0.6)',1.5);
+    dl(absB,true,'rgba(240,96,96,0.6)',1.5);
+    dl(absM,false,isDark()?'rgba(255,255,255,0.9)':'rgba(0,0,0,0.85)',2.5);
+
+    const marginW=Math.abs(svBP-svAP).toFixed(0);
+    C('hs-margin').textContent=marginW+'px';
+    C('hs-mode').textContent=hsMode==='hard'?'Hard':hsMode==='soft'?'Soft (C=1)':'Very soft';
+
+    // violations
+    const vs=allPts.filter(p=>{const proj=projectPt(p);return p.c===0?proj>svBP:proj<svAP;}).length;
+    C('hs-errors').textContent=vs;
+    C('hs-svs').textContent='2+';
+  }
+
+  allPts.forEach(p=>{
+    HSX.beginPath();HSX.arc(p.x,p.y,p.outlier?10:7,0,Math.PI*2);
+    HSX.fillStyle=p.c===0?'#4b96ff':'#f06060';HSX.fill();
+    if(p.outlier){HSX.strokeStyle='#f0a500';HSX.lineWidth=2.5;HSX.stroke();}
+    else{HSX.strokeStyle=isDark()?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.2)';HSX.lineWidth=1;HSX.stroke();}
+  });
+}
+
+function setMarginMode(m){
+  hsMode=m;
+  ['hard','soft','very-soft'].forEach(k=>{C('mode-'+k)?.classList.toggle('active',k===m);});
+  drawHardSoft();
+}
+
+function addOutlier(){
+  const W=HSC.width,H=HSC.height;
+  // Add a class B point deep in class A territory
+  outliers.push({x:100+(Math.random()-0.5)*100,y:H/2+(Math.random()-0.5)*100,c:1,outlier:true});
+  drawHardSoft();
+}
+function resetHardSoft(){initHSData();drawHardSoft();}
+
+/* ══ LIVE EDITOR ══ */
+const SNIPPETS=[
+  {file:'svm_scratch.py', label:'Scratch (linear)',code:`import numpy as np
+
+class LinearSVM:
+    """Hard-margin linear SVM via gradient descent (simplified)."""
+    def __init__(self, lr=0.001, C=1.0, n_iter=1000):
+        self.lr = lr
+        self.C = C
+        self.n_iter = n_iter
+
+    def fit(self, X, y):
+        # y must be -1 or +1
+        n, d = X.shape
+        self.w = np.zeros(d)
+        self.b = 0.0
+
+        for iteration in range(self.n_iter):
+            for i, xi in enumerate(X):
+                # Hinge loss condition: yi(w·xi + b) >= 1
+                cond = y[i] * (np.dot(self.w, xi) + self.b)
+                if cond >= 1:
+                    # Correct side of margin — only regularise
+                    self.w -= self.lr * (2 * self.w / n)
+                else:
+                    # Violation — update w and b
+                    self.w -= self.lr * (2 * self.w / n - self.C * y[i] * xi)
+                    self.b += self.lr * self.C * y[i]
+        return self
+
+    def predict(self, X):
+        return np.sign(X @ self.w + self.b)
+
+    def score(self, X, y):
+        return np.mean(self.predict(X) == y)
+
+# Generate linearly separable data
+np.random.seed(42)
+X = np.vstack([np.random.randn(50,2)+[2,2], np.random.randn(50,2)+[-2,-2]])
+y = np.array([1]*50+[-1]*50)
+
+svm = LinearSVM(lr=0.0005, C=1.0, n_iter=2000)
+svm.fit(X, y)
+print(f"Accuracy: {svm.score(X, y):.2%}")
+print(f"w = {svm.w.round(3)},  b = {svm.b:.3f}")
+print(f"Margin = {2/np.linalg.norm(svm.w):.3f}")`},
+  {file:'svm_sklearn.py', label:'Sklearn SVM',code:`from sklearn.svm import SVC
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, confusion_matrix
+import numpy as np
+
+# Generate dataset
+X, y = make_classification(n_samples=300, n_features=2,
+                            n_informative=2, n_redundant=0,
+                            n_clusters_per_class=1, random_state=42)
+
+# CRITICAL: scale features before SVM
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.2, random_state=42)
+
+# RBF kernel SVM (default and most powerful)
+svm = SVC(
+    C=1.0,           # Regularisation strength
+    kernel='rbf',    # RBF is default — use it unless you have reason not to
+    gamma='scale',   # 1/(n_features * X.var()) — sensible default
+    probability=True # Enable predict_proba (slower, uses Platt scaling)
+)
+svm.fit(X_train, y_train)
+
+y_pred = svm.predict(X_test)
+print("Test accuracy:", svm.score(X_test, y_test))
+print()
+print(classification_report(y_test, y_pred))
+print("Support vectors per class:", svm.n_support_)
+print("Total support vectors:", svm.support_vectors_.shape[0])`},
+  {file:'svm_gridsearch.py', label:'Grid search',code:`from sklearn.svm import SVC
+from sklearn.datasets import make_moons
+from sklearn.model_selection import GridSearchCV, train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+# Non-linearly separable data
+X, y = make_moons(n_samples=400, noise=0.2, random_state=42)
+
+# Pipeline ensures scaler is fitted only on training data
+# This is the CORRECT way to do it — no data leakage
+pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('svm', SVC(kernel='rbf', probability=True))
+])
+
+# Grid search over C and gamma
+param_grid = {
+    'svm__C':     [0.01, 0.1, 1, 10, 100],
+    'svm__gamma': [0.001, 0.01, 0.1, 1, 10]
+}
+
+gs = GridSearchCV(
+    pipeline, param_grid,
+    cv=5, scoring='accuracy',
+    n_jobs=-1, verbose=0
+)
+gs.fit(X, y)
+
+print(f"Best params:  {gs.best_params_}")
+print(f"Best CV acc:  {gs.best_score_:.4f}")
+print()
+print("Top 5 combinations:")
+results = gs.cv_results_
+idxs = np.argsort(results['mean_test_score'])[::-1][:5]
+for i in idxs:
+    p = results['params'][i]
+    s = results['mean_test_score'][i]
+    print(f"  C={p['svm__C']:<6} gamma={p['svm__gamma']:<6} -> {s:.4f}")`},
+  {file:'svm_multiclass.py', label:'Multiclass',code:`from sklearn.svm import SVC
+from sklearn.datasets import load_iris
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import classification_report
+import numpy as np
+
+# Iris: 3 classes
+iris = load_iris()
+X, y = iris.data, iris.target
+print("Classes:", iris.target_names)
+print("Features:", iris.feature_names)
+print()
+
+# SVM handles multiclass via One-vs-One (OvO) by default
+# For 3 classes: 3 binary classifiers (A vs B, A vs C, B vs C)
+# The class that wins the most head-to-heads wins
+pipe = Pipeline([
+    ('sc', StandardScaler()),
+    ('svm', SVC(C=10, kernel='rbf', gamma=0.1, decision_function_shape='ovo'))
+])
+
+# 5-fold cross-validation
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+scores = cross_val_score(pipe, X, y, cv=cv, scoring='accuracy')
+print(f"5-fold CV accuracy: {scores.mean():.4f} ± {scores.std():.4f}")
+print()
+
+# Fit and report
+pipe.fit(X, y)
+y_pred = pipe.predict(X)
+print(classification_report(y, y_pred, target_names=iris.target_names))
+print(f"Number of support vectors per class: {pipe['svm'].n_support_}")`}
+];
+
+let currentTab=0, pyodide=null, pyLoading=false, cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map((s,i)=>`<button class="editor-tab${i===0?' active':''}" onclick="switchTab(${i})">${s.label}</button>`).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach((b,j)=>b.classList.toggle('active',j===i));
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+function initCM(){
+  if(typeof CodeMirror==='undefined')return;
+  cmEditor=CodeMirror(C('cm-editor-mount'),{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:cm=>{if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+  cmEditor.setSize('100%',null);
+}
+
+async function runEditor(){
+  const btn=C('run-btn'),out=C('editor-output');
+  const code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='⟳ Loading Python...';
+  const t0=Date.now();
+  if(!pyodide){
+    const st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        const sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise((r,j)=>{sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);
+        pyLoading=false;
+      } else{while(pyLoading)await new Promise(r=>setTimeout(r,100));}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python runtime.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='⟳ Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    const res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch{}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';C('run-time').textContent='';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ══ INIT ══ */
+window.addEventListener('load',()=>{
+  addLinearData();drawSVM();
+  regenerateKernelData();
+  drawLift(0);
+  regenerateCGamma();
+  initHSData();drawHardSoft();
+  const GSX_=C('gs-canvas').getContext('2d');
+  GSX_.fillStyle=bg();GSX_.fillRect(0,0,700,320);
+  GSX_.fillStyle=tc();GSX_.font='13px sans-serif';GSX_.textAlign='center';
+  GSX_.fillText('Click "Run grid search" to see C vs γ accuracy heatmap',350,160);
+  buildTabs();initCM();
+
+  new MutationObserver(()=>{
+    drawSVM();drawKernelBoundary();drawLift(liftProgress);drawCGBoundary();drawHardSoft();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>
