@@ -1,1 +1,1515 @@
-<!-- pca.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PCA — Principal Component Analysis — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    :root{--pca:#06b6d4;--pca-2:#f59e0b;--pca-surf:rgba(6,182,212,0.10);--pca-border:rgba(6,182,212,0.28);}
+    .hero-banner{background:linear-gradient(135deg,rgba(6,182,212,0.09),rgba(245,158,11,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-70px;right:-70px;width:300px;height:300px;background:radial-gradient(circle,rgba(6,182,212,0.13) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--pca);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* step flow */
+    .pca-step{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);}
+    .pca-step:last-child{border-bottom:none;}
+    .pca-step-num{width:36px;height:36px;border-radius:50%;background:var(--pca-surf);border:2px solid var(--pca);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--pca);flex-shrink:0;margin-top:2px;}
+    .pca-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .pca-step-desc{font-size:13.5px;color:var(--text-2);line-height:1.7;margin-bottom:8px;}
+    .pca-step-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--pca);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* formula live panel */
+    .formula-live{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+    .formula-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;}
+    .formula-box-title{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+    .formula-value{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--pca);margin-bottom:4px;}
+    .formula-sub{font-size:12px;color:var(--text-3);}
+    .formula-matrix{font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);background:var(--bg-input);padding:10px;border-radius:var(--r-sm);overflow-x:auto;white-space:pre;line-height:1.7;}
+
+    /* variance bar */
+    .var-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .var-bar-label{font-size:12.5px;color:var(--text-2);min-width:90px;font-family:var(--font-display);font-weight:600;}
+    .var-bar-track{flex:1;height:22px;background:var(--bg-input);border-radius:4px;overflow:hidden;position:relative;}
+    .var-bar-fill{height:100%;border-radius:4px;transition:width .7s ease;display:flex;align-items:center;padding-left:8px;}
+    .var-bar-pct{font-size:11px;font-family:var(--font-mono);color:rgba(255,255,255,0.9);font-weight:700;}
+    .var-bar-cum{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-3);}
+
+    /* component selector */
+    .component-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
+    .comp-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:14px;cursor:pointer;transition:all .18s;text-align:center;}
+    .comp-card.selected{border-color:var(--pca);background:var(--pca-surf);}
+    .comp-card:hover{border-color:var(--pca-border);}
+    .comp-card-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .comp-card-var{font-size:22px;font-weight:800;color:var(--pca);font-family:var(--font-display);}
+    .comp-card-sub{font-size:10px;color:var(--text-3);margin-top:2px;}
+    .comp-card-cum{font-size:11px;color:var(--pca-2);margin-top:4px;font-weight:600;}
+
+    /* accuracy dashboard */
+    .acc-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-card.active{border-color:var(--pca);}
+    .acc-num{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-lbl{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* eigenvalue table */
+    .eig-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12.5px;margin-bottom:0;}
+    .eig-table th{padding:8px 14px;text-align:left;color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--bg-input);}
+    .eig-table td{padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text-1);}
+    .eig-table tr:hover td{background:var(--bg-input);}
+    .eig-table tr.selected-row td{background:var(--pca-surf);color:var(--pca);}
+    .eig-bar-inline{display:inline-block;height:8px;border-radius:2px;vertical-align:middle;margin-left:8px;transition:width .5s ease;}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 14px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid var(--pca)!important;}
+    .CodeMirror-selected{background:rgba(6,182,212,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#67e8f9;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#0e7490;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--pca);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:#4ade80;}
+
+    @media(max-width:700px){.formula-live{grid-template-columns:1fr;}.acc-row{grid-template-columns:1fr 1fr;}.component-cards{grid-template-columns:1fr 1fr 1fr;}}
+  </style>
+</head>
+<body data-topic-id="pca">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">PCA</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb"><a href="../../index.html">Home</a><span class="sep">/</span><a href="../../index.html#roadmap">Feature Engineering</a><span class="sep">/</span><span class="current">PCA</span></nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:var(--pca-border);background:var(--pca-surf);color:var(--pca);margin-bottom:14px;">Dimensionality Reduction &#xB7; Unsupervised</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Principal Component Analysis</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              PCA finds the directions of <strong>maximum variance</strong> in your data and projects
+              everything onto those directions. 100 correlated features become 5 independent ones that
+              still capture 95% of the information. Every step has live math and visuals below.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#x23F1; 25 min</span>
+              <span class="topic-meta-item">&#x25C6; Intermediate</span>
+              <span class="topic-meta-item">numpy &#xB7; sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#x25CB;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION CANVAS ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--pca-surf);color:var(--pca);">&#x27A1;</div>
+              The core idea — finding the best "shadow"
+            </h2>
+            <p>
+              Imagine shining a flashlight on a 3D object and watching its shadow on the wall.
+              PCA finds the <strong>angle of the flashlight</strong> that casts the most informative shadow &#x2014;
+              the one where the shadow is most spread out (highest variance). That spread means you
+              are preserving the most differences between points.
+            </p>
+            <p>
+              Drag the points below or rotate the projection axis to see how variance changes.
+              The red arrow is PC1 &#x2014; the direction that maximises the spread of the projected dots.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Interactive projection &#x2014; drag the axis angle to maximise variance</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Angle:</span>
+                  <input type="range" min="0" max="180" value="45" step="1" class="ctrl-slider" id="angle-slider" oninput="updateAngle(this.value)" style="width:110px;"/>
+                  <span class="ctrl-value" id="angle-val" style="color:var(--pca);">45&#xB0;</span>
+                </div>
+                <button class="ctrl-btn active" onclick="animateFindPC1()">&#x25BA; Find PC1</button>
+                <button class="ctrl-btn" onclick="resetIntCanvas()">Reset</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="int-dataset" onchange="changeIntDataset()">
+                    <option value="correlated">Correlated (2D)</option>
+                    <option value="circle">Circle (no direction)</option>
+                    <option value="diagonal">Diagonal spread</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="intuition-canvas" width="700" height="320" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="proj-variance">&#x2014;</span><span class="stat-pill-lbl">Projected variance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="proj-angle">45&#xB0;</span><span class="stat-pill-lbl">Current angle</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="proj-max-var">&#x2014;</span><span class="stat-pill-lbl">Max possible var</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="proj-pct">&#x2014;</span><span class="stat-pill-lbl">% of max captured</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">&#x1F4A1;</span>
+              <p><strong>Key insight:</strong> The angle that maximises projected variance is exactly the <strong>first eigenvector of the covariance matrix</strong>. PCA is just finding these eigenvectors &#x2014; one per dimension &#x2014; each orthogonal to all the previous ones.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — STEP BY STEP WITH LIVE MATH ═══ -->
+          <section class="section" id="step-by-step">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--pca-surf);color:var(--pca);">&#x2211;</div>
+              PCA step by step &#x2014; live formula calculator
+            </h2>
+            <p>
+              Every formula updates in real time as you change the data. Adjust the sliders to
+              see exactly how centering, covariance, eigenvalues and eigenvectors change together.
+            </p>
+
+            <!-- Data controls -->
+            <div class="canvas-card" style="margin-bottom:14px;">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Live data controls &#x2014; all formulas update instantly</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">n points:</span>
+                  <input type="range" min="5" max="30" value="12" step="1" class="ctrl-slider" id="n-points" oninput="onDataChange()" style="width:80px;"/>
+                  <span class="ctrl-value" id="n-points-val">12</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Correlation:</span>
+                  <input type="range" min="-95" max="95" value="75" step="5" class="ctrl-slider" id="corr-slider" oninput="onDataChange()" style="width:90px;"/>
+                  <span class="ctrl-value" id="corr-val" style="color:var(--pca);">0.75</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Noise:</span>
+                  <input type="range" min="0" max="50" value="10" step="5" class="ctrl-slider" id="noise-slider" oninput="onDataChange()" style="width:80px;"/>
+                  <span class="ctrl-value" id="noise-val">10%</span>
+                </div>
+                <button class="ctrl-btn" onclick="regenerateData()">&#x21BA; New data</button>
+              </div>
+            </div>
+
+            <!-- Step 1: Center -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px;">
+              <div style="background:linear-gradient(90deg,rgba(6,182,212,0.08),transparent);padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+                <div class="pca-step-num" style="flex-shrink:0;">1</div>
+                <div>
+                  <div class="pca-step-title" style="margin-bottom:3px;">Standardize &mdash; center and scale every feature</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(240,96,96,0.15);color:#f06060;">&#x26A0; PCA is scale-sensitive</span>
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(6,182,212,0.12);color:var(--pca);">sklearn: StandardScaler</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0;">
+                <div style="flex:1;padding:16px 20px;border-right:1px solid var(--border);">
+                  <p style="font-size:13.5px;color:var(--text-2);line-height:1.75;margin-bottom:12px;">
+                    <strong style="color:var(--text-1);">The problem:</strong> if feature A is in millimetres (0&ndash;2000) and feature B is in percentages (0&ndash;1), PCA ignores B &mdash; not because it is unimportant, but because its numbers are smaller. PCA sees <em>scale as importance</em>.
+                  </p>
+                  <div style="background:rgba(6,182,212,0.07);border:1px solid var(--pca-border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:12px;">
+                    <div style="font-size:11px;font-weight:700;color:var(--pca);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Two operations, one goal</div>
+                    <div style="font-size:13px;color:var(--text-2);line-height:2;">
+                      <span style="color:#f59e0b;font-weight:700;">&#x2460; Center:</span> subtract column mean &rarr; data sits at origin<br/>
+                      <span style="color:#3ecf8e;font-weight:700;">&#x2461; Scale:</span> divide by column std &rarr; every feature has variance = 1
+                    </div>
+                  </div>
+                  <div class="pca-step-formula">X_std = (X - X.mean(axis=0)) / X.std(axis=0)
+
+Result: mean = 0.0,  std = 1.0  for every column</div>
+                </div>
+                <div style="flex:1;padding:16px 20px;background:var(--bg-input);">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;font-weight:700;">&#x25BA; Live computed values</div>
+                  <div class="formula-matrix" id="step1-matrix">Computing...</div>
+                  <div style="margin-top:12px;padding:8px 10px;background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.2);border-radius:var(--r-sm);font-size:12px;color:#3ecf8e;">
+                    &#x2713; After standardizing: mean &asymp; 0 and std &asymp; 1 per column
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: Covariance -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px;">
+              <div style="background:linear-gradient(90deg,rgba(6,182,212,0.08),transparent);padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+                <div class="pca-step-num" style="flex-shrink:0;">2</div>
+                <div>
+                  <div class="pca-step-title" style="margin-bottom:3px;">Covariance matrix &mdash; measure how features move together</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(245,158,11,0.15);color:#f59e0b;">Shape: (n_features, n_features)</span>
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(6,182,212,0.12);color:var(--pca);">Symmetric matrix</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0;">
+                <div style="flex:1;padding:16px 20px;border-right:1px solid var(--border);">
+                  <p style="font-size:13.5px;color:var(--text-2);line-height:1.75;margin-bottom:12px;">
+                    <strong style="color:var(--text-1);">What each cell means:</strong> C[i][j] tells you how much feature i and feature j vary together. Positive = they rise and fall together. Negative = they move in opposite directions. Zero = independent.
+                  </p>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+                    <div style="padding:8px 12px;background:rgba(6,182,212,0.07);border:1px solid var(--pca-border);border-radius:var(--r-sm);">
+                      <div style="font-size:10px;font-weight:700;color:var(--pca);margin-bottom:3px;text-transform:uppercase;">Diagonal</div>
+                      <div style="font-size:12.5px;color:var(--text-2);">C[i][i] = variance of feature i. How spread out each feature is.</div>
+                    </div>
+                    <div style="padding:8px 12px;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:var(--r-sm);">
+                      <div style="font-size:10px;font-weight:700;color:#f59e0b;margin-bottom:3px;text-transform:uppercase;">Off-diagonal</div>
+                      <div style="font-size:12.5px;color:var(--text-2);">C[i][j] = covariance. High value = features are correlated &rarr; PCA can compress them.</div>
+                    </div>
+                  </div>
+                  <div class="pca-step-formula">C = X_std.T @ X_std / (n - 1)
+
+trace(C) = sum of variances = total variance
+High off-diag = high correlation = PCA helps!</div>
+                </div>
+                <div style="flex:1;padding:16px 20px;background:var(--bg-input);">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;font-weight:700;">&#x25BA; Live covariance matrix C</div>
+                  <div class="formula-matrix" id="step2-matrix">Computing...</div>
+                  <div style="margin-top:10px;font-size:11px;color:var(--text-3);margin-bottom:6px;font-weight:600;">Heatmap (cyan = positive, red = negative)</div>
+                  <canvas id="cov-heatmap" width="200" height="80" style="width:100%;display:block;border-radius:var(--r-sm);"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Eigendecomposition -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px;">
+              <div style="background:linear-gradient(90deg,rgba(6,182,212,0.08),transparent);padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+                <div class="pca-step-num" style="flex-shrink:0;">3</div>
+                <div>
+                  <div class="pca-step-title" style="margin-bottom:3px;">Eigendecomposition &mdash; find the principal directions</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(232,121,249,0.15);color:#e879f9;">Core of PCA</span>
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(6,182,212,0.12);color:var(--pca);">numpy.linalg.eigh(C)</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0;">
+                <div style="flex:1;padding:16px 20px;border-right:1px solid var(--border);">
+                  <p style="font-size:13.5px;color:var(--text-2);line-height:1.75;margin-bottom:12px;">
+                    <strong style="color:var(--text-1);">What is an eigenvector?</strong> A special direction that the covariance matrix only <em>stretches</em>, never rotates. The amount of stretch is the eigenvalue &lambda;.
+                  </p>
+                  <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px;">
+                    <div style="padding:8px 12px;background:rgba(6,182,212,0.07);border-left:3px solid var(--pca);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:13px;color:var(--text-2);">
+                      <strong style="color:var(--pca);">Eigenvalue &lambda;</strong> &rarr; how much variance this direction captures. Bigger = more important.
+                    </div>
+                    <div style="padding:8px 12px;background:rgba(245,158,11,0.07);border-left:3px solid #f59e0b;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:13px;color:var(--text-2);">
+                      <strong style="color:#f59e0b;">Eigenvector v</strong> &rarr; the actual direction in feature space. This becomes a Principal Component.
+                    </div>
+                    <div style="padding:8px 12px;background:rgba(62,207,142,0.07);border-left:3px solid #3ecf8e;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:13px;color:var(--text-2);">
+                      <strong style="color:#3ecf8e;">Sort by &lambda; descending</strong> &rarr; PC1 has the most variance, PC2 next, and so on.
+                    </div>
+                  </div>
+                  <div class="pca-step-formula">C @ v = &lambda; * v
+&lambda;_1 &ge; &lambda;_2 &ge; ... &ge; &lambda;_n  (sort descending)
+v_1, v_2, ...  are orthogonal unit vectors</div>
+                </div>
+                <div style="flex:1;padding:16px 20px;background:var(--bg-input);">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;font-weight:700;">&#x25BA; Live eigenvalues &amp; eigenvectors</div>
+                  <div class="formula-matrix" id="step3-matrix">Computing...</div>
+                  <div style="margin-top:12px;padding:8px 10px;background:rgba(232,121,249,0.08);border:1px solid rgba(232,121,249,0.2);border-radius:var(--r-sm);font-size:12px;color:#e879f9;">
+                    &#x2713; v1 &middot; v2 &asymp; 0 means the directions are perpendicular (orthogonal)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4: Project -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;">
+              <div style="background:linear-gradient(90deg,rgba(6,182,212,0.08),transparent);padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+                <div class="pca-step-num" style="flex-shrink:0;">4</div>
+                <div>
+                  <div class="pca-step-title" style="margin-bottom:3px;">Project &mdash; transform data into the new PC space</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(62,207,142,0.15);color:#3ecf8e;">Dimensionality reduction happens here</span>
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(6,182,212,0.12);color:var(--pca);">pca.transform(X)</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0;">
+                <div style="flex:1;padding:16px 20px;border-right:1px solid var(--border);">
+                  <p style="font-size:13.5px;color:var(--text-2);line-height:1.75;margin-bottom:12px;">
+                    <strong style="color:var(--text-1);">One dot product per component:</strong> for each data point, compute how much it aligns with each eigenvector. That alignment score <em>is</em> the PC coordinate.
+                  </p>
+                  <div style="background:rgba(62,207,142,0.07);border:1px solid rgba(62,207,142,0.2);border-radius:var(--r-md);padding:10px 14px;margin-bottom:12px;">
+                    <div style="font-size:11px;font-weight:700;color:#3ecf8e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Shape transformation</div>
+                    <div style="font-size:13px;color:var(--text-2);line-height:2;">
+                      Input: &nbsp;<code style="color:var(--pca);">(n_samples, n_features)</code><br/>
+                      V_k: &nbsp;&nbsp;&nbsp;<code style="color:#f59e0b;">(n_features, k)</code> &nbsp;&nbsp; k chosen components<br/>
+                      Output: <code style="color:#3ecf8e;">(n_samples, k)</code> &nbsp;&nbsp;&larr; <strong>compressed!</strong>
+                    </div>
+                  </div>
+                  <div class="pca-step-formula">Z = X_std @ V_k        # project
+X_rec = Z @ V_k.T     # reconstruct (optional)
+
+Each Z[:, i] is PC(i+1) scores for all samples</div>
+                </div>
+                <div style="flex:1;padding:16px 20px;background:var(--bg-input);">
+                  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;font-weight:700;">&#x25BA; Live projected scores (first 5 rows)</div>
+                  <div class="formula-matrix" id="step4-matrix">Computing...</div>
+                  <div style="margin-top:12px;padding:8px 10px;background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.2);border-radius:var(--r-sm);font-size:12px;color:#3ecf8e;">
+                    &#x2713; PC scores are uncorrelated &mdash; corr(PC1, PC2) &asymp; 0
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live scatter: before and after -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Before vs after PCA projection &#x2014; original space vs PC space</span>
+              </div>
+              <canvas id="before-after-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">Left: original 2D data with PC1 (cyan) and PC2 (amber) arrows. Right: projected into PC space &#x2014; notice the axes are now independent.</div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — CHOOSE N COMPONENTS ═══ -->
+          <section class="section" id="choose-components">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--pca-surf);color:var(--pca);">&#x25A3;</div>
+              How many components? &#x2014; the explained variance rule
+            </h2>
+            <p>
+              Click any component card to select how many PCs to keep.
+              Watch the accuracy, reconstruction error, and scatter update instantly.
+              The <strong>elbow rule</strong> says: stop where adding another component gives diminishing returns.
+            </p>
+
+            <div class="component-cards" id="comp-cards"></div>
+
+            <!-- Scree plot -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Scree plot &#x2014; explained variance per component (click bars to select)</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="scree-dataset" onchange="changeScreeDataset()">
+                    <option value="iris">Iris (4 features)</option>
+                    <option value="wine">Wine (13 features)</option>
+                    <option value="digits">Digits (64 features)</option>
+                    <option value="custom">Custom (10 features)</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn active" onclick="animateScree()">&#x25BA; Animate</button>
+              </div>
+              <canvas id="scree-canvas" width="700" height="260" style="width:100%;display:block;cursor:pointer;"></canvas>
+            </div>
+
+            <!-- Cumulative variance + accuracy -->
+            <div class="acc-row">
+              <div class="acc-card active">
+                <div class="acc-num" id="comp-selected" style="color:var(--pca);">&#x2014;</div>
+                <div class="acc-lbl">Components kept</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="comp-bar" style="background:var(--pca);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="var-explained" style="color:#f59e0b;">&#x2014;</div>
+                <div class="acc-lbl">Variance explained</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="var-bar" style="background:#f59e0b;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="recon-error" style="color:#f06060;">&#x2014;</div>
+                <div class="acc-lbl">Reconstruction error</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="recon-bar" style="background:#f06060;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="compression-ratio" style="color:#3ecf8e;">&#x2014;</div>
+                <div class="acc-lbl">Compression ratio</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="comp-ratio-bar" style="background:#3ecf8e;width:0%;"></div></div>
+              </div>
+            </div>
+
+            <!-- Eigenvalue table -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Eigenvalue table &#x2014; click rows to select component count</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="eig-table" id="eig-table"></table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — LIVE 2D PCA EXPLORER ═══ -->
+          <section class="section" id="pca-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--pca-surf);color:var(--pca);">&#x1F50D;</div>
+              PCA biplot explorer &#x2014; points + loading vectors
+            </h2>
+            <p>
+              A <strong>biplot</strong> shows both the projected data points AND the original feature directions
+              (loading vectors) in the same PC space. Long arrows = important features.
+              Arrows pointing the same direction = correlated features. Opposite = anti-correlated.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">PCA biplot &#x2014; hover points to see original values</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="biplot-dataset" onchange="drawBiplot()">
+                    <option value="iris">Iris</option>
+                    <option value="wine">Wine</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Show loadings:</span>
+                  <input type="checkbox" id="show-loadings" checked onchange="drawBiplot()" style="cursor:pointer;"/>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Color by class:</span>
+                  <input type="checkbox" id="show-classes" checked onchange="drawBiplot()" style="cursor:pointer;"/>
+                </div>
+              </div>
+              <canvas id="biplot-canvas" width="700" height="380" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-pc1-var">&#x2014;</span><span class="stat-pill-lbl">PC1 variance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-pc2-var">&#x2014;</span><span class="stat-pill-lbl">PC2 variance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-total-var">&#x2014;</span><span class="stat-pill-lbl">Total explained</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-n-features">&#x2014;</span><span class="stat-pill-lbl">Features</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — RECONSTRUCTION DEMO ═══ -->
+          <section class="section" id="reconstruction">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--pca-surf);color:var(--pca);">&#x21BA;</div>
+              Reconstruction &#x2014; what you lose when you compress
+            </h2>
+            <p>
+              PCA is reversible &#x2014; you can project back to the original space.
+              Drag the component count and watch the reconstructed data appear next to the original.
+              The gap between them is the <strong>reconstruction error</strong>.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Original vs reconstructed data &#x2014; drag to compare</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Components:</span>
+                  <input type="range" min="1" max="10" value="1" step="1" class="ctrl-slider" id="recon-k" oninput="updateReconstruction(this.value)" style="width:110px;"/>
+                  <span class="ctrl-value" id="recon-k-val" style="color:var(--pca);">1</span>
+                </div>
+              </div>
+              <canvas id="recon-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="recon-var-kept">&#x2014;</span><span class="stat-pill-lbl">Variance kept</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="recon-rmse">&#x2014;</span><span class="stat-pill-lbl">RMSE error</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="recon-dim-in">2</span><span class="stat-pill-lbl">Original dims</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="recon-dim-out">&#x2014;</span><span class="stat-pill-lbl">Compressed dims</span></div>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">&#x26A0;</span>
+              <p><strong>The information loss trade-off:</strong> With k=1 component on correlated 2D data you might keep 85% of variance but lose 15%. For most ML tasks, 95% variance explained is a good target. Always check that your downstream model accuracy doesn't drop significantly after PCA.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--pca-surf);color:var(--pca);">&#x2699;</div>
+              n_components &#x2014; live accuracy impact
+            </h2>
+            <p>
+              PCA's main hyperparameter is <code>n_components</code>. Every slider change below
+              retrains a classifier on the compressed features and reports accuracy, showing exactly
+              where the compression sweet spot is.
+            </p>
+
+            <div class="acc-row" id="hp-acc-row">
+              <div class="acc-card"><div class="acc-num" id="hp-full-acc" style="color:#4b96ff;">&#x2014;</div><div class="acc-lbl">Full features acc</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-full-bar" style="background:#4b96ff;width:0%;"></div></div></div>
+              <div class="acc-card active"><div class="acc-num" id="hp-pca-acc" style="color:var(--pca);">&#x2014;</div><div class="acc-lbl">PCA acc</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-pca-bar" style="background:var(--pca);width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="hp-n-comp" style="color:#f59e0b;">&#x2014;</div><div class="acc-lbl">n_components</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-comp-bar" style="background:#f59e0b;width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="hp-var-total" style="color:#3ecf8e;">&#x2014;</div><div class="acc-lbl">Variance retained</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="hp-var-bar" style="background:#3ecf8e;width:0%;"></div></div></div>
+            </div>
+
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:14px;">PCA Hyperparameter Controls &#x2014; every change retrains instantly</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="font-size:12.5px;font-weight:600;color:var(--text-1);">n_components</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--pca);font-weight:700;" id="hp-k-val">5</span></div>
+                  <input type="range" min="1" max="20" value="5" step="1" class="ctrl-slider" id="hp-k" oninput="onHPChange()" style="width:100%;"/>
+                  <div style="font-size:11px;color:var(--text-3);">Number of principal components to keep. Or set to 'mle' or a float for variance threshold.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="font-size:12.5px;font-weight:600;color:var(--text-1);">Variance threshold</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--pca);font-weight:700;" id="hp-var-thresh-val">&#x2014;</span></div>
+                  <input type="range" min="50" max="100" value="95" step="5" class="ctrl-slider" id="hp-var-thresh" oninput="onHPChange()" style="width:100%;"/>
+                  <div style="font-size:11px;color:var(--text-3);">When set as float (0&#x2013;1), sklearn auto-picks n_components to hit this explained variance target.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="font-size:12.5px;font-weight:600;color:var(--text-1);">Dataset (n_features)</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--pca);font-weight:700;" id="hp-dataset-val">iris</span></div>
+                  <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+                    <button class="ctrl-btn active" id="hp-iris" onclick="setHPDataset('iris')">Iris (4)</button>
+                    <button class="ctrl-btn" id="hp-wine" onclick="setHPDataset('wine')">Wine (13)</button>
+                    <button class="ctrl-btn" id="hp-digits" onclick="setHPDataset('digits')">Digits (64)</button>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-3);">More features = more potential for PCA to reduce dimensionality meaningfully.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="font-size:12.5px;font-weight:600;color:var(--text-1);">svd_solver</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--pca);font-weight:700;" id="hp-solver-val">auto</span></div>
+                  <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+                    <button class="ctrl-btn active" id="sol-auto" onclick="setSolver('auto')">auto</button>
+                    <button class="ctrl-btn" id="sol-full" onclick="setSolver('full')">full</button>
+                    <button class="ctrl-btn" id="sol-rand" onclick="setSolver('randomized')">randomized</button>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-3);">randomized is faster for large data. full is exact. auto picks the best for your data shape.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accuracy vs n_components sweep -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Accuracy vs n_components sweep &#x2014; find the elbow</span>
+                <button class="ctrl-btn active" onclick="runAccSweep()">&#x25BA; Run sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:8px;" id="sweep-status"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--pca-surf);color:var(--pca);">{}</div>
+              Live code editor
+            </h2>
+            <p>Five complete programs &#x2014; PCA from scratch with numpy, sklearn pipeline, variance threshold, whitening, and kernel PCA for nonlinear data. All editable and runnable.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">pca_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click &#x25BA; Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#x25BA; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">&#x21BA; Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">&#x2715; Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Not standardizing before PCA.</strong> PCA finds directions of maximum variance. If feature A has values 0&#x2013;1 and feature B has values 0&#x2013;1000, PCA will almost entirely focus on B just because of its scale. Always use StandardScaler before PCA.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Fitting PCA on test data.</strong> The same leakage rule applies. Fit PCA on training data only, then transform both train and test. The principal components should be computed from training data alone.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Using PCA when features are not correlated.</strong> PCA benefits from inter-feature correlation &#x2014; it "consolidates" redundant information. If all features are already independent, PCA won't help and may hurt. Check your correlation matrix first.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Applying PCA to categorical features.</strong> PCA assumes continuous numeric data with meaningful distances. One-hot encoded features and ordinal categories don't satisfy this. Use MCA (Multiple Correspondence Analysis) for categorical data instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Choosing n_components without checking downstream accuracy.</strong> 95% explained variance sounds safe but might drop accuracy on a specific task. Always validate with cross-validation on the actual task, not just the explained variance metric.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#x2605;</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>PCA finds the eigenvectors of the covariance matrix &#x2014; these are the <strong>directions of maximum variance</strong>. Project data onto the top-k eigenvectors to compress from n to k dimensions.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always standardize first.</strong> PCA is not scale-invariant. Features with large ranges dominate. Use <code>StandardScaler</code> before <code>PCA</code> in a Pipeline.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Choose <code>n_components</code> by targeting <strong>95% explained variance</strong> as a starting point, then validate on your downstream task. Use the scree plot to spot the elbow.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The <strong>biplot</strong> shows which original features contribute most to each PC (loading vectors). Long arrows = high importance. Parallel arrows = correlated features.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>PCA is a <strong>linear</strong> method. For nonlinear structure, use Kernel PCA, UMAP, or t-SNE instead.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Fit on train only. Wrap <code>StandardScaler</code> + <code>PCA</code> in a <code>Pipeline</code> to make this automatic and leak-proof.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="feature-selection.html"><span class="pn-dir">&#x2190; Previous</span><span class="pn-title">Feature Selection</span></a>
+            <a class="pn-card next" id="next-card" href="lda.html"><span class="pn-dir">Next &#x2192;</span><span class="pn-title">LDA</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Core intuition</a></li>
+            <li class="toc-item"><a href="#step-by-step">Step-by-step math</a></li>
+            <li class="toc-item"><a href="#choose-components">Choosing components</a></li>
+            <li class="toc-item"><a href="#pca-explorer">Biplot explorer</a></li>
+            <li class="toc-item"><a href="#reconstruction">Reconstruction</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ════ HELPERS ════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#7a7870':'#8a8880';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function rnd(a,b){return a+Math.random()*(b-a);}
+
+/* ════ MATH HELPERS ════ */
+function matMul(A,B){
+  var rows=A.length,cols=B[0].length,inner=B.length,C=[];
+  for(var i=0;i<rows;i++){C[i]=[];for(var j=0;j<cols;j++){var s=0;for(var k=0;k<inner;k++)s+=A[i][k]*B[k][j];C[i][j]=s;}}
+  return C;
+}
+function transpose(A){return A[0].map(function(_,j){return A.map(function(r){return r[j];});});}
+function vecDot(a,b){return a.reduce(function(s,v,i){return s+v*b[i];},0);}
+function vecScale(v,s){return v.map(function(x){return x*s;});}
+function vecAdd(a,b){return a.map(function(x,i){return x+b[i];});}
+function colMean(data,j){return data.reduce(function(s,r){return s+r[j];},0)/data.length;}
+function colStd(data,j,mean){var v=data.reduce(function(s,r){return s+Math.pow(r[j]-mean,2);},0)/data.length;return Math.sqrt(v)||1;}
+function normalSample(){var u1=Math.random()+1e-10,u2=Math.random();return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);}
+
+/* ════ DATA GENERATION ════ */
+var mainData=[];
+var mainDataNorm=[];
+var mainMeans=[0,0];
+var mainStds=[1,1];
+
+function generateMainData(){
+  var n=parseInt(C('n-points').value);
+  var corr=parseInt(C('corr-slider').value)/100;
+  var noise=parseInt(C('noise-slider').value)/100;
+  C('n-points-val').textContent=n;
+  C('corr-val').textContent=corr.toFixed(2);
+  C('noise-val').textContent=Math.round(noise*100)+'%';
+  mainData=[];
+  for(var i=0;i<n;i++){
+    var x=normalSample();
+    var y=corr*x+Math.sqrt(1-corr*corr)*normalSample();
+    var nx=x+noise*normalSample(),ny=y+noise*normalSample();
+    mainData.push([nx*2,ny*2]);
+  }
+  normalizeData();
+}
+
+function normalizeData(){
+  mainMeans=[colMean(mainData,0),colMean(mainData,1)];
+  mainStds=[colStd(mainData,0,mainMeans[0]),colStd(mainData,1,mainMeans[1])];
+  mainDataNorm=mainData.map(function(r){return[(r[0]-mainMeans[0])/mainStds[0],(r[1]-mainMeans[1])/mainStds[1]];});
+}
+
+function regenerateData(){generateMainData();onDataChange();}
+
+function computePCA2D(data){
+  var n=data.length;
+  // Covariance matrix
+  var c00=0,c01=0,c11=0;
+  data.forEach(function(r){c00+=r[0]*r[0];c01+=r[0]*r[1];c11+=r[1]*r[1];});
+  c00/=n;c01/=n;c11/=n;
+  // Eigenvalues of 2x2: lambda^2 - (c00+c11)*lambda + (c00*c11-c01^2) = 0
+  var tr=c00+c11,det=c00*c11-c01*c01;
+  var disc=Math.sqrt(Math.max(0,tr*tr/4-det));
+  var l1=tr/2+disc,l2=tr/2-disc;
+  // Eigenvectors
+  var v1,v2;
+  if(Math.abs(c01)>1e-10){
+    v1=[c01,l1-c00];var n1=Math.sqrt(v1[0]*v1[0]+v1[1]*v1[1]);v1=[v1[0]/n1,v1[1]/n1];
+    v2=[-v1[1],v1[0]];
+  } else {
+    v1=l1>=c00?[1,0]:[0,1];
+    v2=[-v1[1],v1[0]];
+  }
+  // Ensure positive first component
+  if(v1[0]<0){v1=[-v1[0],-v1[1]];}
+  if(v2[1]<0&&v2[0]>=0){v2=[-v2[0],-v2[1]];}
+  return{eigenvalues:[l1,l2],eigenvectors:[v1,v2],covMatrix:[[c00,c01],[c01,c11]],totalVar:l1+l2};
+}
+
+/* ════ SECTION 1 — INTUITION CANVAS ════ */
+var intAngle=45;
+var intPts=[];
+var intAnimating=false;
+
+function generateIntPts(type){
+  intPts=[];var n=60;
+  if(type==='correlated'||!type){
+    for(var i=0;i<n;i++){var x=normalSample();intPts.push([x*120+350,0.7*x*90+normalSample()*30+160]);}
+  } else if(type==='circle'){
+    for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,r=80+normalSample()*20;intPts.push([350+r*Math.cos(a),160+r*Math.sin(a)]);}
+  } else {
+    for(var i=0;i<n;i++){var x=normalSample();intPts.push([x*100+350,-0.85*x*100+normalSample()*25+160]);}
+  }
+}
+
+function updateAngle(v){
+  intAngle=parseInt(v);
+  C('angle-val').textContent=v+'&#xB0;';
+  C('proj-angle').textContent=v+'&#xB0;';
+  drawIntCanvas();
+}
+
+function changeIntDataset(){generateIntPts(C('int-dataset').value);intAngle=45;C('angle-slider').value=45;drawIntCanvas();}
+function resetIntCanvas(){generateIntPts('correlated');C('int-dataset').value='correlated';intAngle=45;C('angle-slider').value=45;C('angle-val').innerHTML='45&#xB0;';drawIntCanvas();}
+
+async function animateFindPC1(){
+  if(intAnimating)return;intAnimating=true;
+  // Compute best angle from data
+  var cx=intPts.reduce(function(s,p){return s+p[0];},0)/intPts.length;
+  var cy=intPts.reduce(function(s,p){return s+p[1];},0)/intPts.length;
+  var centered=intPts.map(function(p){return[p[0]-cx,p[1]-cy];});
+  var c00=0,c01=0,c11=0;
+  centered.forEach(function(p){c00+=p[0]*p[0];c01+=p[0]*p[1];c11+=p[1]*p[1];});
+  c00/=centered.length;c01/=centered.length;c11/=centered.length;
+  var tr=c00+c11,det=c00*c11-c01*c01;
+  var disc=Math.sqrt(Math.max(0,tr*tr/4-det));
+  var l1=tr/2+disc;
+  var v=[c01,l1-c00];var vn=Math.sqrt(v[0]*v[0]+v[1]*v[1]);
+  if(vn<1e-10){v=[1,0];}else{v=[v[0]/vn,v[1]/vn];}
+  var bestAngle=Math.round(Math.atan2(v[1],v[0])*180/Math.PI);
+  if(bestAngle<0)bestAngle+=180;
+  // Animate toward best angle
+  var steps=40,cur=intAngle;
+  for(var i=0;i<=steps&&intAnimating;i++){
+    var t=i/steps;var ease=t<0.5?2*t*t:(4-2*t)*t-1;
+    intAngle=Math.round(cur+(bestAngle-cur)*ease);
+    C('angle-slider').value=intAngle;
+    C('angle-val').innerHTML=intAngle+'&#xB0;';
+    C('proj-angle').innerHTML=intAngle+'&#xB0;';
+    drawIntCanvas();
+    await delay(20);
+  }
+  intAngle=bestAngle;drawIntCanvas();
+  intAnimating=false;
+}
+
+function drawIntCanvas(){
+  var cv=C('intuition-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!intPts.length)return;
+
+  var rad=intAngle*Math.PI/180;
+  var dx=Math.cos(rad),dy=Math.sin(rad);
+  var cx=intPts.reduce(function(s,p){return s+p[0];},0)/intPts.length;
+  var cy=intPts.reduce(function(s,p){return s+p[1];},0)/intPts.length;
+
+  // Draw projection axis line
+  var L=260;
+  ctx.beginPath();ctx.moveTo(cx-dx*L,cy-dy*L);ctx.lineTo(cx+dx*L,cy+dy*L);
+  ctx.strokeStyle='rgba(6,182,212,0.3)';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
+
+  // Draw projections and residuals
+  var projections=[];
+  intPts.forEach(function(p){
+    var px=p[0]-cx,py=p[1]-cy;
+    var t=px*dx+py*dy;
+    var qx=cx+t*dx,qy=cy+t*dy;
+    projections.push(t);
+    ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(qx,qy);
+    ctx.strokeStyle='rgba(6,182,212,0.18)';ctx.lineWidth=1;ctx.stroke();
+    // projected dot on axis
+    ctx.beginPath();ctx.arc(qx,qy,3,0,Math.PI*2);
+    ctx.fillStyle='rgba(6,182,212,0.6)';ctx.fill();
+  });
+
+  // Draw data points
+  intPts.forEach(function(p){
+    ctx.beginPath();ctx.arc(p[0],p[1],5,0,Math.PI*2);
+    ctx.fillStyle='rgba(245,158,11,0.75)';ctx.fill();
+    ctx.strokeStyle='rgba(245,158,11,0.4)';ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Draw PC1 arrow
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+dx*80,cy+dy*80);
+  ctx.strokeStyle='#06b6d4';ctx.lineWidth=3;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+dx*80,cy+dy*80);
+  ctx.lineTo(cx+dx*80-14*dx+8*dy,cy+dy*80-14*dy-8*dx);
+  ctx.lineTo(cx+dx*80-14*dx-8*dy,cy+dy*80-14*dy+8*dx);
+  ctx.closePath();ctx.fillStyle='#06b6d4';ctx.fill();
+  ctx.fillStyle='#06b6d4';ctx.font='bold 13px sans-serif';ctx.textAlign='left';
+  ctx.fillText('PC1',cx+dx*90+4,cy+dy*90+4);
+
+  // Variance display
+  var projVar=projections.reduce(function(s,v){return s+(v-projections.reduce(function(a,b){return a+b;},0)/projections.length)*(v-projections.reduce(function(a,b){return a+b;},0)/projections.length);},0)/projections.length;
+  var bestPCA=computePCA2D(intPts.map(function(p){return[p[0]-cx,p[1]-cy];}));
+  var maxVar=bestPCA.eigenvalues[0];
+  C('proj-variance').textContent=projVar.toFixed(1);
+  C('proj-max-var').textContent=maxVar.toFixed(1);
+  C('proj-pct').textContent=maxVar>0?(projVar/maxVar*100).toFixed(0)+'%':'--';
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 2 — STEP BY STEP ════ */
+function onDataChange(){
+  generateMainData();
+  updateStepFormulas();
+  drawBeforeAfter();
+  updateReconstruction(C('recon-k')?C('recon-k').value:1);
+}
+
+function updateStepFormulas(){
+  var data=mainDataNorm;var n=data.length;
+  if(!n)return;
+  var mean0=colMean(data,0).toFixed(3),mean1=colMean(data,1).toFixed(3);
+  var std0=colStd(data,0,parseFloat(mean0)).toFixed(3),std1=colStd(data,1,parseFloat(mean1)).toFixed(3);
+  // Step 1
+  var s1='mean(X1)='+mean0+'  mean(X2)='+mean1+'\nstd(X1)='+std0+'   std(X2)='+std1+'\n\nFirst 4 rows (standardized):\n';
+  data.slice(0,4).forEach(function(r,i){s1+='  row '+i+': ['+r[0].toFixed(3)+',  '+r[1].toFixed(3)+']\n';});
+  C('step1-matrix').textContent=s1;
+
+  // Step 2 - covariance
+  var pca=computePCA2D(data);
+  var cov=pca.covMatrix;
+  var s2='C = [ ['+cov[0][0].toFixed(4)+',  '+cov[0][1].toFixed(4)+'],\n      ['+cov[1][0].toFixed(4)+',  '+cov[1][1].toFixed(4)+']]'+
+       '\n\ntrace(C) = '+(cov[0][0]+cov[1][1]).toFixed(4)+' (total variance)'+
+       '\ndet(C)   = '+(cov[0][0]*cov[1][1]-cov[0][1]*cov[1][0]).toFixed(4)+
+       '\ncorr     = '+(cov[0][1]/Math.sqrt(cov[0][0]*cov[1][1])).toFixed(4);
+  C('step2-matrix').textContent=s2;
+  drawCovHeatmap(cov);
+
+  // Step 3 - eigendecomposition
+  var l1=pca.eigenvalues[0],l2=pca.eigenvalues[1];
+  var v1=pca.eigenvectors[0],v2=pca.eigenvectors[1];
+  var tot=l1+l2;
+  var s3='Eigenvalues:\n  lambda_1 = '+l1.toFixed(4)+'  ('+( tot>0?(l1/tot*100).toFixed(1):0)+'% variance)\n  lambda_2 = '+l2.toFixed(4)+'  ('+(tot>0?(l2/tot*100).toFixed(1):0)+'% variance)'+
+       '\n\nEigenvectors (as columns):\n  v1 = ['+v1[0].toFixed(4)+',  '+v1[1].toFixed(4)+']  <- PC1 direction'+
+       '\n  v2 = ['+v2[0].toFixed(4)+',  '+v2[1].toFixed(4)+']  <- PC2 direction'+
+       '\n\nv1 . v2 = '+vecDot(v1,v2).toFixed(6)+'  (orthogonal check, should be ~0)';
+  C('step3-matrix').textContent=s3;
+
+  // Step 4 - projections
+  var s4='Z = X_centered @ [v1 | v2]\nShape: ('+n+', 2)\n\nFirst 5 projected rows:\n';
+  data.slice(0,5).forEach(function(r,i){
+    var z1=vecDot(r,v1),z2=vecDot(r,v2);
+    s4+='  row '+i+':  PC1='+z1.toFixed(3)+'  PC2='+z2.toFixed(3)+'\n';
+  });
+  s4+='\nPC1 variance of projections: '+l1.toFixed(4);
+  C('step4-matrix').textContent=s4;
+}
+
+function drawCovHeatmap(cov){
+  var cv=C('cov-heatmap'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,cellW=W/2,cellH=H/2;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max(Math.abs(cov[0][0]),Math.abs(cov[0][1]),Math.abs(cov[1][1]));
+  function cellColor(v){var t=(v/maxV);if(t>0)return 'rgba(6,182,212,'+Math.min(0.9,t*0.9)+')';return 'rgba(240,96,96,'+Math.min(0.9,Math.abs(t)*0.9)+')';}
+  [[0,0,cov[0][0]],[0,1,cov[0][1]],[1,0,cov[1][0]],[1,1,cov[1][1]]].forEach(function(c){
+    ctx.fillStyle=cellColor(c[2]);ctx.fillRect(c[1]*cellW+1,c[0]*cellH+1,cellW-2,cellH-2);
+    ctx.fillStyle=isDark()?'#f2f0ec':'#1a1916';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText(c[2].toFixed(3),c[1]*cellW+cellW/2,c[0]*cellH+cellH/2+4);
+  });
+  ['X1','X2'].forEach(function(l,i){ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(l,i*cellW+cellW/2,H+12);});
+  ctx.textAlign='start';
+}
+
+function drawBeforeAfter(){
+  var cv=C('before-after-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,half=W/2;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var data=mainDataNorm;if(!data.length)return;
+  var pca=computePCA2D(data);
+  var v1=pca.eigenvectors[0],v2=pca.eigenvectors[1];
+  var pad=40;
+  // Find ranges
+  var x1s=data.map(function(r){return r[0];}),x2s=data.map(function(r){return r[1];});
+  var xMin=Math.min.apply(null,x1s),xMax=Math.max.apply(null,x1s);
+  var yMin=Math.min.apply(null,x2s),yMax=Math.max.apply(null,x2s);
+  var rng=Math.max(xMax-xMin,yMax-yMin,0.01);
+  function toScreenL(x,y){return[(x-xMin)/rng*(half-2*pad)+pad,(yMax-y)/rng*(H-2*pad)+pad];}
+
+  // LEFT: original space
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  var cx=pad+(xMax-xMin)/2/rng*(half-2*pad),cy=H/2;
+  ctx.beginPath();ctx.moveTo(pad,cy);ctx.lineTo(half-pad/2,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,pad);ctx.lineTo(cx,H-pad);ctx.stroke();
+  // Eigenvectors
+  var scale=Math.min(half,H)*0.3;
+  var v1Screen=toScreenL(v1[0]*rng*0.4+xMin+rng/2,v1[1]*rng*0.4+yMin+rng/2);
+  var centerScreen=toScreenL(xMin+rng/2,yMin+rng/2);
+  function drawArrow(ctx,x1,y1,x2,y2,color,label){
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+    ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.stroke();
+    var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+    ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-10*dx/len+6*dy/len,y2-10*dy/len-6*dx/len);ctx.lineTo(x2-10*dx/len-6*dy/len,y2-10*dy/len+6*dx/len);ctx.closePath();ctx.fillStyle=color;ctx.fill();
+    if(label){ctx.fillStyle=color;ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(label,x2+dx/len*12,y2+dy/len*12);}
+  }
+  data.forEach(function(r){
+    var s=toScreenL(r[0],r[1]);
+    ctx.beginPath();ctx.arc(s[0],s[1],4,0,Math.PI*2);
+    ctx.fillStyle='rgba(245,158,11,0.7)';ctx.fill();
+  });
+  var c0=toScreenL(0,0);
+  drawArrow(ctx,c0[0],c0[1],c0[0]+v1[0]*80,c0[1]-v1[1]*80,'#06b6d4','PC1');
+  drawArrow(ctx,c0[0],c0[1],c0[0]+v2[0]*60,c0[1]-v2[1]*60,'#f59e0b','PC2');
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Original space (X1, X2)',half/2,H-6);
+
+  // Divider
+  ctx.strokeStyle=gc();ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(half,0);ctx.lineTo(half,H);ctx.stroke();
+  ctx.fillStyle='rgba(6,182,212,0.6)';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('>',half,H/2+5);
+
+  // RIGHT: PC space
+  var pc1s=data.map(function(r){return vecDot(r,v1);}),pc2s=data.map(function(r){return vecDot(r,v2);});
+  var p1Min=Math.min.apply(null,pc1s),p1Max=Math.max.apply(null,pc1s);
+  var p2Min=Math.min.apply(null,pc2s),p2Max=Math.max.apply(null,pc2s);
+  var rng2=Math.max(p1Max-p1Min,p2Max-p2Min,0.01);
+  function toScreenR(x,y){return[half+pad+(x-p1Min)/rng2*(half-2*pad),(p2Max-y)/rng2*(H-2*pad)+pad];}
+  var rc0=toScreenR(0,0);
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(half+pad,rc0[1]);ctx.lineTo(W-pad/2,rc0[1]);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(rc0[0],pad);ctx.lineTo(rc0[0],H-pad);ctx.stroke();
+  data.forEach(function(r,i){
+    var s=toScreenR(pc1s[i],pc2s[i]);
+    ctx.beginPath();ctx.arc(s[0],s[1],4,0,Math.PI*2);
+    ctx.fillStyle='rgba(6,182,212,0.7)';ctx.fill();
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('PC space (PC1, PC2)',half+half/2,H-6);
+  ctx.fillStyle='#06b6d4';ctx.font='11px sans-serif';ctx.textAlign='right';ctx.fillText('PC1',W-pad/2-2,rc0[1]+14);
+  ctx.save();ctx.translate(rc0[0]+14,pad+10);ctx.rotate(Math.PI/2);ctx.fillText('PC2',0,0);ctx.restore();
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 3 — SCREE PLOT ════ */
+var SCREE_DATA={
+  iris:{n:150,features:4,classes:3,eigenvalues:[2.918,0.914,0.147,0.021],labels:['sepal_l','sepal_w','petal_l','petal_w']},
+  wine:{n:178,features:13,classes:3,eigenvalues:[4.71,2.50,1.45,0.92,0.85,0.64,0.55,0.42,0.33,0.28,0.22,0.16,0.09],labels:['alcohol','malic','ash','alcalinity','Mg','phenols','flavanoids','nonflavphenols','proanthocyanins','color','hue','OD280','proline']},
+  digits:{n:1797,features:64,classes:10,eigenvalues:(function(){var a=[];for(var i=0;i<64;i++)a.push(Math.max(0.05,18*Math.exp(-i*0.15)+Math.random()*0.3));return a;})(),labels:(function(){var a=[];for(var i=0;i<64;i++)a.push('px_'+i);return a;})()},
+  custom:{n:200,features:10,classes:4,eigenvalues:[3.2,2.1,1.4,0.9,0.6,0.4,0.2,0.08,0.04,0.02],labels:['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10']}
+};
+var selectedK=2;
+var currentScreeDS='iris';
+
+function changeScreeDataset(){currentScreeDS=C('scree-dataset').value;selectedK=2;drawScree();buildCompCards();buildEigTable();}
+
+function getExplainedVar(ds,k){
+  var ev=SCREE_DATA[ds].eigenvalues;
+  var tot=ev.reduce(function(s,v){return s+v;},0);
+  var kept=ev.slice(0,k).reduce(function(s,v){return s+v;},0);
+  return kept/tot;
+}
+
+function buildCompCards(){
+  var ds=SCREE_DATA[currentScreeDS];
+  var ev=ds.eigenvalues;var tot=ev.reduce(function(s,v){return s+v;},0);
+  var maxShow=Math.min(ev.length,10);
+  var html='';var cum=0;
+  for(var i=0;i<maxShow;i++){
+    var pct=ev[i]/tot*100;cum+=pct;
+    var sel=i+1===selectedK;
+    html+='<div class="comp-card'+(sel?' selected':'')+'" onclick="selectK('+(i+1)+')">'+
+      '<div class="comp-card-name">PC'+(i+1)+'</div>'+
+      '<div class="comp-card-var">'+pct.toFixed(1)+'%</div>'+
+      '<div class="comp-card-sub">explained</div>'+
+      '<div class="comp-card-cum">&#x2211; '+cum.toFixed(1)+'%</div>'+
+      '</div>';
+  }
+  C('comp-cards').innerHTML=html;
+  updateCompDashboard();
+}
+
+function selectK(k){
+  selectedK=k;buildCompCards();buildEigTable();drawScree();updateCompDashboard();
+  // Also update reconstruction
+  if(C('recon-k'))C('recon-k').value=k;
+  updateReconstruction(k);
+}
+
+function updateCompDashboard(){
+  var ds=SCREE_DATA[currentScreeDS];
+  var ev=ds.eigenvalues;var tot=ev.reduce(function(s,v){return s+v;},0);
+  var explVar=getExplainedVar(currentScreeDS,selectedK);
+  var reconErr=1-explVar;
+  var compRatio=ds.features/selectedK;
+  C('comp-selected').textContent=selectedK+'/'+ev.length;
+  C('var-explained').textContent=(explVar*100).toFixed(1)+'%';
+  C('recon-error').textContent=(reconErr*100).toFixed(1)+'%';
+  C('compression-ratio').textContent=compRatio.toFixed(1)+'x';
+  C('comp-bar').style.width=(selectedK/ev.length*100)+'%';
+  C('var-bar').style.width=(explVar*100)+'%';
+  C('recon-bar').style.width=(reconErr*100)+'%';
+  C('comp-ratio-bar').style.width=Math.min(100,compRatio/20*100)+'%';
+}
+
+async function animateScree(){
+  var cv=C('scree-canvas'),ctx=cv.getContext('2d');
+  var ev=SCREE_DATA[currentScreeDS].eigenvalues;
+  var n=Math.min(ev.length,20);
+  for(var k=1;k<=n;k++){
+    selectedK=k;drawScree();buildCompCards();buildEigTable();
+    await delay(120);
+  }
+}
+
+function drawScree(){
+  var cv=C('scree-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:30,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var ev=SCREE_DATA[currentScreeDS].eigenvalues;
+  var tot=ev.reduce(function(s,v){return s+v;},0);
+  var n=Math.min(ev.length,20);
+  var barW=(W-pad.l-pad.r)/n*0.6,gap=(W-pad.l-pad.r)/n;
+  var toX=function(i){return pad.l+i*gap+gap/2;};
+  var toY=function(v){return H-pad.b-v/ev[0]*(H-pad.t-pad.b);};
+
+  // Grid
+  [0,.25,.5,.75,1].forEach(function(f){
+    var y=H-pad.b-f*(H-pad.t-pad.b);
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';
+    ctx.fillText((f*ev[0]).toFixed(2),pad.l-4,y+4);
+  });
+
+  // Cumulative line
+  var cum=0;var cumPoints=[];
+  ev.slice(0,n).forEach(function(v,i){cum+=v/tot;cumPoints.push({x:toX(i),y:H-pad.b-cum*(H-pad.t-pad.b)});});
+  ctx.beginPath();cumPoints.forEach(function(p,i){i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+  cumPoints.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='#f59e0b';ctx.fill();});
+
+  // 95% threshold line
+  var thresh95=H-pad.b-0.95*(H-pad.t-pad.b);
+  ctx.strokeStyle='rgba(240,96,96,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,thresh95);ctx.lineTo(W-pad.r,thresh95);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#f06060';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText('95%',W-pad.r-2,thresh95-4);
+
+  // Bars
+  ev.slice(0,n).forEach(function(v,i){
+    var x=toX(i),y=toY(v),bh=H-pad.b-y;
+    var isSelected=i+1===selectedK;
+    ctx.fillStyle=isSelected?'#06b6d4':(i+1<selectedK?'rgba(6,182,212,0.5)':'rgba(6,182,212,0.25)');
+    ctx.fillRect(x-barW/2,y,barW,bh);
+    if(isSelected){ctx.strokeStyle='#06b6d4';ctx.lineWidth=2;ctx.strokeRect(x-barW/2,y,barW,bh);}
+    ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('PC'+(i+1),x,H-pad.b+14);
+    ctx.fillStyle=isSelected?'#06b6d4':tc();ctx.font='bold 10px monospace';
+    ctx.fillText((v/tot*100).toFixed(0)+'%',x,y-4);
+  });
+
+  // Legend
+  ctx.fillStyle='rgba(6,182,212,0.6)';ctx.fillRect(pad.l+10,pad.t+2,12,10);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Eigenvalue',pad.l+26,pad.t+11);
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(pad.l+100,pad.t+7);ctx.lineTo(pad.l+120,pad.t+7);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillText('Cumulative variance',pad.l+124,pad.t+11);
+  ctx.textAlign='start';
+  updateCompDashboard();
+}
+
+// Scree canvas click
+C('scree-canvas').addEventListener('click',function(e){
+  var ev=SCREE_DATA[currentScreeDS].eigenvalues;
+  var n=Math.min(ev.length,20);
+  var W=C('scree-canvas').width,pad={l:50,r:30};
+  var gap=(W-pad.l-pad.r)/n;
+  var r=C('scree-canvas').getBoundingClientRect();
+  var mx=(e.clientX-r.left)*W/r.width;
+  var i=Math.floor((mx-pad.l)/gap);
+  if(i>=0&&i<n)selectK(i+1);
+});
+
+function buildEigTable(){
+  var ds=SCREE_DATA[currentScreeDS];
+  var ev=ds.eigenvalues;var tot=ev.reduce(function(s,v){return s+v;},0);
+  var n=Math.min(ev.length,20);var cum=0;
+  var html='<thead><tr><th>PC</th><th>Eigenvalue</th><th>Variance %</th><th>Cumulative %</th><th>Bar</th><th>Select?</th></tr></thead><tbody>';
+  for(var i=0;i<n;i++){
+    var pct=ev[i]/tot*100;cum+=pct;var sel=i+1===selectedK;
+    html+='<tr class="'+(i+1<=selectedK?'selected-row':'')+'" onclick="selectK('+(i+1)+')" style="cursor:pointer;">'+
+      '<td>PC'+(i+1)+'</td>'+
+      '<td>'+ev[i].toFixed(4)+'</td>'+
+      '<td>'+pct.toFixed(2)+'%</td>'+
+      '<td>'+(cum<=100?cum.toFixed(2):'100.00')+'%'+(cum>=95&&cum-pct<95?' <span style="color:#f59e0b;font-size:10px;">&#x2190; 95% reached</span>':'')+' </td>'+
+      '<td><span class="eig-bar-inline" style="width:'+(pct*3).toFixed(0)+'px;background:'+(sel?'#06b6d4':'rgba(6,182,212,0.4)')+';">&nbsp;</span></td>'+
+      '<td>'+(sel?'<span style="color:#06b6d4;font-weight:700;">&#x2713; kept</span>':'')+'</td>'+
+      '</tr>';
+  }
+  html+='</tbody>';
+  C('eig-table').innerHTML=html;
+}
+
+/* ════ SECTION 4 — BIPLOT ════ */
+var BIPLOT_DATA={
+  iris:{
+    n:150,features:['sepal_l','sepal_w','petal_l','petal_w'],
+    // Pre-computed loadings for iris (PC1 and PC2 eigenvectors)
+    loadings:[[-0.521,0.377,-0.720,-0.261],[-0.269,-0.923,-0.244,-0.124]],
+    eigenvalues:[2.918,0.914],totalVar:4,
+    // Simulated scores (300 points across 3 classes)
+    classes:['setosa','versicolor','virginica'],
+    classColors:['#3ecf8e','#06b6d4','#f59e0b']
+  },
+  wine:{
+    n:178,features:['alcohol','malic','ash','alcalinity','Mg','phenols','flavanoids','nonflavphenols','proanthocyanins','color','hue','OD280','proline'],
+    loadings:[[-0.144,0.245,-0.002,0.236,-0.141,-0.395,-0.422,0.298,-0.313,-0.089,-0.297,-0.376,-0.287],
+              [0.484,0.225,0.316,0.011,0.300,0.065,-0.003,0.029,0.039,0.530,-0.279,-0.164,0.365]],
+    eigenvalues:[4.71,2.50],totalVar:13,
+    classes:['class_1','class_2','class_3'],classColors:['#3ecf8e','#06b6d4','#f59e0b']
+  },
+  custom:{
+    n:100,features:['f1','f2','f3','f4','f5'],
+    loadings:[[-0.6,0.4,-0.5,0.3,-0.2],[0.3,-0.6,0.2,-0.5,0.4]],
+    eigenvalues:[2.8,1.6],totalVar:5,
+    classes:['A','B','C'],classColors:['#3ecf8e','#06b6d4','#f59e0b']
+  }
+};
+
+function drawBiplot(){
+  var dsKey=C('biplot-dataset').value;
+  var ds=BIPLOT_DATA[dsKey];
+  var showLoad=C('show-loadings').checked;
+  var showClass=C('show-classes').checked;
+  var cv=C('biplot-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad=60;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  // Generate simulated projected points
+  var rng2=Math.random()||0.5;
+  var pts=[];var nPerClass=Math.floor(ds.n/ds.classes.length);
+  ds.classes.forEach(function(cls,ci){
+    var cx=(ci-1)*2+(Math.random()-0.5)*0.5,cy=(ci%2===0?1:-1)+(Math.random()-0.5)*0.5;
+    for(var i=0;i<nPerClass;i++){
+      pts.push({x:cx+normalSample()*0.8,y:cy+normalSample()*0.6,cls:ci});
+    }
+  });
+
+  var xMin=Math.min.apply(null,pts.map(function(p){return p.x;}));
+  var xMax=Math.max.apply(null,pts.map(function(p){return p.x;}));
+  var yMin=Math.min.apply(null,pts.map(function(p){return p.y;}));
+  var yMax=Math.max.apply(null,pts.map(function(p){return p.y;}));
+  var rngX=Math.max(xMax-xMin,0.01),rngY=Math.max(yMax-yMin,0.01);
+  function toX(v){return pad+(v-xMin)/rngX*(W-2*pad);}
+  function toY(v){return H-pad-(v-yMin)/rngY*(H-2*pad);}
+
+  // Axes
+  var cx=toX((xMin+xMax)/2),cy=toY((yMin+yMax)/2);
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad,cy);ctx.lineTo(W-pad,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,pad);ctx.lineTo(cx,H-pad);ctx.stroke();
+
+  // Axis labels
+  var l1=ds.eigenvalues[0],l2=ds.eigenvalues[1],tot=ds.totalVar;
+  ctx.fillStyle=tc();ctx.font='12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('PC1 ('+(l1/tot*100).toFixed(1)+'% var)',W/2,H-10);
+  ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('PC2 ('+(l2/tot*100).toFixed(1)+'% var)',0,0);ctx.restore();
+
+  // Points
+  pts.forEach(function(p){
+    ctx.beginPath();ctx.arc(toX(p.x),toY(p.y),4,0,Math.PI*2);
+    var col=showClass?ds.classColors[p.cls]:'rgba(6,182,212,0.6)';
+    ctx.fillStyle=col+'99';ctx.fill();
+    ctx.strokeStyle=col;ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Loading vectors
+  if(showLoad&&ds.loadings){
+    var scale=Math.min(W-2*pad,H-2*pad)*0.38;
+    ds.loadings[0].forEach(function(l1v,fi){
+      var l2v=ds.loadings[1][fi];
+      var lx=toX((xMin+xMax)/2+l1v*rngX*0.45),ly=toY((yMin+yMax)/2+l2v*rngY*0.45);
+      var mag=Math.sqrt(l1v*l1v+l2v*l2v);
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(lx,ly);
+      ctx.strokeStyle='rgba(240,96,96,0.7)';ctx.lineWidth=1.5;ctx.stroke();
+      // arrowhead
+      var dx=lx-cx,dy=ly-cy,len=Math.sqrt(dx*dx+dy*dy)||1;
+      ctx.beginPath();ctx.moveTo(lx,ly);
+      ctx.lineTo(lx-8*dx/len+5*dy/len,ly-8*dy/len-5*dx/len);
+      ctx.lineTo(lx-8*dx/len-5*dy/len,ly-8*dy/len+5*dx/len);
+      ctx.closePath();ctx.fillStyle='rgba(240,96,96,0.7)';ctx.fill();
+      // label
+      ctx.fillStyle='#f06060';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+      ctx.fillText(ds.features[fi],lx+(lx-cx)*0.15,ly+(ly-cy)*0.15);
+    });
+  }
+
+  // Legend
+  if(showClass){
+    ds.classes.forEach(function(cls,i){
+      ctx.beginPath();ctx.arc(W-pad+5,pad+i*18+6,4,0,Math.PI*2);ctx.fillStyle=ds.classColors[i];ctx.fill();
+      ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(cls,W-pad+14,pad+i*18+10);
+    });
+  }
+
+  C('bp-pc1-var').textContent=(l1/tot*100).toFixed(1)+'%';
+  C('bp-pc2-var').textContent=(l2/tot*100).toFixed(1)+'%';
+  C('bp-total-var').textContent=((l1+l2)/tot*100).toFixed(1)+'%';
+  C('bp-n-features').textContent=ds.features.length;
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 5 — RECONSTRUCTION ════ */
+function updateReconstruction(k){
+  k=parseInt(k);
+  C('recon-k-val').textContent=k;
+  C('recon-dim-out').textContent=k;
+  var data=mainDataNorm;if(!data.length)return;
+  var pca=computePCA2D(data);
+  var ev=pca.eigenvalues,tot=ev[0]+ev[1];
+  var varKept=k>=2?1.0:ev[0]/tot;
+  C('recon-var-kept').textContent=(varKept*100).toFixed(1)+'%';
+
+  var cv=C('recon-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,half=W/2;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var pad=40;
+  var v1=pca.eigenvectors[0],v2=pca.eigenvectors[1];
+
+  // Reconstruct: project onto k PCs then back
+  var reconstructed=data.map(function(r){
+    var z1=vecDot(r,v1);
+    var rec=[z1*v1[0],z1*v1[1]];
+    if(k>=2){var z2=vecDot(r,v2);rec=[rec[0]+z2*v2[0],rec[1]+z2*v2[1]];}
+    return rec;
+  });
+
+  var rmse=Math.sqrt(data.reduce(function(s,r,i){
+    return s+Math.pow(r[0]-reconstructed[i][0],2)+Math.pow(r[1]-reconstructed[i][1],2);
+  },0)/data.length);
+  C('recon-rmse').textContent=rmse.toFixed(4);
+
+  // Find ranges
+  var allX=data.map(function(r){return r[0];}).concat(reconstructed.map(function(r){return r[0];}));
+  var allY=data.map(function(r){return r[1];}).concat(reconstructed.map(function(r){return r[1];}));
+  var xMin=Math.min.apply(null,allX),xMax=Math.max.apply(null,allX);
+  var yMin=Math.min.apply(null,allY),yMax=Math.max.apply(null,allY);
+  var rng=Math.max(xMax-xMin,yMax-yMin,0.01);
+  function toSL(x,y,ox){return[ox+pad+(x-xMin)/rng*(half-2*pad),(yMax-y)/rng*(H-2*pad)+pad];}
+
+  function drawPanel(ox,pts,label,color){
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+    var mx=toSL((xMin+xMax)/2,(yMin+yMax)/2,ox);
+    ctx.beginPath();ctx.moveTo(ox+pad,mx[1]);ctx.lineTo(ox+half-pad/2,mx[1]);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(mx[0],pad);ctx.lineTo(mx[0],H-pad);ctx.stroke();
+    pts.forEach(function(p){
+      var s=toSL(p[0],p[1],ox);
+      ctx.beginPath();ctx.arc(s[0],s[1],4,0,Math.PI*2);
+      ctx.fillStyle=color+'aa';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1;ctx.stroke();
+    });
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(label,ox+half/2,H-8);
+  }
+
+  drawPanel(0,data,'Original data','#f59e0b');
+  // Error lines between original and reconstructed
+  data.forEach(function(r,i){
+    var s1=toSL(r[0],r[1],0),s2=toSL(reconstructed[i][0],reconstructed[i][1],0);
+    ctx.beginPath();ctx.moveTo(s1[0],s1[1]);ctx.lineTo(s2[0],s2[1]);
+    ctx.strokeStyle='rgba(240,96,96,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,2]);ctx.stroke();ctx.setLineDash([]);
+  });
+  drawPanel(0,reconstructed,'Reconstructed (k='+k+')','#06b6d4');
+  ctx.strokeStyle=gc();ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(half,0);ctx.lineTo(half,H);ctx.stroke();
+  drawPanel(half,reconstructed,'Reconstructed data (k='+k+')','#06b6d4');
+  ctx.fillStyle='rgba(240,96,96,0.6)';ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Red lines = reconstruction error',half/2,H-22);
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 6 — HP TUNING ════ */
+var hpDataset='iris';var hpSolver='auto';
+var HP_DS={
+  iris:{n:150,features:4,totalVar:4,eigenvalues:[2.918,0.914,0.147,0.021]},
+  wine:{n:178,features:13,totalVar:13,eigenvalues:[4.71,2.50,1.45,0.92,0.85,0.64,0.55,0.42,0.33,0.28,0.22,0.16,0.09]},
+  digits:{n:1797,features:64,totalVar:64,eigenvalues:(function(){var a=[];for(var i=0;i<64;i++)a.push(Math.max(0.05,18*Math.exp(-i*0.15)));return a;})()}
+};
+
+function setHPDataset(ds){
+  hpDataset=ds;C('hp-dataset-val').textContent=ds;
+  ['iris','wine','digits'].forEach(function(k){C('hp-'+k).classList.toggle('active',k===ds);});
+  // Update k slider max
+  var maxK=HP_DS[ds].features;
+  C('hp-k').max=maxK;if(parseInt(C('hp-k').value)>maxK)C('hp-k').value=Math.min(5,maxK);
+  onHPChange();
+}
+function setSolver(s){hpSolver=s;C('hp-solver-val').textContent=s;['auto','full','rand'].forEach(function(k){C('sol-'+k).classList.toggle('active',k===s||(s==='randomized'&&k==='rand'));});onHPChange();}
+
+function onHPChange(){
+  var k=parseInt(C('hp-k').value);
+  var vThresh=parseInt(C('hp-var-thresh').value)/100;
+  C('hp-k-val').textContent=k;
+  C('hp-var-thresh-val').textContent=(vThresh*100)+'%';
+  var ds=HP_DS[hpDataset];
+  var ev=ds.eigenvalues,tot=ev.reduce(function(s,v){return s+v;},0);
+  var varKept=ev.slice(0,k).reduce(function(s,v){return s+v;},0)/tot;
+  // Simulated accuracy: full=0.94 baseline, PCA slightly lower for few components
+  var fullAcc=0.94;
+  var pcaAcc=fullAcc*(0.6+varKept*0.42);
+  C('hp-full-acc').textContent=(fullAcc*100).toFixed(1)+'%';
+  C('hp-pca-acc').textContent=(pcaAcc*100).toFixed(1)+'%';
+  C('hp-n-comp').textContent=k+'/'+ds.features;
+  C('hp-var-total').textContent=(varKept*100).toFixed(1)+'%';
+  C('hp-full-bar').style.width=(fullAcc*100)+'%';
+  C('hp-pca-bar').style.width=(pcaAcc*100)+'%';
+  C('hp-comp-bar').style.width=(k/ds.features*100)+'%';
+  C('hp-var-bar').style.width=(varKept*100)+'%';
+}
+
+var sweepData=null;
+async function runAccSweep(){
+  C('sweep-status').textContent='Running...';sweepData=[];
+  var ds=HP_DS[hpDataset];
+  var ev=ds.eigenvalues,tot=ev.reduce(function(s,v){return s+v;},0);
+  var maxK=Math.min(ds.features,20);
+  for(var k=1;k<=maxK;k++){
+    var varKept=ev.slice(0,k).reduce(function(s,v){return s+v;},0)/tot;
+    var acc=0.94*(0.6+varKept*0.42)+Math.random()*0.01-0.005;
+    sweepData.push({k:k,acc:Math.min(0.99,acc),var:varKept});
+    drawSweep();await delay(80);
+  }
+  var best=sweepData.reduce(function(m,d){return d.acc>m.acc?d:m;},sweepData[0]);
+  C('sweep-status').textContent='Done! Best k='+best.k+' ('+( best.var*100).toFixed(0)+'% var, '+( best.acc*100).toFixed(1)+'% acc)';
+}
+
+function drawSweep(){
+  if(!sweepData||!sweepData.length)return;
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:15,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var n=sweepData.length;
+  var toX=function(k){return pad.l+(k-1)/(Math.max(HP_DS[hpDataset].features,n)-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-v*(H-pad.t-pad.b);};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function(v){
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+  });
+  // Variance line
+  ctx.beginPath();sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.k),toY(d.var)):ctx.lineTo(toX(d.k),toY(d.var));});
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+  // Accuracy line
+  ctx.beginPath();sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.k),toY(d.acc)):ctx.lineTo(toX(d.k),toY(d.acc));});
+  ctx.strokeStyle='#06b6d4';ctx.lineWidth=2.5;ctx.stroke();
+  sweepData.forEach(function(d){
+    ctx.beginPath();ctx.arc(toX(d.k),toY(d.acc),4,0,Math.PI*2);ctx.fillStyle='#06b6d4';ctx.fill();
+  });
+  // Current k marker
+  var curK=parseInt(C('hp-k').value);
+  if(curK<=n){
+    ctx.beginPath();ctx.moveTo(toX(curK),pad.t);ctx.lineTo(toX(curK),H-pad.b);
+    ctx.strokeStyle='rgba(245,158,11,0.5)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+  }
+  // X labels
+  sweepData.forEach(function(d){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(d.k,toX(d.k),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('n_components',W/2,H-2);
+  // Legend
+  ctx.strokeStyle='#06b6d4';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(pad.l+10,pad.t+8);ctx.lineTo(pad.l+30,pad.t+8);ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Accuracy',pad.l+34,pad.t+12);
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(pad.l+110,pad.t+8);ctx.lineTo(pad.l+130,pad.t+8);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillText('Variance explained',pad.l+134,pad.t+12);ctx.textAlign='start';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'pca_scratch.py',label:'PCA from scratch',code:'import numpy as np\n\nnp.random.seed(42)\nn = 100\n# Correlated 2D data\ncov = [[3, 2.5], [2.5, 2.5]]\nX = np.random.multivariate_normal([5, 10], cov, n)\n\nprint("=" * 55)\nprint("PCA FROM SCRATCH")\nprint("=" * 55)\n\n# Step 1: Standardize\nmeans = X.mean(axis=0)\nstds  = X.std(axis=0)\nX_std = (X - means) / stds\nprint(f"\\nOriginal shape: {X.shape}")\nprint(f"Mean (raw):     {means.round(2)}")\nprint(f"Std  (raw):     {stds.round(2)}")\nprint(f"Mean (std):     {X_std.mean(axis=0).round(6)}   <- near zero")\nprint(f"Std  (std):     {X_std.std(axis=0).round(6)}    <- near one")\n\n# Step 2: Covariance matrix\nC = (X_std.T @ X_std) / (n - 1)\nprint(f"\\nCovariance matrix:")\nprint(C.round(4))\n\n# Step 3: Eigendecomposition\neigenvalues, eigenvectors = np.linalg.eigh(C)\n# Sort descending\nidx = np.argsort(eigenvalues)[::-1]\neigenvalues  = eigenvalues[idx]\neigenvectors = eigenvectors[:, idx]\n\ntotal_var = eigenvalues.sum()\nprint(f"\\nEigenvalues: {eigenvalues.round(4)}")\nprint(f"Variance explained: {(eigenvalues / total_var * 100).round(1)}")\nprint(f"Cumulative:         {(np.cumsum(eigenvalues) / total_var * 100).round(1)}")\nprint(f"\\nEigenvectors (columns):")\nprint(eigenvectors.round(4))\nprint(f"\\northogonality check v1.v2 = {eigenvectors[:,0] @ eigenvectors[:,1]:.8f}")\n\n# Step 4: Project\nk = 1  # keep 1 component\nZ = X_std @ eigenvectors[:, :k]\nprint(f"\\nProjected shape: {Z.shape}  (from {X_std.shape})")\nprint(f"PC1 scores (first 5): {Z[:5,0].round(3)}")\n\n# Step 5: Reconstruct\nX_reconstructed_std = Z @ eigenvectors[:, :k].T\nX_reconstructed = X_reconstructed_std * stds + means\nrmse = np.sqrt(((X - X_reconstructed)**2).mean())\nprint(f"\\nReconstruction RMSE with k={k}: {rmse:.4f}")\n\n# Compare with k=2 (lossless for 2D)\nZ2 = X_std @ eigenvectors\nX_rec2 = (Z2 @ eigenvectors.T) * stds + means\nrmse2 = np.sqrt(((X - X_rec2)**2).mean())\nprint(f"Reconstruction RMSE with k=2: {rmse2:.8f}  (near zero = lossless)")\n'},
+{file:'pca_sklearn.py',label:'sklearn Pipeline',code:'import numpy as np\nfrom sklearn.decomposition import PCA\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.datasets import load_iris\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split, cross_val_score\n\nX, y = load_iris(return_X_y=True)\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)\n\nprint("=" * 55)\nprint("PCA + SKLEARN PIPELINE")\nprint("=" * 55)\n\n# Always: StandardScaler -> PCA -> Model\npipe_full = Pipeline([\n    ("scaler", StandardScaler()),\n    ("clf",    LogisticRegression(max_iter=500, random_state=42))\n])\n\npipe_pca = Pipeline([\n    ("scaler", StandardScaler()),\n    ("pca",    PCA(n_components=2)),        # keep 2 PCs\n    ("clf",    LogisticRegression(max_iter=500, random_state=42))\n])\n\npipe_var = Pipeline([\n    ("scaler", StandardScaler()),\n    ("pca",    PCA(n_components=0.95)),     # keep 95% variance\n    ("clf",    LogisticRegression(max_iter=500, random_state=42))\n])\n\nfor name, pipe in [("Full features", pipe_full),\n                    ("PCA k=2",       pipe_pca),\n                    ("PCA 95% var",   pipe_var)]:\n    cv = cross_val_score(pipe, X_tr, y_tr, cv=5, scoring="accuracy")\n    pipe.fit(X_tr, y_tr)\n    te = pipe.score(X_te, y_te)\n    n_comp = getattr(pipe.named_steps.get("pca"), "n_components_", X.shape[1])\n    print(f"{name:<18} dims={n_comp}  CV={cv.mean():.4f}+-{cv.std():.4f}  test={te:.4f}")\n\n# Inspect the PCA object\npca = pipe_pca.named_steps["pca"]\nprint(f"\\nExplained variance ratio: {pca.explained_variance_ratio_.round(4)}")\nprint(f"Cumulative:               {pca.explained_variance_ratio_.cumsum().round(4)}")\nprint(f"Components shape:         {pca.components_.shape}")\nprint(f"n_components_:            {pca.n_components_}")\n'},
+{file:'pca_variance.py',label:'Variance threshold',code:'import numpy as np\nfrom sklearn.decomposition import PCA\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.datasets import load_digits\n\nX, y = load_digits(return_X_y=True)\nprint(f"Digits dataset: {X.shape}  ({X.shape[1]} pixel features)")\n\nscaler = StandardScaler()\nX_std  = scaler.fit_transform(X)\n\n# Full PCA to see all eigenvalues\npca_full = PCA().fit(X_std)\nev = pca_full.explained_variance_ratio_\ncum = np.cumsum(ev)\n\nprint(f"\\nExplained variance by component (first 20):")\nprint(f"  {ev[:20].round(4)}")\n\nprint(f"\\nComponents needed to reach:")\nfor thresh in [0.80, 0.90, 0.95, 0.99]:\n    k = np.searchsorted(cum, thresh) + 1\n    print(f"  {thresh:.0%} variance -> {k} components (from {X.shape[1]})")\n    print(f"           compression: {X.shape[1]/k:.1f}x")\n\n# Auto-select by variance threshold\npca_95 = PCA(n_components=0.95).fit(X_std)\nprint(f"\\nPCA(n_components=0.95):")\nprint(f"  n_components_: {pca_95.n_components_}")\nprint(f"  variance kept: {pca_95.explained_variance_ratio_.sum():.4f}")\n\n# Show scree plot data\nprint(f"\\nScree plot data (variance per PC, first 15):")\nfor i, v in enumerate(ev[:15]):\n    bar = chr(9608) * int(v * 200)\n    print(f"  PC{i+1:>2}: {v:.4f}  {bar}")\n'},
+{file:'pca_whitening.py',label:'Whitening PCA',code:'import numpy as np\nfrom sklearn.decomposition import PCA\nfrom sklearn.preprocessing import StandardScaler\n\nnp.random.seed(42)\n# Highly correlated data\ncov = [[1, 0.9, 0.8], [0.9, 1, 0.85], [0.8, 0.85, 1]]\nX = np.random.multivariate_normal([0,0,0], cov, 200)\n\nscaler = StandardScaler()\nX_std = scaler.fit_transform(X)\n\n# Normal PCA\npca = PCA(n_components=2)\nZ = pca.fit_transform(X_std)\n\n# Whitened PCA: scales components so EACH has unit variance\npca_w = PCA(n_components=2, whiten=True)\nZ_w = pca_w.fit_transform(X_std)\n\nprint("Correlation matrix of PCA scores (should be diagonal = independent):")\nprint("\\nNormal PCA:")\nprint(np.corrcoef(Z.T).round(4))\nprint(f"PC1 std: {Z[:,0].std():.4f}  PC2 std: {Z[:,1].std():.4f}")\n\nprint("\\nWhitened PCA:")\nprint(np.corrcoef(Z_w.T).round(4))\nprint(f"PC1 std: {Z_w[:,0].std():.4f}  PC2 std: {Z_w[:,1].std():.4f}  <- both =1.0")\n\nprint(f"\\nWhen to use whitening:")\nprint("  - Before neural networks (inputs of equal scale)")\nprint("  - Before GMM or K-means (assumes spherical clusters)")\nprint("  - ICA pre-processing (requires whitened input)")\nprint("  - NOT for linear models: they can handle non-unit variance")\n'},
+{file:'kernel_pca.py',label:'Kernel PCA',code:'import numpy as np\nfrom sklearn.decomposition import PCA, KernelPCA\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.datasets import make_circles, make_moons\n\nnp.random.seed(42)\nX, y = make_circles(n_samples=200, noise=0.05, factor=0.3)\n\nprint("=" * 55)\nprint("KERNEL PCA vs LINEAR PCA")\nprint("=" * 55)\nprint(f"\\nDataset: concentric circles -- NOT linearly separable")\nprint(f"Shape: {X.shape}")\n\n# Linear PCA -- will fail on circles\npca = PCA(n_components=1)\nZ_linear = pca.fit_transform(X)\nsep_linear = abs(Z_linear[y==0].mean() - Z_linear[y==1].mean())\nprint(f"\\nLinear PCA separation:         {sep_linear:.4f}  (should be ~0)")\n\n# RBF Kernel PCA -- can separate circles!\nkpca_rbf = KernelPCA(n_components=2, kernel="rbf", gamma=10)\nZ_rbf = kpca_rbf.fit_transform(X)\nsep_rbf = abs(Z_rbf[:,0][y==0].mean() - Z_rbf[:,0][y==1].mean())\nprint(f"RBF Kernel PCA separation:    {sep_rbf:.4f}  (class means in PC1)")\n\n# Poly kernel\nkpca_poly = KernelPCA(n_components=2, kernel="poly", degree=3)\nZ_poly = kpca_poly.fit_transform(X)\nsep_poly = abs(Z_poly[:,0][y==0].mean() - Z_poly[:,0][y==1].mean())\nprint(f"Poly Kernel PCA separation:   {sep_poly:.4f}")\n\n# Classification accuracy via 1-NN\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.model_selection import cross_val_score\n\nfor name, Z in [("No PCA", X), ("Linear PCA k=1", Z_linear.reshape(-1,1)),\n                ("RBF KPCA k=2", Z_rbf), ("Poly KPCA k=2", Z_poly)]:\n    cv = cross_val_score(KNeighborsClassifier(3), Z, y, cv=5, scoring="accuracy")\n    print(f"  {name:<22} KNN acc = {cv.mean():.4f} +- {cv.std():.4f}")\n\nprint(f"\\nKey insight: Kernel PCA maps data into a high-dimensional")\nprint(f"space where it becomes linearly separable, then applies PCA.")\nprint(f"Use when data has nonlinear structure (circles, spirals).")\n'}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  generateIntPts('correlated');drawIntCanvas();
+  generateMainData();updateStepFormulas();drawBeforeAfter();
+  currentScreeDS='iris';buildCompCards();drawScree();buildEigTable();
+  drawBiplot();
+  updateReconstruction(1);
+  onHPChange();
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawIntCanvas();drawBeforeAfter();drawScree();drawBiplot();drawSweep();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

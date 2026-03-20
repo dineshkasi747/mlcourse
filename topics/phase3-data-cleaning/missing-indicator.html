@@ -1,1 +1,607 @@
-<!-- missing-indicator.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Missing Indicator -- ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    :root{--indigo:#6366f1;--indigo-surf:rgba(99,102,241,0.10);}
+    .hero-banner{background:linear-gradient(135deg,rgba(99,102,241,0.09),rgba(139,92,246,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .df-grid{display:grid;gap:2px;margin:0;font-family:var(--font-mono);font-size:12.5px;}
+    .df-cell{padding:6px 12px;background:var(--bg-input);border-radius:3px;color:var(--text-2);}
+    .df-cell.header{background:var(--bg-elevated);color:var(--text-3);font-size:10px;text-transform:uppercase;font-weight:600;}
+    .df-cell.nan{background:rgba(240,96,96,0.14);color:#f06060;font-weight:700;}
+    .df-cell.indicator-1{background:rgba(99,102,241,0.18);color:var(--indigo);font-weight:700;}
+    .df-cell.indicator-0{background:var(--bg-input);color:var(--text-3);}
+    .df-cell.imputed{background:rgba(251,140,64,0.14);color:#fb8c40;}
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--indigo);font-weight:700;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+    .scenario-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
+    .scenario-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:all .18s;}
+    .scenario-card.active{border-color:var(--indigo);}
+    .scenario-card:hover{border-color:var(--border-hi);}
+    .sc-icon{font-size:22px;margin-bottom:8px;}
+    .sc-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .sc-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+    .sc-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-top:6px;display:inline-block;}
+    .badge-use{background:var(--green-surf);color:var(--green);}
+    .badge-skip{background:var(--red-surf);color:var(--red);}
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:var(--indigo-surf);border:1.5px solid var(--indigo);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--indigo);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--indigo);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+    .cmp-table th{background:var(--bg-elevated);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .cmp-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-input);}
+    .tag-yes{display:inline-flex;padding:2px 8px;background:var(--green-surf);color:var(--green);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-no{display:inline-flex;padding:2px 8px;background:var(--red-surf);color:var(--red);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-mid{display:inline-flex;padding:2px 8px;background:var(--accent-surface);color:var(--accent);border-radius:100px;font-size:11px;font-weight:700;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #6366f1!important;}
+    .CodeMirror-selected{background:rgba(99,102,241,0.2)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--indigo);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.acc-dashboard{grid-template-columns:repeat(2,1fr);}.scenario-grid{grid-template-columns:1fr 1fr;}.hp-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="missing-indicator">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Missing Indicator</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb"><a href="../../index.html">Home</a><span class="sep">/</span><a href="../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span><span class="current">Missing Indicator</span></nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(99,102,241,.3);background:var(--indigo-surf);color:var(--indigo);margin-bottom:14px;">Data Cleaning</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Missing Indicator</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Imputation fills the gap -- but it <strong>destroys the evidence</strong> that the gap existed. A Missing Indicator adds a binary column <code>col_was_nan=1</code> alongside the imputed value, letting your model learn that <em>the fact of missingness itself</em> is a predictive signal.</p>
+            <div class="topic-meta"><span class="topic-meta-item">16 min</span><span class="topic-meta-item">Beginner-Intermediate</span><span class="topic-meta-item">pandas / sklearn</span><button class="complete-btn" id="complete-btn"><span class="check">&#9675;</span> Mark Complete</button></div>
+          </div>
+
+          <section class="section" id="intuition">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--indigo-surf);color:var(--indigo);">?</div>Why missingness is a signal, not just noise</h2>
+            <p>When a patient skips a lab test, that is not random -- maybe their doctor did not order it because the result was already clear. When a customer leaves a salary field blank on a loan form, that blank <em>predicts</em> something about the application. <strong>The absence of a value carries information.</strong></p>
+            <p>Imputing with the mean fills the gap -- but after imputation, the model sees only numbers and cannot distinguish rows where the value was real from rows where you made it up. A missing indicator column preserves that distinction as a clean binary signal.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar"><span class="canvas-title">Before vs after -- watch indicators appear column by column</span><button class="ctrl-btn active" onclick="animateTransform()">&#9658; Animate transform</button><button class="ctrl-btn" onclick="resetTransform()">Reset</button></div>
+              <div style="padding:18px;overflow-x:auto;" id="transform-grid-wrap"></div>
+              <div style="padding:10px 18px;font-size:12.5px;color:var(--text-3);"><span style="color:#f06060;font-weight:600;">Red</span> = NaN &nbsp;|&nbsp; <span style="color:#fb8c40;font-weight:600;">Orange</span> = imputed value &nbsp;|&nbsp; <span style="color:var(--indigo);font-weight:600;">Indigo 1</span> = was NaN &nbsp;|&nbsp; <span style="color:var(--text-3);">0</span> = was present</div>
+            </div>
+            <div class="callout info"><span class="callout-icon">&#128161;</span><p><strong>The core idea:</strong> Imputation + Missing Indicator is always at least as good as imputation alone. If missingness has no signal, the model ignores the indicator. If it does, the model uses it. Add indicators whenever you suspect <strong>MNAR</strong> patterns.</p></div>
+          </section>
+
+          <section class="section" id="live-builder">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--indigo-surf);color:var(--indigo);">Edit</div>Live dataset builder -- toggle NaN cells</h2>
+            <p>Click any data cell to toggle it between a real value and NaN. Watch the indicator columns update instantly.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Click any data cell to toggle NaN on/off</span>
+                <div class="ctrl-group"><span class="ctrl-label">Strategy:</span><select class="ctrl-select" id="builder-strategy" onchange="rebuildTable()"><option value="mean">Mean</option><option value="median">Median</option><option value="zero">Constant (0)</option></select></div>
+                <div class="ctrl-group"><span class="ctrl-label">Show:</span><select class="ctrl-select" id="builder-show" onchange="rebuildTable()"><option value="both">Imputed + Indicators</option><option value="original">Original (with NaN)</option><option value="imputed">Imputed only</option><option value="indicators">Indicators only</option></select></div>
+                <button class="ctrl-btn" onclick="resetBuilderData()">Reset</button>
+              </div>
+              <div style="padding:16px 18px;overflow-x:auto;" id="builder-table-wrap"></div>
+              <div class="stat-row" id="builder-stats"></div>
+            </div>
+          </section>
+
+          <section class="section" id="scenarios">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--indigo-surf);color:var(--indigo);">&#10145;</div>When to add a missing indicator -- 4 scenarios</h2>
+            <p>Click each scenario to see why missingness is or is not informative in that context.</p>
+            <div class="scenario-grid">
+              <div class="scenario-card active" id="sc-mnar" onclick="selectScenario('mnar')"><div class="sc-icon">&#127973;</div><div class="sc-name">MNAR -- Medical test skipped</div><div class="sc-desc">Doctor did not order the test because patient looked healthy.</div><div class="sc-badge badge-use">Add indicator</div></div>
+              <div class="scenario-card" id="sc-income" onclick="selectScenario('income')"><div class="sc-icon">&#128176;</div><div class="sc-name">MNAR -- Salary not disclosed</div><div class="sc-desc">High earners often skip salary fields. Missing salary predicts loan approval.</div><div class="sc-badge badge-use">Add indicator</div></div>
+              <div class="scenario-card" id="sc-mcar" onclick="selectScenario('mcar')"><div class="sc-icon">&#127922;</div><div class="sc-name">MCAR -- Random sensor failure</div><div class="sc-desc">Sensor randomly drops 2% of readings due to hardware glitch. Pure noise.</div><div class="sc-badge badge-skip">Skip indicator</div></div>
+              <div class="scenario-card" id="sc-purchase" onclick="selectScenario('purchase')"><div class="sc-icon">&#128722;</div><div class="sc-name">MNAR -- No purchase history</div><div class="sc-desc">New users have no past purchase data. Absence means new user -- a strong signal.</div><div class="sc-badge badge-use">Add indicator</div></div>
+            </div>
+            <div class="canvas-card"><div id="scenario-detail" style="padding:20px 24px;min-height:120px;"></div></div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar"><span class="canvas-title" id="scenario-canvas-title">Distribution of target -- by missingness</span></div>
+              <canvas id="scenario-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="scenario-stats"></div>
+            </div>
+          </section>
+
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">&#9881;</div>Model accuracy -- with vs without indicator</h2>
+            <p>Tune the controls and watch the accuracy cards update to show the gain from the indicator.</p>
+            <div class="acc-dashboard">
+              <div class="acc-card"><div class="acc-num" id="ac-without" style="color:#f06060;">--</div><div class="acc-label">Without indicator</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-wo-bar" style="background:#f06060;width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="ac-with" style="color:var(--indigo);">--</div><div class="acc-label">With indicator</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-wi-bar" style="background:var(--indigo);width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="ac-gain" style="color:#3ecf8e;">--</div><div class="acc-label">Accuracy gain</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-gain-bar" style="background:#3ecf8e;width:0%;"></div></div></div>
+              <div class="acc-card"><div class="acc-num" id="ac-mnar-strength" style="color:#fb8c40;">--</div><div class="acc-label">MNAR signal strength</div><div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-mnar-bar" style="background:#fb8c40;width:0%;"></div></div></div>
+            </div>
+            <div class="hp-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:14px;">Experiment Controls -- all metrics update instantly</div>
+              <div class="hp-grid">
+                <div class="hp-row"><div class="hp-label"><span class="hp-name">Missing %</span><span class="hp-val" id="hp-miss-val">20%</span></div><input type="range" min="5" max="60" value="20" step="5" class="ctrl-slider" id="hp-miss" oninput="onHPChange()" style="width:100%;"/><div class="hp-desc">Fraction of rows where the feature is missing.</div></div>
+                <div class="hp-row"><div class="hp-label"><span class="hp-name">MNAR signal strength</span><span class="hp-val" id="hp-signal-val">strong</span></div><input type="range" min="0" max="3" value="2" step="1" class="ctrl-slider" id="hp-signal" oninput="onHPChange()" style="width:100%;"/><div class="hp-desc">How much the target differs between missing and non-missing rows.</div></div>
+                <div class="hp-row"><div class="hp-label"><span class="hp-name">Missing type</span><span class="hp-val" id="hp-type-val" style="color:var(--indigo);">MNAR</span></div><div style="display:flex;gap:6px;margin-top:4px;"><button class="ctrl-btn active" id="t-mnar" onclick="setMissType('MNAR')">MNAR</button><button class="ctrl-btn" id="t-mcar" onclick="setMissType('MCAR')">MCAR</button></div><div class="hp-desc">MNAR = missingness predicts target. MCAR = random noise.</div></div>
+                <div class="hp-row"><div class="hp-label"><span class="hp-name">Imputation strategy</span><span class="hp-val" id="hp-strat-val" style="color:var(--indigo);">mean</span></div><div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;"><button class="ctrl-btn active" id="s-mean" onclick="setStrat('mean')">Mean</button><button class="ctrl-btn" id="s-median" onclick="setStrat('median')">Median</button><button class="ctrl-btn" id="s-zero" onclick="setStrat('zero')">Zero</button></div><div class="hp-desc">Indicator benefit is independent of the imputation strategy chosen.</div></div>
+              </div>
+            </div>
+            <div class="canvas-card">
+              <div class="canvas-toolbar"><span class="canvas-title">Accuracy gain from indicator -- vs missing %</span><button class="ctrl-btn active" onclick="runSweep()">&#9658; Run sweep</button><span style="font-size:12px;color:var(--text-3);margin-left:8px;" id="sweep-status"></span></div>
+              <canvas id="sweep-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <section class="section" id="feature-importance">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--indigo-surf);color:var(--indigo);">&#9733;</div>Feature importance -- how much does the indicator matter?</h2>
+            <p>After fitting a model, inspect which indicator columns the model actually uses. High importance = missingness is strongly predictive.</p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar"><span class="canvas-title">Simulated feature importances -- original vs indicator columns</span><div class="ctrl-group"><span class="ctrl-label">MNAR strength:</span><input type="range" min="0" max="3" value="2" step="1" class="ctrl-slider" id="fi-signal" oninput="redrawFI()" style="width:90px;"/><span class="ctrl-value" id="fi-signal-val" style="color:var(--indigo);">strong</span></div><select class="ctrl-select" id="fi-dataset" onchange="redrawFI()"><option value="medical">Medical data</option><option value="credit">Credit application</option><option value="churn">Churn prediction</option></select></div>
+              <canvas id="fi-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <section class="section" id="math">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#x2211;</div>What MissingIndicator actually does</h2>
+            <div>
+              <div class="derive-step"><div class="derive-num">1</div><div><div class="derive-title">Create a binary column per feature</div><div class="derive-desc">For each feature j with any NaN values, create a boolean column: 1 where original was NaN, 0 everywhere else.</div><div class="derive-formula">indicator_j[i] = 1   if X[i, j] is NaN
+indicator_j[i] = 0   otherwise
+Shape after: (n_samples, n_features + n_missing_features)</div></div></div>
+              <div class="derive-step"><div class="derive-num">2</div><div><div class="derive-title">Shortcut: SimpleImputer(add_indicator=True)</div><div class="derive-desc">The built-in add_indicator parameter imputes AND appends indicators in one transformer. Simplest and most common approach.</div><div class="derive-formula">imp = SimpleImputer(strategy='mean', add_indicator=True)
+imp.fit(X_train)
+X_out = imp.transform(X_train)
+# Access which columns got indicators:
+imp.indicator_.features_</div></div></div>
+              <div class="derive-step"><div class="derive-num">3</div><div><div class="derive-title">Fit on train only -- no leakage risk</div><div class="derive-desc">MissingIndicator.fit() records which columns had NaN in training and adds indicators for those same columns in transform, ensuring consistent feature dimensionality between train and test.</div><div class="derive-formula">mi.fit(X_train)         # learn which cols had NaN
+mi.transform(X_test)    # apply same indicator cols
+# train and test always have the same number of features</div></div></div>
+            </div>
+          </section>
+
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">&#10145;</div>Decision guide -- add indicator or not?</h2>
+            <table class="cmp-table">
+              <thead><tr><th>Situation</th><th>Add indicator?</th><th>Reason</th></tr></thead>
+              <tbody>
+                <tr><td>MNAR: missingness correlates with target</td><td><span class="tag-yes">Yes -- always</span></td><td>Indicator captures signal that imputation erases</td></tr>
+                <tr><td>Patient skips a medical test</td><td><span class="tag-yes">Yes</span></td><td>"Test not ordered" is itself a clinical signal</td></tr>
+                <tr><td>User does not fill in income / salary</td><td><span class="tag-yes">Yes</span></td><td>Disclosure behaviour predicts risk or intent</td></tr>
+                <tr><td>MCAR: sensor randomly drops readings</td><td><span class="tag-mid">Maybe -- low value</span></td><td>Absence is random noise. Model likely ignores it.</td></tr>
+                <tr><td>Tree-based model (RF, XGBoost)</td><td><span class="tag-yes">Yes -- safe to add</span></td><td>Trees ignore uninformative features; no harm in adding</td></tr>
+                <tr><td>Linear model with regularisation</td><td><span class="tag-yes">Yes</span></td><td>L1/L2 will zero-out the indicator if no signal</td></tr>
+                <tr><td>Very few missing values (&lt;0.5%)</td><td><span class="tag-mid">Optional</span></td><td>Too few 1s to learn from; may add noise</td></tr>
+                <tr><td>All features already MCAR confirmed</td><td><span class="tag-no">Skip</span></td><td>Adds columns with no predictive power -- pure noise</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four complete programs -- pandas manual indicators, sklearn MissingIndicator, SimpleImputer with add_indicator, and a full pipeline with feature importance analysis.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">indicator_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#9658; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Adding indicators for MCAR features.</strong> If missingness is random, the indicator column is pure noise. Check whether missingness correlates with the target before adding.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Fitting MissingIndicator on test data.</strong> Always fit on training data only. Using test data creates train/test shape mismatches and leakage.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Adding an indicator but forgetting to also impute.</strong> Use <code>SimpleImputer(add_indicator=True)</code> to do both atomically.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Dropping the indicator after EDA shows low correlation.</strong> Low marginal correlation does not mean useless in combination with others. Let the model decide via regularisation or feature importance.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#10005;</span><div><strong style="color:var(--text-1);">Not naming indicator columns explicitly.</strong> Use <code>imp.indicator_.features_</code> to get the indices and name them <code>col_name + "_was_nan"</code> for readable feature importance plots.</div></div>
+            </div>
+          </section>
+
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#9733;</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>A missing indicator adds a binary column that is 1 where the original feature was NaN -- <strong>preserving the signal that missingness itself is informative</strong>.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use it whenever data is <strong>MNAR</strong> -- when the reason something is missing correlates with the target: medical tests not ordered, financial info not disclosed, user has no history.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The simplest implementation: <code>SimpleImputer(add_indicator=True)</code> -- imputes and adds indicators in one transformer, fit on training data only.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Adding an indicator to MCAR features is <strong>harmless but wasteful</strong> -- regularised models zero it out, tree models ignore it. Add liberally and let the model decide.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always <strong>wrap in a Pipeline</strong>. The imputer must be fit on training data only -- Pipeline ensures consistent fit/transform semantics automatically.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="knn-imputation.html"><span class="pn-dir">&#8592; Previous</span><span class="pn-title">KNN Imputation</span></a>
+            <a class="pn-card next" id="next-card" href="iterative-imputation.html"><span class="pn-dir">Next &#8594;</span><span class="pn-title">Iterative Imputation (MICE)</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Why missingness is a signal</a></li>
+            <li class="toc-item"><a href="#live-builder">Live dataset builder</a></li>
+            <li class="toc-item"><a href="#scenarios">When to use</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Model accuracy</a></li>
+            <li class="toc-item"><a href="#feature-importance">Feature importance</a></li>
+            <li class="toc-item"><a href="#math">How it works</a></li>
+            <li class="toc-item"><a href="#when-to-use">Decision guide</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function arrMean(a){var f=a.filter(function(v){return v!==null;});return f.length?f.reduce(function(s,v){return s+v;},0)/f.length:0;}
+function arrMedian(a){var f=a.filter(function(v){return v!==null;}).slice().sort(function(a,b){return a-b;});var m=Math.floor(f.length/2);return f.length%2===0?(f[m-1]+f[m])/2:f[m];}
+function normalSample(){var u1=Math.random()+1e-10,u2=Math.random();return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);}
+
+/* TRANSFORM GRID */
+var COLS=['Age','Income','Score','BP'];
+var RAW=[[34,72000,88,null],[null,null,71,120],[28,45000,null,118],[45,null,95,null],[31,60000,83,125],[null,55000,null,115],[52,80000,77,null],[38,null,90,122]];
+var transformAnimating=false;
+
+function resetTransform(){transformAnimating=false;renderTransformGrid(0,[]);}
+async function animateTransform(){
+  if(transformAnimating)return;transformAnimating=true;
+  var colsWithNaN=[];
+  COLS.forEach(function(c,j){if(RAW.some(function(r){return r[j]===null;}))colsWithNaN.push(j);});
+  var revealed=[];
+  for(var ci=0;ci<colsWithNaN.length;ci++){if(!transformAnimating)return;revealed.push(colsWithNaN[ci]);renderTransformGrid(ci+1,revealed);await delay(700);}
+  transformAnimating=false;
+}
+function renderTransformGrid(step,revealed){
+  var totalCols=COLS.length+revealed.length+1;
+  var html='<div class="df-grid" style="grid-template-columns:repeat('+totalCols+',auto);">';
+  html+='<div class="df-cell header">#</div>';
+  COLS.forEach(function(lbl){html+='<div class="df-cell header">'+lbl+'</div>';});
+  revealed.forEach(function(j){html+='<div class="df-cell header" style="color:var(--indigo);">'+COLS[j]+'_nan</div>';});
+  RAW.forEach(function(row,ri){
+    html+='<div class="df-cell header" style="color:var(--text-3);">'+(ri+1)+'</div>';
+    row.forEach(function(val,ci){
+      var isNaN_=val===null;
+      var cls='df-cell'+(isNaN_?(step===0?' nan':' imputed'):'');
+      html+='<div class="'+cls+'">'+(isNaN_?(step>0?'~mean':'NaN'):val)+'</div>';
+    });
+    revealed.forEach(function(j){var isOne=row[j]===null;html+='<div class="df-cell '+(isOne?'indicator-1':'indicator-0')+'">'+(isOne?'1':'0')+'</div>';});
+  });
+  html+='</div>';
+  C('transform-grid-wrap').innerHTML=html;
+}
+
+/* BUILDER */
+var builderData=[{age:34,income:72000,score:88,bp:null,target:1},{age:null,income:null,score:71,bp:120,target:0},{age:28,income:45000,score:null,bp:118,target:1},{age:45,income:null,score:95,bp:null,target:1},{age:31,income:60000,score:83,bp:125,target:0},{age:null,income:55000,score:null,bp:115,target:0},{age:52,income:80000,score:77,bp:null,target:1},{age:38,income:null,score:90,bp:122,target:0}];
+var builderKeys=['age','income','score','bp'];
+function resetBuilderData(){builderData=[{age:34,income:72000,score:88,bp:null,target:1},{age:null,income:null,score:71,bp:120,target:0},{age:28,income:45000,score:null,bp:118,target:1},{age:45,income:null,score:95,bp:null,target:1},{age:31,income:60000,score:83,bp:125,target:0},{age:null,income:55000,score:null,bp:115,target:0},{age:52,income:80000,score:77,bp:null,target:1},{age:38,income:null,score:90,bp:122,target:0}];rebuildTable();}
+function getImputedVal(col,val){
+  var strat=C('builder-strategy').value;if(val!==null)return val;
+  var obs=builderData.map(function(r){return r[col];}).filter(function(v){return v!==null;});
+  if(!obs.length)return 0;
+  if(strat==='mean')return parseFloat(arrMean(obs).toFixed(1));
+  if(strat==='median')return parseFloat(arrMedian(obs).toFixed(1));
+  return 0;
+}
+function toggleCell(ri,col){
+  var cur=builderData[ri][col];
+  if(cur===null){var obs=builderData.map(function(r){return r[col];}).filter(function(v){return v!==null;});builderData[ri][col]=obs.length?Math.round(arrMean(obs)):50;}
+  else{builderData[ri][col]=null;}
+  rebuildTable();
+}
+function rebuildTable(){
+  var show=C('builder-show').value;
+  var colsWithNaN=builderKeys.filter(function(k){return builderData.some(function(r){return r[k]===null;});});
+  var showIndicators=show==='both'||show==='indicators';
+  var showData=show!=='indicators';
+  var colDefs=[];
+  if(showData)builderKeys.forEach(function(k){colDefs.push({key:k,label:k,type:'data'});});
+  if(showIndicators)colsWithNaN.forEach(function(k){colDefs.push({key:k+'_nan',label:k+'_nan',type:'indicator'});});
+  var html='<div class="df-grid" style="grid-template-columns:repeat('+(colDefs.length+2)+',auto);">';
+  html+='<div class="df-cell header">#</div><div class="df-cell header">target</div>';
+  colDefs.forEach(function(cd){html+='<div class="df-cell header" style="'+(cd.type==='indicator'?'color:var(--indigo);':'')+'">'+cd.label+'</div>';});
+  builderData.forEach(function(row,ri){
+    html+='<div class="df-cell header" style="color:var(--text-3);">'+(ri+1)+'</div>';
+    html+='<div class="df-cell" style="color:var(--green);">'+row.target+'</div>';
+    colDefs.forEach(function(cd){
+      if(cd.type==='indicator'){var orig=cd.key.replace('_nan','');var isOne=row[orig]===null;html+='<div class="df-cell '+(isOne?'indicator-1':'indicator-0')+'">'+(isOne?'1':'0')+'</div>';}
+      else{var isNaN_=row[cd.key]===null;if(show==='original'){html+='<div class="df-cell '+(isNaN_?'nan':'')+'" onclick="toggleCell('+ri+',\''+cd.key+'\',)" style="cursor:pointer;">'+(isNaN_?'NaN':row[cd.key])+'</div>';}
+      else{html+='<div class="df-cell '+(isNaN_?'imputed':'')+'" onclick="toggleCell('+ri+',\''+cd.key+'\',)" style="cursor:pointer;">'+getImputedVal(cd.key,row[cd.key])+'</div>';}}
+    });
+  });
+  html+='</div>';
+  C('builder-table-wrap').innerHTML=html;
+  var totalNaN=builderKeys.reduce(function(s,k){return s+builderData.filter(function(r){return r[k]===null;}).length;},0);
+  var totalCells=builderKeys.length*builderData.length;
+  C('builder-stats').innerHTML='<div class="stat-pill"><span class="stat-pill-val" style="color:#f06060;">'+totalNaN+'</span><span class="stat-pill-lbl">NaN cells</span></div><div class="stat-pill"><span class="stat-pill-val" style="color:var(--indigo);">'+colsWithNaN.length+'</span><span class="stat-pill-lbl">Indicator cols</span></div><div class="stat-pill"><span class="stat-pill-val" style="color:var(--text-2);">'+(totalCells-totalNaN)+'</span><span class="stat-pill-lbl">Complete cells</span></div><div class="stat-pill"><span class="stat-pill-val" style="color:#fb8c40;">'+(totalNaN/totalCells*100).toFixed(0)+'%</span><span class="stat-pill-lbl">Missing rate</span></div>';
+}
+
+/* SCENARIOS */
+var currentScenario='mnar';
+var SCENARIOS={
+  mnar:{title:'MNAR -- Medical Test Skipped',desc:'A blood glucose test is missing for 22% of patients. Doctor did not order it because patient looked healthy. <strong>Missing glucose = probably normal</strong>. Patients without the test have significantly lower diabetes risk.',signal:'strong',addIndicator:true,distA:[5.0,5.1,4.9,5.2,5.0,4.8,5.3,5.1,4.9,5.0],distB:[6.8,7.2,8.1,6.5,9.2,7.8,8.5,6.9,7.5,8.0],labelA:'Missing (not tested)',labelB:'Present (was tested)',outcome:'Diabetes risk (HbA1c)',icon:'&#127973;'},
+  income:{title:'MNAR -- Salary Not Disclosed',desc:'18% of loan applicants left the salary field blank. <strong>High earners are over-represented in the missing group</strong>. Missing salary positively correlates with loan repayment.',signal:'moderate',addIndicator:true,distA:[0.92,0.88,0.95,0.90,0.93,0.87,0.91,0.94,0.89,0.96],distB:[0.72,0.68,0.75,0.70,0.78,0.65,0.74,0.71,0.69,0.77],labelA:'Missing salary',labelB:'Salary provided',outcome:'Loan repayment rate',icon:'&#128176;'},
+  mcar:{title:'MCAR -- Random Sensor Failure',desc:'A temperature sensor randomly fails to record 3% of readings due to a firmware bug. <strong>The probability of missingness is completely independent of the temperature value</strong>. Adding an indicator here is unlikely to help.',signal:'none',addIndicator:false,distA:[20.1,19.8,20.3,20.0,19.9,20.2,20.1,19.7,20.4,20.0],distB:[20.0,19.9,20.1,20.2,19.8,20.3,20.0,19.7,20.2,20.1],labelA:'Missing temperature',labelB:'Present temperature',outcome:'Equipment failure rate',icon:'&#127922;'},
+  purchase:{title:'MNAR -- No Purchase History',desc:'New users have no past purchase data. This is not random -- <strong>being new to the platform is highly predictive</strong> of lower conversion rates and different product preferences.',signal:'strong',addIndicator:true,distA:[0.12,0.08,0.15,0.10,0.09,0.14,0.11,0.13,0.07,0.16],distB:[0.48,0.52,0.45,0.55,0.50,0.47,0.53,0.49,0.51,0.46],labelA:'No history (new user)',labelB:'Has purchase history',outcome:'30-day conversion rate',icon:'&#128722;'}
+};
+function selectScenario(id){
+  currentScenario=id;
+  ['mnar','income','mcar','purchase'].forEach(function(k){C('sc-'+k).classList.toggle('active',k===id);});
+  renderScenario(id);
+}
+function renderScenario(id){
+  var sc=SCENARIOS[id];
+  var signalColor=sc.signal==='strong'?'#3ecf8e':sc.signal==='moderate'?'#fb8c40':'#f06060';
+  C('scenario-detail').innerHTML='<div style="display:flex;align-items:flex-start;gap:16px;"><div style="font-size:28px;margin-top:2px;">'+sc.icon+'</div><div><h3 style="font-family:var(--font-display);font-size:15px;font-weight:700;margin:0 0 8px;">'+sc.title+'</h3><p style="font-size:13.5px;color:var(--text-2);line-height:1.65;margin:0 0 10px;">'+sc.desc+'</p><span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:100px;background:'+(sc.addIndicator?'var(--green-surf)':'var(--red-surf)')+';color:'+(sc.addIndicator?'var(--green)':'var(--red)')+'">'+(sc.addIndicator?'Add missing indicator':'Indicator unlikely to help')+'</span><span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:100px;background:rgba(255,255,255,0.06);color:'+signalColor+';margin-left:8px;">Signal: '+sc.signal+'</span></div></div>';
+  C('scenario-canvas-title').textContent='Distribution: '+sc.outcome+' -- missing vs present';
+  drawScenarioCanvas(sc);
+  var muA=sc.distA.reduce(function(s,v){return s+v;},0)/sc.distA.length;
+  var muB=sc.distB.reduce(function(s,v){return s+v;},0)/sc.distB.length;
+  var denom=Math.abs(muA+muB)/2||1;
+  var diff=((muA-muB)/denom*100).toFixed(1);
+  C('scenario-stats').innerHTML='<div class="stat-pill"><span class="stat-pill-val" style="color:var(--indigo);font-size:14px;">'+muA.toFixed(2)+'</span><span class="stat-pill-lbl">Missing mean</span></div><div class="stat-pill"><span class="stat-pill-val" style="color:#2dd4bf;font-size:14px;">'+muB.toFixed(2)+'</span><span class="stat-pill-lbl">Present mean</span></div><div class="stat-pill"><span class="stat-pill-val" style="color:#fb8c40;font-size:14px;">'+(parseFloat(diff)>=0?'+':'')+diff+'%</span><span class="stat-pill-lbl">Mean diff</span></div><div class="stat-pill"><span class="stat-pill-val" style="color:'+(Math.abs(parseFloat(diff))>5?'#3ecf8e':'#f06060')+';">'+(Math.abs(parseFloat(diff))>5?'Informative':'No signal')+'</span><span class="stat-pill-lbl">Indicator value</span></div>';
+}
+function drawScenarioCanvas(sc){
+  var cv=C('scenario-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var allVals=sc.distA.concat(sc.distB);
+  var vMin=Math.min.apply(null,allVals),vMax=Math.max.apply(null,allVals);
+  var margin=Math.max((vMax-vMin)*0.2,0.05);vMin-=margin;vMax+=margin;
+  var pad={l:70,r:20,t:30,b:55};
+  var halfW=(W-pad.l-pad.r)/2;
+  function toY(v){return H-pad.b-(v-vMin)/(vMax-vMin)*(H-pad.t-pad.b);}
+  // Y grid
+  for(var gi=0;gi<=4;gi++){
+    var gv=vMin+gi*(vMax-vMin)/4,gy=toY(gv);
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,gy);ctx.lineTo(W-pad.r,gy);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText(gv.toFixed(2),pad.l-4,gy+4);
+  }
+  ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(sc.outcome,0,0);ctx.restore();
+  function drawStrip(ox,vals,label,color){
+    var mu=vals.reduce(function(s,v){return s+v;},0)/vals.length;
+    var myY=toY(mu);
+    ctx.beginPath();ctx.moveTo(ox+5,myY);ctx.lineTo(ox+halfW-22,myY);
+    ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=color;ctx.font='bold 11px monospace';ctx.textAlign='right';ctx.fillText('u='+mu.toFixed(2),ox+halfW-4,myY-5);
+    vals.forEach(function(v,i){
+      var jitter=(i%5-2)*7,px=ox+halfW/2+jitter,py=toY(v);
+      ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.fillStyle=color+'40';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+    });
+    ctx.fillStyle=color;ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(label,ox+halfW/2,H-pad.b+16);
+    ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.fillText('n='+vals.length,ox+halfW/2,H-pad.b+30);ctx.textAlign='start';
+  }
+  drawStrip(pad.l,sc.distA,sc.labelA,'#6366f1');
+  drawStrip(pad.l+halfW+16,sc.distB,sc.labelB,'#2dd4bf');
+  ctx.strokeStyle=gc();ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l+halfW+8,pad.t);ctx.lineTo(pad.l+halfW+8,H-pad.b);ctx.stroke();
+}
+
+/* HP TUNING */
+var hpStrat='mean',hpMissType='MNAR';var sweepData=null;
+function setStrat(s){hpStrat=s;C('hp-strat-val').textContent=s;['mean','median','zero'].forEach(function(k){C('s-'+k).classList.toggle('active',k===s);});onHPChange();}
+function setMissType(t){hpMissType=t;C('hp-type-val').textContent=t;['mnar','mcar'].forEach(function(k){C('t-'+k).classList.toggle('active',k===t.toLowerCase());});onHPChange();}
+function simulateModel(missPct,signalStr,missType){
+  var n=300,nMiss=Math.round(n*missPct/100);var X=[],y=[];
+  for(var i=0;i<n;i++){var x1=50+10*normalSample(),x2=30+5*normalSample();X.push({x1:x1,x2:x2});y.push(x1*0.3+x2*0.5+5*normalSample());}
+  var missIdx=[];
+  if(missType==='MNAR'){var sorted=X.map(function(r,i){return{i:i,v:y[i]};}).sort(function(a,b){return b.v-a.v;});for(var k=0;k<nMiss;k++)missIdx.push(sorted[k].i);}
+  else{while(missIdx.length<nMiss){var idx=Math.floor(Math.random()*n);if(!missIdx.includes(idx))missIdx.push(idx);}}
+  var meanX1=X.reduce(function(s,r){return s+r.x1;},0)/n;
+  function trainLinReg(feats,tgt){var n2=feats.length,sx=0,sy=0,sxy=0,sxx=0;feats.forEach(function(x,i){sx+=x;sy+=tgt[i];sxy+=x*tgt[i];sxx+=x*x;});var d=n2*sxx-sx*sx;var m=d?(n2*sxy-sx*sy)/d:0;var b=(sy-m*sx)/n2;return function(x){return m*x+b;};}
+  var X1NoInd=X.map(function(r,i){return missIdx.includes(i)?meanX1:r.x1;});
+  var predNoInd=trainLinReg(X1NoInd,y);var ssRes=0,ssTot=0,yMean=y.reduce(function(s,v){return s+v;},0)/n;
+  X1NoInd.forEach(function(x,i){ssRes+=(y[i]-predNoInd(x))*(y[i]-predNoInd(x));ssTot+=(y[i]-yMean)*(y[i]-yMean);});
+  var r2NoInd=1-ssRes/(ssTot||1);
+  var signalMult=missType==='MNAR'?([0,0.5,1.5,3][signalStr]||1):0;
+  var indCol=X.map(function(r,i){return missIdx.includes(i)?signalMult:0;});
+  var ssRes2=0;var predWithInd=trainLinReg(indCol,y);indCol.forEach(function(x,i){ssRes2+=(y[i]-predWithInd(x))*(y[i]-predWithInd(x));});
+  var r2WithInd=Math.max(r2NoInd,1-ssRes2/(ssTot||1));
+  if(missType==='MCAR')r2WithInd=r2NoInd+(Math.random()-0.5)*0.01;
+  return{without:Math.max(0,Math.min(1,r2NoInd)),with:Math.max(0,Math.min(1,r2WithInd)),gain:r2WithInd-r2NoInd,signalStr:signalStr};
+}
+function onHPChange(){
+  var miss=parseInt(C('hp-miss').value),sig=parseInt(C('hp-signal').value);
+  C('hp-miss-val').textContent=miss+'%';C('hp-signal-val').textContent=['none','weak','moderate','strong'][sig];
+  var res=simulateModel(miss,sig,hpMissType);
+  C('ac-without').textContent=(res.without*100).toFixed(0)+'%';C('ac-with').textContent=(res.with*100).toFixed(0)+'%';
+  var gainPct=res.gain*100;C('ac-gain').textContent=(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%';
+  C('ac-gain').style.color=gainPct>1?'#3ecf8e':gainPct>0?'#fb8c40':'#f06060';
+  C('ac-mnar-strength').textContent=['None','Weak','Moderate','Strong'][sig];
+  C('ac-wo-bar').style.width=(res.without*100)+'%';C('ac-wi-bar').style.width=(res.with*100)+'%';
+  C('ac-gain-bar').style.width=Math.min(100,Math.abs(gainPct)*5)+'%';C('ac-mnar-bar').style.width=[0,25,60,100][sig]+'%';
+}
+async function runSweep(){
+  C('sweep-status').textContent='Running...';sweepData=[];var sig=parseInt(C('hp-signal').value);
+  var missVals=[5,10,15,20,25,30,40,50,60];
+  for(var mi=0;mi<missVals.length;mi++){var res=simulateModel(missVals[mi],sig,hpMissType);sweepData.push({miss:missVals[mi],without:res.without,with:res.with});drawSweepCanvas();await delay(80);}
+  C('sweep-status').textContent='Done';
+}
+function drawSweepCanvas(){
+  if(!sweepData||!sweepData.length)return;
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');var W=cv.width,H=cv.height,pad={l:45,r:20,t:14,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var toX=function(m){return pad.l+(m-5)/55*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-Math.max(0,v)*(H-pad.t-pad.b);};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.25,.5,.75,1].forEach(function(v){ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);});
+  [5,10,15,20,25,30,40,50,60].forEach(function(m){ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(m+'%',toX(m),H-pad.b+14);});
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Missing %',W/2,H-2);
+  ctx.beginPath();sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.miss),toY(d.without)):ctx.lineTo(toX(d.miss),toY(d.without));});
+  ctx.strokeStyle='#f06060';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.miss),toY(d.with)):ctx.lineTo(toX(d.miss),toY(d.with));});
+  ctx.strokeStyle='#6366f1';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.miss),toY(d.with)):ctx.lineTo(toX(d.miss),toY(d.with));});
+  sweepData.slice().reverse().forEach(function(d){ctx.lineTo(toX(d.miss),toY(d.without));});
+  ctx.closePath();ctx.fillStyle='rgba(99,102,241,0.12)';ctx.fill();
+  sweepData.forEach(function(d){ctx.beginPath();ctx.arc(toX(d.miss),toY(d.without),4,0,Math.PI*2);ctx.fillStyle='#f06060';ctx.fill();ctx.beginPath();ctx.arc(toX(d.miss),toY(d.with),4,0,Math.PI*2);ctx.fillStyle='#6366f1';ctx.fill();});
+  ctx.strokeStyle='#f06060';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.beginPath();ctx.moveTo(pad.l+10,pad.t+8);ctx.lineTo(pad.l+30,pad.t+8);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Without indicator',pad.l+34,pad.t+12);
+  ctx.strokeStyle='#6366f1';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(pad.l+160,pad.t+8);ctx.lineTo(pad.l+180,pad.t+8);ctx.stroke();
+  ctx.fillText('With indicator',pad.l+184,pad.t+12);ctx.textAlign='start';
+}
+
+/* FEATURE IMPORTANCE */
+var FI_DATA={medical:{features:['glucose','bmi','age','blood_pressure','insulin','skin_thickness'],importance:[0.28,0.22,0.15,0.10,0.08,0.06],indicatorImportance:[0.20,0.05,0.01,0.08,0.12,0.02]},credit:{features:['income','credit_score','loan_amount','employment_years','debt_ratio','collateral'],importance:[0.30,0.25,0.18,0.12,0.08,0.04],indicatorImportance:[0.22,0.03,0.01,0.10,0.05,0.08]},churn:{features:['last_login','num_sessions','avg_order','support_tickets','days_since_purchase','plan_type'],importance:[0.26,0.22,0.18,0.14,0.10,0.06],indicatorImportance:[0.18,0.04,0.12,0.02,0.15,0.01]}};
+function redrawFI(){
+  var sig=parseInt(C('fi-signal').value),ds=C('fi-dataset').value;
+  C('fi-signal-val').textContent=['none','weak','moderate','strong'][sig];
+  var data=FI_DATA[ds],scaleFactor=[0,0.3,0.7,1][sig];
+  var cv=C('fi-canvas'),ctx=cv.getContext('2d');var W=cv.width,H=cv.height,pad={l:160,r:60,t:30,b:20};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var n=data.features.length;
+  var allFeats=data.features.concat(data.features.map(function(f){return f+'_nan';}));
+  var allImp=data.importance.concat(data.indicatorImportance.map(function(v){return v*scaleFactor;}));
+  var maxImp=Math.max.apply(null,allImp)||0.01,rowH=(H-pad.t-pad.b)/allFeats.length;
+  allFeats.forEach(function(feat,i){
+    var imp=allImp[i],isIndicator=i>=n,y=pad.t+i*rowH;
+    var barW=(imp/maxImp)*(W-pad.l-pad.r),col=isIndicator?'#6366f1':'rgba(45,212,191,0.9)';
+    ctx.fillStyle=tc();ctx.font=(isIndicator?'italic ':'')+'12px sans-serif';ctx.textAlign='right';ctx.fillText(feat,pad.l-8,y+rowH/2+4);
+    ctx.fillStyle=bgIn();ctx.fillRect(pad.l,y+3,W-pad.l-pad.r,rowH-6);
+    if(barW>0){ctx.fillStyle=col;ctx.fillRect(pad.l,y+3,barW,rowH-6);}
+    ctx.fillStyle=isDark()?'#f2f0ec':'#1a1916';ctx.font='bold 11px monospace';ctx.textAlign='left';ctx.fillText((imp*100).toFixed(1)+'%',pad.l+barW+6,y+rowH/2+4);
+    if(i===n){ctx.strokeStyle='rgba(99,102,241,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(0,y-2);ctx.lineTo(W,y-2);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(99,102,241,0.7)';ctx.font='bold 10px sans-serif';ctx.textAlign='right';ctx.fillText('original above / indicators below',W-pad.r,y-5);}
+    ctx.textAlign='start';
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Feature Importance (simulated)',pad.l+(W-pad.l-pad.r)/2,pad.t-8);ctx.textAlign='start';
+}
+
+/* EDITOR */
+var SNIPPETS=[
+{file:'indicator_basics.py',label:'Pandas manual',code:'import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    \'age\':[34,np.nan,28,45,31,np.nan,52,38],\n    \'income\':[72000,np.nan,45000,np.nan,60000,55000,80000,np.nan],\n    \'score\':[88,71,np.nan,95,83,np.nan,77,90],\n    \'target\':[1,0,1,1,0,0,1,0]\n})\nprint("Original:")\nprint(df.to_string())\nprint()\ndf_out=df.copy()\nfor col in [\'age\',\'income\',\'score\']:\n    df_out[col+\'_was_nan\']=df[col].isna().astype(int)\n    df_out[col]=df[col].fillna(df[col].mean())\nprint("With indicators + imputed:")\nprint(df_out.round(1).to_string())\nprint()\nfor col in [\'age\',\'income\',\'score\']:\n    corr=df_out[col+\'_was_nan\'].corr(df_out[\'target\'])\n    print(f"{col}_was_nan corr with target: {corr:+.3f}  "+("<- informative!" if abs(corr)>0.1 else "<- low signal"))\n'},
+{file:'indicator_sklearn.py',label:'sklearn MissingIndicator',code:'import numpy as np\nimport pandas as pd\nfrom sklearn.impute import MissingIndicator, SimpleImputer\n\nX=np.array([[34,72000,88],[np.nan,np.nan,71],[28,45000,np.nan],[45,np.nan,95],[31,60000,83],[np.nan,55000,np.nan],[52,80000,77],[38,np.nan,90]],dtype=float)\nfeature_names=[\'age\',\'income\',\'score\']\n\nimp=SimpleImputer(strategy=\'mean\',add_indicator=True)\nimp.fit(X)\nX_out=imp.transform(X)\nprint(f"Input shape: {X.shape}")\nprint(f"Output shape: {X_out.shape}")\nprint()\nprint("Indicator columns added for:")\nfor idx in imp.indicator_.features_:\n    print(f"  col {idx} ({feature_names[idx]}) -> \'{feature_names[idx]}_was_nan\'")\nall_cols=feature_names+[feature_names[i]+\'_was_nan\' for i in imp.indicator_.features_]\nprint()\nprint("First 4 rows:")\nprint(pd.DataFrame(X_out[:4],columns=all_cols).round(1).to_string())\n'},
+{file:'indicator_pipeline.py',label:'Full Pipeline',code:'import numpy as np\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.ensemble import GradientBoostingClassifier\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.model_selection import train_test_split, cross_val_score\n\nnp.random.seed(0)\nn=500\nage=np.random.normal(55,15,n)\nseverity=np.random.normal(0,1,n)\nlab_test=np.where(severity<0.5,np.nan,severity*10+np.random.normal(0,2,n))\nother=np.random.normal(0,1,(n,3))\nX=np.column_stack([age,lab_test,other])\ny=(severity>0.3).astype(int)\nprint(f"Lab test missing rate: {np.isnan(X[:,1]).mean():.1%}")\nX_tr,X_te,y_tr,y_te=train_test_split(X,y,test_size=0.2,stratify=y,random_state=42)\nfor add_ind in [False,True]:\n    pipe=Pipeline([(\' imp\',SimpleImputer(strategy=\'mean\',add_indicator=add_ind)),(\'sc\',StandardScaler()),(\'clf\',GradientBoostingClassifier(n_estimators=100,random_state=42))])\n    cv=cross_val_score(pipe,X_tr,y_tr,cv=5,scoring=\'roc_auc\')\n    pipe.fit(X_tr,y_tr)\n    te=pipe.score(X_te,y_te)\n    label="With indicator   " if add_ind else "Without indicator"\n    print(f"{label}  CV AUC={cv.mean():.4f}+/-{cv.std():.4f}  Test acc={te:.4f}")\n'},
+{file:'indicator_importance.py',label:'Feature importance',code:'import numpy as np\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import train_test_split\n\nnp.random.seed(42)\nn=400\nglucose=np.random.normal(100,20,n)\nbmi=np.random.normal(27,5,n)\nage=np.random.randint(20,80,n).astype(float)\nbp=np.random.normal(80,15,n)\ny=(glucose*0.3+bmi*0.5+np.random.normal(0,5,n)>50).astype(int)\nX=np.column_stack([glucose,bmi,age,bp])\nfeature_names=[\'glucose\',\'bmi\',\'age\',\'bp\']\nmnar_mask=np.random.random(n)<(0.3-glucose*0.001).clip(0,0.5)\nX[mnar_mask,0]=np.nan\nprint(f"Glucose missing rate: {mnar_mask.mean():.1%}  (MNAR)")\nX_tr,X_te,y_tr,y_te=train_test_split(X,y,test_size=0.2,stratify=y)\nimp=SimpleImputer(strategy=\'mean\',add_indicator=True)\nX_tr_t=imp.fit_transform(X_tr);X_te_t=imp.transform(X_te)\nindicator_cols=[feature_names[i]+\'_was_nan\' for i in imp.indicator_.features_]\nall_cols=feature_names+indicator_cols\nclf=RandomForestClassifier(n_estimators=200,random_state=42)\nclf.fit(X_tr_t,y_tr)\nprint(f"\\nTest accuracy: {clf.score(X_te_t,y_te):.4f}")\nprint()\nprint("Feature importances:")\nfi=sorted(zip(all_cols,clf.feature_importances_),key=lambda x:x[1],reverse=True)\nfor name,imp_val in fi:\n    bar=chr(9608)*int(imp_val*60)\n    marker="  <- INDICATOR" if "_was_nan" in name else ""\n    print(f"  {name:<22} {imp_val:.4f}  {bar}{marker}")\n'}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';var t0=Date.now();
+  if(!pyodide){var st=C('py-status');st.textContent='Loading...';
+    try{if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','pandas','scikit-learn']);pyLoading=false;}else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}st.textContent='Ready';st.className='py-status ready';}
+    catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}}
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='Run';
+}
+
+window.addEventListener('load',function(){
+  renderTransformGrid(0,[]);
+  rebuildTable();
+  selectScenario('mnar');
+  onHPChange();
+  redrawFI();
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+  new MutationObserver(function(){rebuildTable();renderScenario(currentScenario);drawSweepCanvas();redrawFI();if(cmEditor)cmEditor.refresh();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

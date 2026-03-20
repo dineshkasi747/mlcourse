@@ -1,1 +1,1009 @@
 <!-- embedded-methods.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Embedded Methods — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,140,64,0.09),rgba(240,165,0,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(251,140,64,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .method-tab-bar{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+    .method-tab{padding:8px 20px;background:var(--bg-card);border:2px solid var(--border);border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .method-tab.active{color:#000;}
+    .method-tab:hover{border-color:var(--border-hi);}
+    .fi-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+    .fi-label{width:140px;font-size:12px;color:var(--text-2);text-align:right;flex-shrink:0;font-family:var(--font-mono);}
+    .fi-track{flex:1;height:26px;background:var(--bg-input);border-radius:4px;overflow:hidden;position:relative;}
+    .fi-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;padding:0 10px;}
+    .fi-val{width:60px;font-family:var(--font-mono);font-size:12px;color:var(--text-1);text-align:right;flex-shrink:0;}
+    .fi-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-left:4px;flex-shrink:0;white-space:nowrap;}
+    .algo-step{display:flex;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;transition:border-color .2s;margin-bottom:12px;}
+    .algo-step:hover{border-color:rgba(251,140,64,0.4);}
+    .algo-step-num{width:38px;height:38px;border-radius:50%;background:var(--orange-surf);border:2px solid var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--orange);flex-shrink:0;margin-top:2px;}
+    .algo-step-body{flex:1;min-width:0;}
+    .algo-step-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:100px;background:var(--orange-surf);color:var(--orange);margin-bottom:7px;letter-spacing:.04em;}
+    .algo-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .algo-step-desc{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:10px;}
+    .algo-step-formula{background:var(--bg-input);border:1px solid var(--border-md);border-left:4px solid var(--orange);border-radius:0 var(--r-md) var(--r-md) 0;padding:12px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;color:var(--text-1);overflow-x:auto;white-space:pre;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--orange);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.method-tab-bar{gap:4px;}}
+  </style>
+</head>
+<body data-topic-id="embedded-methods">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Embedded Methods</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Feature Selection</a><span class="sep">/</span>
+            <span class="current">Embedded Methods</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="background:rgba(251,140,64,0.12);border:1px solid rgba(251,140,64,0.3);color:var(--orange);margin-bottom:14px;border-radius:100px;padding:4px 14px;font-size:12px;font-weight:700;display:inline-block;">Phase 5 &middot; Feature Selection</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Embedded Methods</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Feature selection happens <em>during</em> model training — not before or after. Lasso drives irrelevant coefficients to exactly zero. Tree models compute importance at every split. The best of both worlds: selection + modelling in one step.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">25 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">sklearn &middot; numpy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: LASSO REGULARISATION PATH -->
+          <section class="section" id="lasso-path">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">L1</div>
+              Lasso regularisation path &mdash; watch coefficients shrink to zero
+            </h2>
+            <p>Lasso adds an L1 penalty &lambda;&Sigma;|w| to the loss. As &lambda; increases, coefficients of irrelevant features are driven to <strong>exactly zero</strong>, effectively removing them. Drag the slider to move along the path.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Lasso coefficient path (log &lambda; axis)</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">&lambda; strength:</span>
+                  <input type="range" min="0" max="100" value="25" class="ctrl-slider" id="lasso-alpha" style="width:130px;" oninput="updateLassoPath(this.value)"/>
+                  <span class="ctrl-value" id="lasso-alpha-val" style="color:var(--orange);">&lambda; = 0.01</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="lasso-dataset" onchange="buildLassoPath()">
+                    <option value="regression">Regression</option>
+                    <option value="classification">Classification (LogReg)</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="buildLassoPath()">Regenerate</button>
+              </div>
+              <canvas id="lasso-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="lasso-nonzero" style="color:var(--orange);">-</span><span class="stat-pill-lbl">Non-zero coefs</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lasso-zeroed" style="color:var(--red);">-</span><span class="stat-pill-lbl">Zeroed out</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lasso-alpha-display">-</span><span class="stat-pill-lbl">&lambda; value</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lasso-sparsity">-</span><span class="stat-pill-lbl">Sparsity</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lasso-top-feat" style="font-size:12px;color:var(--orange);">-</span><span class="stat-pill-lbl">Largest coef</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Why L1 creates sparsity but L2 doesn't:</strong> L1 penalty has a "corner" at zero in every dimension — the gradient of |w| is discontinuous at 0. This makes the optimum land exactly at zero for unimportant features. L2 (Ridge) has a smooth penalty that shrinks towards zero but never reaches it.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 2: TREE IMPORTANCE EXPLORER -->
+          <section class="section" id="tree-importance">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">RF</div>
+              Tree-based importance &mdash; three methods compared
+            </h2>
+            <p>Tree models provide three distinct importance measures. Switch between them — they tell very different stories. <strong>Permutation importance</strong> is the most reliable for model selection.</p>
+
+            <div class="method-tab-bar">
+              <button class="method-tab active" id="mt-impurity" onclick="selectTreeMethod('impurity')" style="background:rgba(62,207,142,0.15);border-color:var(--green);color:var(--green);">Impurity (MDI)</button>
+              <button class="method-tab" id="mt-permutation" onclick="selectTreeMethod('permutation')">Permutation</button>
+              <button class="method-tab" id="mt-shap" onclick="selectTreeMethod('shap')">SHAP values</button>
+            </div>
+
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+                <div>
+                  <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);" id="tree-method-title">Impurity-based importance (MDI)</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:2px;" id="tree-method-desc">Total reduction in node impurity weighted by samples — fast but biased toward high-cardinality features</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="font-size:12px;color:var(--text-3);">Dataset:</span>
+                  <select class="ctrl-select" id="tree-dataset" onchange="selectTreeMethod(currentTreeMethod)">
+                    <option value="cancer">Breast cancer</option>
+                    <option value="diabetes">Diabetes</option>
+                    <option value="synthetic">Synthetic (known truth)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:16px;" id="tree-bars"></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+              <div style="background:var(--bg-card);border:2px solid rgba(62,207,142,0.4);border-radius:var(--r-lg);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px;">Impurity (MDI)</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.6;">Fast to compute. Biased toward high-cardinality &amp; continuous features. Can overestimate importance of noisy features. Available from model.feature_importances_.</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(75,150,255,0.4);border-radius:var(--r-lg);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px;">Permutation</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.6;">Shuffles each feature and measures performance drop. Unbiased, works on any model. Slower. Correlated features share importance. Use on validation set for honest estimate.</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(240,165,0,0.4);border-radius:var(--r-lg);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;">SHAP values</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.6;">Shapley values from game theory. Shows direction + magnitude per sample. Most informative. Gold standard for interpretability. Handles interactions &amp; correlated features correctly.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: LASSO vs RIDGE LIVE -->
+          <section class="section" id="l1-vs-l2">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">L</div>
+              L1 vs L2 — why Lasso creates sparsity and Ridge doesn&apos;t
+            </h2>
+            <p>Click on the canvas to place the loss function minimum. Watch how L1 (Lasso) and L2 (Ridge) constraint regions interact differently with the loss contours — L1's diamond corner touches the axes, L2's circle rarely does.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">L1 vs L2 constraint geometry — click to move loss minimum</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Constraint strength:</span>
+                  <input type="range" min="10" max="90" value="50" class="ctrl-slider" id="constraint-strength" style="width:110px;" oninput="drawL1L2(this.value)"/>
+                </div>
+                <button class="ctrl-btn" onclick="drawL1L2(document.getElementById('constraint-strength').value)">Reset point</button>
+              </div>
+              <canvas id="l1l2-canvas" width="700" height="320" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="l1-w1" style="color:var(--orange);">-</span><span class="stat-pill-lbl">Lasso w1</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="l1-w2" style="color:var(--orange);">-</span><span class="stat-pill-lbl">Lasso w2</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="l2-w1" style="color:var(--blue);">-</span><span class="stat-pill-lbl">Ridge w1</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="l2-w2" style="color:var(--blue);">-</span><span class="stat-pill-lbl">Ridge w2</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="l1-sparse" style="font-size:12px;color:var(--orange);">-</span><span class="stat-pill-lbl">Lasso sparse?</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: REGULARISATION PATH WALK-THROUGH -->
+          <section class="section" id="how-it-works">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--orange-surf);color:var(--orange);">4</div>
+              How embedded methods work — step by step
+            </h2>
+            <div class="algo-step">
+              <div class="algo-step-num">1</div>
+              <div class="algo-step-body">
+                <div class="algo-step-tag">Lasso / ElasticNet</div>
+                <div class="algo-step-title">Add L1 penalty to loss — irrelevant coefficients go to exactly zero</div>
+                <div class="algo-step-desc">The L1 penalty term creates sparsity. The optimal &lambda; must be found via cross-validation. Use LassoCV to search automatically.</div>
+                <div class="algo-step-formula">from sklearn.linear_model import LassoCV
+model = LassoCV(cv=5, random_state=42)
+model.fit(X_train, y_train)
+selected = X.columns[model.coef_ != 0]
+print(f"Selected {len(selected)} features")</div>
+              </div>
+            </div>
+            <div class="algo-step">
+              <div class="algo-step-num">2</div>
+              <div class="algo-step-body">
+                <div class="algo-step-tag">Random Forest / XGBoost</div>
+                <div class="algo-step-title">Train tree ensemble — read feature_importances_ from the model</div>
+                <div class="algo-step-desc">Each split in each tree reduces impurity. The total weighted reduction per feature = MDI importance. Use permutation importance for a more reliable estimate on the validation set.</div>
+                <div class="algo-step-formula">from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+rf = RandomForestClassifier(n_estimators=100).fit(X_train, y_train)
+# MDI (fast, biased):
+mdi = rf.feature_importances_
+# Permutation (slower, unbiased):
+pi = permutation_importance(rf, X_val, y_val, n_repeats=10)</div>
+              </div>
+            </div>
+            <div class="algo-step">
+              <div class="algo-step-num">3</div>
+              <div class="algo-step-body">
+                <div class="algo-step-tag">SelectFromModel</div>
+                <div class="algo-step-title">Use sklearn's SelectFromModel to automate the cut</div>
+                <div class="algo-step-desc">SelectFromModel wraps any model that exposes coef_ or feature_importances_ and returns only features above the threshold. Works inside a Pipeline to prevent leakage.</div>
+                <div class="algo-step-formula">from sklearn.feature_selection import SelectFromModel
+from sklearn.pipeline import Pipeline
+pipe = Pipeline([
+    ('select', SelectFromModel(RandomForestClassifier(100))),
+    ('clf',    LogisticRegression())
+])
+pipe.fit(X_train, y_train)</div>
+              </div>
+            </div>
+            <div class="algo-step">
+              <div class="algo-step-num">4</div>
+              <div class="algo-step-body">
+                <div class="algo-step-tag">ElasticNet — best of both</div>
+                <div class="algo-step-title">Mix L1 + L2 for grouped sparsity</div>
+                <div class="algo-step-desc">ElasticNet combines L1 sparsity with L2 grouping. When features are correlated, Lasso picks one arbitrarily. ElasticNet keeps the whole group — better when correlated features are all relevant.</div>
+                <div class="algo-step-formula">from sklearn.linear_model import ElasticNetCV
+# l1_ratio=1.0: pure Lasso, l1_ratio=0.0: pure Ridge
+en = ElasticNetCV(l1_ratio=[0.1,0.5,0.7,0.9,1.0], cv=5)
+en.fit(X_train, y_train)
+print(f"Best l1_ratio: {en.l1_ratio_}")</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: COMPARISON WITH OTHER METHODS -->
+          <section class="section" id="method-comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">3</div>
+              Filter vs Wrapper vs Embedded — live comparison
+            </h2>
+            <p>All three categories of feature selection applied to the same dataset. Watch how different they rank the same features.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Feature ranking: Filter vs Wrapper vs Embedded</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="cmp-ds" onchange="drawComparison()">
+                    <option value="mixed">Mixed (linear + nonlinear)</option>
+                    <option value="correlated">Correlated features</option>
+                    <option value="highdim">High dimensional</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="cmp-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-filter-top" style="color:var(--blue);font-size:12px;">-</span><span class="stat-pill-lbl">Filter top-1</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-wrapper-top" style="color:var(--green);font-size:12px;">-</span><span class="stat-pill-lbl">Wrapper top-1</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-embedded-top" style="color:var(--orange);font-size:12px;">-</span><span class="stat-pill-lbl">Embedded top-1</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-consensus" style="font-size:12px;color:var(--teal);">-</span><span class="stat-pill-lbl">Consensus top</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: Lasso feature selection, Random Forest importance, permutation importance, and SelectFromModel pipeline.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">lasso_selection.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using MDI importance without permutation importance.</strong> MDI is biased toward high-cardinality and continuous features. Always cross-check with permutation importance on a validation set.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not scaling before Lasso.</strong> Lasso penalises coefficients — if features are on different scales, the penalty is applied unequally. Always StandardScale before applying Lasso/ElasticNet.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using a single &lambda; value without cross-validation.</strong> LassoCV automatically searches the regularisation path. A single manually chosen alpha is almost certainly suboptimal.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Trusting Lasso when features are correlated.</strong> Lasso picks one feature from a correlated group arbitrarily. If both are important, use ElasticNet which tends to select the whole group.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Computing permutation importance on the training set.</strong> Permutation importance on training data inflates importance of overfit features. Always compute it on a held-out validation set.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Embedded methods do selection during training — no separate step needed. Most efficient approach.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Lasso (L1) drives irrelevant coefficients to exactly zero. Always use LassoCV to find optimal &lambda;.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>MDI (impurity importance) is fast but biased. Always verify with permutation importance on validation data.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>ElasticNet = L1 + L2. Better than pure Lasso when correlated features are all genuinely useful.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use SelectFromModel inside a Pipeline to apply embedded selection without data leakage.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>SHAP values are the gold standard for importance — they handle interactions and correlated features correctly.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="wrapper-methods.html"><span class="pn-dir">Previous</span><span class="pn-title">Wrapper Methods</span></a>
+            <a class="pn-card next" id="next-card" href="pca.html"><span class="pn-dir">Next</span><span class="pn-title">PCA</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#lasso-path">Lasso path</a></li>
+            <li class="toc-item"><a href="#tree-importance">Tree importance</a></li>
+            <li class="toc-item"><a href="#l1-vs-l2">L1 vs L2 geometry</a></li>
+            <li class="toc-item"><a href="#how-it-works">How it works</a></li>
+            <li class="toc-item"><a href="#method-comparison">All methods compared</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+/* ══════════════════════════════════════
+   SECTION 1: LASSO REGULARISATION PATH
+══════════════════════════════════════ */
+var LC=C('lasso-canvas'),LX=LC.getContext('2d');
+
+/* Simulated coefficient paths: 10 features × 50 alpha steps */
+var LASSO_FEATURES=['glucose','bmi','age','insulin','bp','skin','pedigree','height','noise_1','noise_2'];
+var LASSO_COLORS=['#f0a500','#4b96ff','#3ecf8e','#a78bfa','#f06060','#2dd4bf','#fb8c40','#60a5fa','rgba(120,120,120,0.4)','rgba(120,120,120,0.4)'];
+var LASSO_TRUE_COEF=[0.82,0.61,0.48,0.35,0.29,0.18,0.22,-0.14,0.0,0.0]; // true importance
+var lassoPathData=null;
+
+function buildLassoPath(){
+  /* Simulate a regularisation path: coefficients fade to 0 as alpha increases */
+  var nAlpha=60,nFeat=LASSO_FEATURES.length;
+  lassoPathData=[];
+  for(var ai=0;ai<nAlpha;ai++){
+    var t=ai/(nAlpha-1); // 0=small alpha (complex), 1=large alpha (sparse)
+    var coefs=LASSO_TRUE_COEF.map(function(c,fi){
+      /* Each feature zeros out at a different alpha */
+      var zeroThresh=0.15+(Math.abs(c)*0.7); // smaller c → zeros earlier
+      var progress=Math.max(0,(t-0.1)/(0.9));
+      var decay=Math.max(0,1-progress/zeroThresh);
+      var val=c*Math.pow(decay,1.5);
+      return Math.abs(val)<0.003?0:val;
+    });
+    lassoPathData.push(coefs);
+  }
+  updateLassoPath(C('lasso-alpha').value);
+}
+
+function updateLassoPath(sliderVal){
+  var t=parseInt(sliderVal)/100;
+  var alphas=[0.0001,0.0003,0.001,0.003,0.01,0.03,0.1,0.3,1.0,3.0,10.0];
+  var alphaIdx=Math.floor(t*10);
+  var alphaVal=alphas[alphaIdx]||0.01;
+  C('lasso-alpha-val').textContent='\u03bb = '+alphaVal.toFixed(4);
+  C('lasso-alpha-display').textContent=alphaVal.toFixed(4);
+
+  if(!lassoPathData)return;
+  var nAlpha=lassoPathData.length,nFeat=LASSO_FEATURES.length;
+  var curIdx=Math.floor(t*(nAlpha-1));
+  var curCoefs=lassoPathData[curIdx];
+
+  var nonzero=curCoefs.filter(function(c){return Math.abs(c)>0.001;}).length;
+  C('lasso-nonzero').textContent=nonzero;
+  C('lasso-zeroed').textContent=nFeat-nonzero;
+  C('lasso-sparsity').textContent=((nFeat-nonzero)/nFeat*100).toFixed(0)+'%';
+  var topIdx=curCoefs.reduce(function(mi,c,i){return Math.abs(c)>Math.abs(curCoefs[mi])?i:mi;},0);
+  C('lasso-top-feat').textContent=LASSO_FEATURES[topIdx];
+
+  var W=LC.width,H=LC.height,pad={l:55,r:20,t:25,b:45};
+  LX.clearRect(0,0,W,H);LX.fillStyle=bg();LX.fillRect(0,0,W,H);
+
+  var iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  var maxAbs=Math.max.apply(null,lassoPathData[0].map(Math.abs));
+
+  // Grid
+  LX.strokeStyle=gc();LX.lineWidth=0.5;
+  [-1,-0.5,0,0.5,1].forEach(function(v){
+    var y=pad.t+iH*(1-(v+1)/2);
+    LX.beginPath();LX.moveTo(pad.l,y);LX.lineTo(W-pad.r,y);LX.stroke();
+    LX.fillStyle=tc();LX.font='9px monospace';LX.textAlign='right';LX.fillText((v*maxAbs).toFixed(2),pad.l-3,y+3);
+  });
+
+  // Zero line
+  var zeroY=pad.t+iH/2;
+  LX.beginPath();LX.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.2)';LX.lineWidth=1;
+  LX.moveTo(pad.l,zeroY);LX.lineTo(W-pad.r,zeroY);LX.stroke();
+
+  // Coefficient paths
+  for(var fi=0;fi<nFeat;fi++){
+    LX.beginPath();LX.strokeStyle=LASSO_COLORS[fi];LX.lineWidth=2;
+    for(var ai=0;ai<nAlpha;ai++){
+      var x=pad.l+ai/(nAlpha-1)*iW;
+      var c=lassoPathData[ai][fi];
+      var y=pad.t+iH*(1-(c+maxAbs)/(2*maxAbs));
+      ai===0?LX.moveTo(x,y):LX.lineTo(x,y);
+    }
+    LX.stroke();
+    // Label at left edge
+    var c0=lassoPathData[0][fi];
+    if(Math.abs(c0)>0.05){
+      LX.fillStyle=LASSO_COLORS[fi];LX.font='bold 10px sans-serif';LX.textAlign='right';
+      LX.fillText(LASSO_FEATURES[fi],pad.l-3,pad.t+iH*(1-(c0+maxAbs)/(2*maxAbs))+3);
+    }
+  }
+
+  // Current alpha line
+  var curX=pad.l+curIdx/(nAlpha-1)*iW;
+  LX.beginPath();LX.strokeStyle='rgba(240,165,0,0.8)';LX.lineWidth=2;LX.setLineDash([5,4]);
+  LX.moveTo(curX,pad.t);LX.lineTo(curX,H-pad.b);LX.stroke();LX.setLineDash([]);
+  LX.fillStyle='rgba(240,165,0,0.9)';LX.font='bold 11px sans-serif';LX.textAlign='center';
+  LX.fillText('\u03bb='+alphaVal.toFixed(3),curX,pad.t-5);
+
+  // X axis labels
+  LX.fillStyle=tc();LX.font='9px monospace';LX.textAlign='center';
+  alphas.forEach(function(a,i){
+    var x=pad.l+i/10*iW;
+    LX.fillText(a<0.01?a.toFixed(4):a<0.1?a.toFixed(3):a<1?a.toFixed(2):a.toFixed(0),x,H-pad.b+14);
+  });
+  LX.fillText('\u03bb (regularisation strength \u2192)',W/2,H-pad.b+28);
+}
+
+/* ══════════════════════════════════════
+   SECTION 2: TREE IMPORTANCE
+══════════════════════════════════════ */
+var currentTreeMethod='impurity';
+
+var TREE_DATA={
+  cancer:{
+    features:['mean_radius','mean_texture','mean_perimeter','mean_area','mean_smooth','mean_compact','mean_concavity','mean_points','symmetry','fractal_dim'],
+    impurity:    [0.24,0.08,0.21,0.19,0.04,0.07,0.09,0.05,0.02,0.01],
+    permutation: [0.18,0.06,0.17,0.14,0.03,0.05,0.08,0.04,0.02,0.01],
+    shap:        [0.22,0.07,0.19,0.16,0.04,0.06,0.09,0.05,0.02,0.01]
+  },
+  diabetes:{
+    features:['glucose','bmi','age','dp_func','blood_pres','pregnancies','insulin','skin_thick','noise_1','noise_2'],
+    impurity:    [0.28,0.16,0.14,0.10,0.09,0.08,0.07,0.05,0.02,0.01],
+    permutation: [0.24,0.14,0.12,0.09,0.07,0.06,0.06,0.04,0.01,0.00],
+    shap:        [0.30,0.18,0.13,0.11,0.08,0.07,0.06,0.04,0.02,0.01]
+  },
+  synthetic:{
+    features:['true_F1','true_F2','true_F3','interact_F4','nonlin_F5','weak_F6','noise_1','noise_2','noise_3','noise_4'],
+    impurity:    [0.28,0.22,0.18,0.12,0.10,0.04,0.03,0.02,0.01,0.00],
+    permutation: [0.25,0.20,0.16,0.10,0.12,0.03,0.01,0.01,0.00,0.00],
+    shap:        [0.26,0.21,0.17,0.11,0.13,0.04,0.02,0.01,0.01,0.00]
+  }
+};
+
+var TREE_METHOD_INFO={
+  impurity:{title:'Impurity-based importance (MDI)',desc:'Total gini/entropy reduction weighted by samples — fast but biased toward high-cardinality features',col:'#3ecf8e'},
+  permutation:{title:'Permutation importance',desc:'Drop in accuracy when feature is shuffled — unbiased, compute on validation set only',col:'#4b96ff'},
+  shap:{title:'SHAP values (mean |SHAP|)',desc:'Shapley values from game theory — handles interactions & correlations correctly. Gold standard.',col:'#f0a500'}
+};
+
+function selectTreeMethod(m){
+  currentTreeMethod=m;
+  ['impurity','permutation','shap'].forEach(function(k){
+    var el=C('mt-'+k);if(!el)return;
+    var info=TREE_METHOD_INFO[k];
+    el.classList.toggle('active',k===m);
+    el.style.background=k===m?info.col+'20':'';
+    el.style.borderColor=k===m?info.col:'var(--border)';
+    el.style.color=k===m?info.col:'var(--text-3)';
+  });
+  var info=TREE_METHOD_INFO[m];
+  C('tree-method-title').textContent=info.title;
+  C('tree-method-desc').textContent=info.desc;
+
+  var key=C('tree-dataset').value;
+  var ds=TREE_DATA[key];
+  var scores=ds[m];
+  var maxS=Math.max.apply(null,scores)||1;
+  var indexed=scores.map(function(s,i){return{s:s,feat:ds.features[i]};}).sort(function(a,b){return b.s-a.s;});
+
+  C('tree-bars').innerHTML=indexed.map(function(item,rank){
+    var pct=(item.s/maxS*100);
+    var isTop=rank<4;
+    var col=info.col;
+    var barCol=isTop?col:'rgba(120,120,120,0.4)';
+    var badge=isTop?
+      '<span class="fi-badge" style="background:'+col+'22;color:'+col+';">#'+(rank+1)+'</span>':'';
+    return '<div class="fi-row">'+
+      '<div class="fi-label">'+item.feat+'</div>'+
+      '<div class="fi-track"><div class="fi-fill" style="width:'+pct+'%;background:'+barCol+';"></div></div>'+
+      '<div class="fi-val">'+item.s.toFixed(4)+'</div>'+
+      badge+'</div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   SECTION 3: L1 VS L2 GEOMETRY
+══════════════════════════════════════ */
+var L1C=C('l1l2-canvas'),L1X=L1C.getContext('2d');
+var lossCenter=[0.72,0.30]; // normalised [0,1] coords
+
+L1C.addEventListener('click',function(e){
+  var r=L1C.getBoundingClientRect(),sx=L1C.width/r.width,sy=L1C.height/r.height;
+  var mx=(e.clientX-r.left)*sx/L1C.width;
+  var my=(e.clientY-r.top)*sy/L1C.height;
+  lossCenter=[mx,my];
+  drawL1L2(C('constraint-strength').value);
+});
+
+function drawL1L2(sliderVal){
+  var strength=parseInt(sliderVal)/100;
+  var W=L1C.width,H=L1C.height,pad=50;
+  var iW=W-2*pad,iH=H-2*pad;
+  L1X.clearRect(0,0,W,H);L1X.fillStyle=bg();L1X.fillRect(0,0,W,H);
+
+  // World coords: w1 in [-2,2], w2 in [-2,2]
+  var toCanvas=function(w1,w2){return[pad+((w1+2)/4)*iW, H-pad-((w2+2)/4)*iH];};
+  var toWorld=function(cx,cy){return[(cx-pad)/iW*4-2, ((H-pad-cy)/iH)*4-2];};
+
+  // Axes
+  L1X.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';L1X.lineWidth=1;
+  var [ax0,ay0]=toCanvas(-2,0),[ax1,ay1]=toCanvas(2,0);
+  L1X.beginPath();L1X.moveTo(ax0,ay0);L1X.lineTo(ax1,ay1);L1X.stroke();
+  var [bx0,by0]=toCanvas(0,-2),[bx1,by1]=toCanvas(0,2);
+  L1X.beginPath();L1X.moveTo(bx0,by0);L1X.lineTo(bx1,by1);L1X.stroke();
+  L1X.fillStyle=tc();L1X.font='11px sans-serif';L1X.textAlign='center';
+  L1X.fillText('w\u2081',ax1+12,ay0+4);L1X.fillText('w\u2082',bx1,by1-8);
+
+  // Loss function contours (ellipses centred at lossCenter)
+  var lc=toWorld(lossCenter[0]*W, lossCenter[1]*H);
+  var levels=[0.3,0.6,0.9,1.3,1.8];
+  levels.forEach(function(r2){
+    L1X.beginPath();
+    for(var a=0;a<=Math.PI*2+0.01;a+=0.05){
+      var w1=lc[0]+r2*Math.cos(a)*1.2, w2=lc[1]+r2*Math.sin(a)*0.8;
+      var [cx2,cy2]=toCanvas(w1,w2);
+      a===0?L1X.moveTo(cx2,cy2):L1X.lineTo(cx2,cy2);
+    }
+    L1X.strokeStyle=isDark()?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.08)';L1X.lineWidth=1;L1X.stroke();
+  });
+
+  // L1 constraint: diamond |w1|+|w2| <= t
+  var t1=strength*2.0;
+  var corners=[[t1,0],[0,t1],[-t1,0],[0,-t1]];
+  L1X.beginPath();
+  corners.forEach(function(c,i){
+    var [cx2,cy2]=toCanvas(c[0],c[1]);
+    i===0?L1X.moveTo(cx2,cy2):L1X.lineTo(cx2,cy2);
+  });
+  L1X.closePath();
+  L1X.fillStyle='rgba(251,140,64,0.08)';L1X.fill();
+  L1X.strokeStyle='rgba(251,140,64,0.9)';L1X.lineWidth=2.5;L1X.stroke();
+
+  // L2 constraint: circle w1^2+w2^2 <= t^2
+  var r2=strength*2.0;
+  L1X.beginPath();
+  for(var a2=0;a2<=Math.PI*2;a2+=0.05){
+    var [cx3,cy3]=toCanvas(r2*Math.cos(a2),r2*Math.sin(a2));
+    a2===0?L1X.moveTo(cx3,cy3):L1X.lineTo(cx3,cy3);
+  }
+  L1X.closePath();
+  L1X.fillStyle='rgba(75,150,255,0.06)';L1X.fill();
+  L1X.strokeStyle='rgba(75,150,255,0.8)';L1X.lineWidth=2.5;L1X.stroke();
+
+  // Find constrained optima (approximate)
+  // L1: project loss minimum onto L1 ball
+  var l1Opt=projectL1(lc,t1);
+  var l2Opt=projectL2(lc,r2);
+
+  // Draw optima
+  var [l1cx,l1cy]=toCanvas(l1Opt[0],l1Opt[1]);
+  var [l2cx,l2cy]=toCanvas(l2Opt[0],l2Opt[1]);
+  var [lossCX,lossCY]=toCanvas(lc[0],lc[1]);
+
+  L1X.beginPath();L1X.arc(lossCX,lossCY,6,0,Math.PI*2);
+  L1X.fillStyle=isDark()?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.4)';L1X.fill();
+  L1X.fillStyle=tc();L1X.font='10px sans-serif';L1X.textAlign='left';L1X.fillText('Loss min',lossCX+8,lossCY+4);
+
+  L1X.beginPath();L1X.arc(l1cx,l1cy,8,0,Math.PI*2);
+  L1X.fillStyle='rgba(251,140,64,0.9)';L1X.fill();
+  L1X.strokeStyle='#fff';L1X.lineWidth=2;L1X.stroke();
+  L1X.fillStyle='rgba(251,140,64,0.9)';L1X.font='bold 10px sans-serif';L1X.textAlign='left';
+  L1X.fillText('Lasso opt ('+l1Opt[0].toFixed(2)+','+l1Opt[1].toFixed(2)+')',l1cx+10,l1cy+4);
+
+  L1X.beginPath();L1X.arc(l2cx,l2cy,8,0,Math.PI*2);
+  L1X.fillStyle='rgba(75,150,255,0.9)';L1X.fill();
+  L1X.strokeStyle='#fff';L1X.lineWidth=2;L1X.stroke();
+  L1X.fillStyle='rgba(75,150,255,0.9)';L1X.font='bold 10px sans-serif';L1X.textAlign='left';
+  L1X.fillText('Ridge opt ('+l2Opt[0].toFixed(2)+','+l2Opt[1].toFixed(2)+')',l2cx+10,l2cy-8);
+
+  // Legend
+  L1X.fillStyle='rgba(251,140,64,0.8)';L1X.fillRect(pad,pad-20,14,12);
+  L1X.fillStyle=tc();L1X.font='11px sans-serif';L1X.textAlign='left';L1X.fillText('Lasso (L1) diamond',pad+18,pad-10);
+  L1X.strokeStyle='rgba(75,150,255,0.8)';L1X.lineWidth=2;L1X.strokeRect(pad+170,pad-20,14,12);
+  L1X.fillText('Ridge (L2) circle',pad+188,pad-10);
+
+  // Update stats
+  var l1Sparse=Math.abs(l1Opt[0])<0.01||Math.abs(l1Opt[1])<0.01;
+  C('l1-w1').textContent=l1Opt[0].toFixed(3);C('l1-w2').textContent=l1Opt[1].toFixed(3);
+  C('l2-w1').textContent=l2Opt[0].toFixed(3);C('l2-w2').textContent=l2Opt[1].toFixed(3);
+  C('l1-sparse').textContent=l1Sparse?'Yes! (corner)':'No';
+  C('l1-sparse').style.color=l1Sparse?'var(--orange)':'var(--text-3)';
+}
+
+function projectL1(point,t){
+  // Project point onto L1 ball: find closest point on/in diamond
+  var w1=point[0],w2=point[1];
+  if(Math.abs(w1)+Math.abs(w2)<=t) return[w1,w2]; // already inside
+  // Project: shrink toward axes corners
+  var s1=w1>=0?1:-1,s2=w2>=0?1:-1;
+  // Soft threshold each coordinate
+  var thresh=Math.max(0,(Math.abs(w1)+Math.abs(w2)-t)/2);
+  var pw1=Math.max(0,Math.abs(w1)-thresh)*s1;
+  var pw2=Math.max(0,Math.abs(w2)-thresh)*s2;
+  return[pw1,pw2];
+}
+
+function projectL2(point,r){
+  var norm=Math.sqrt(point[0]**2+point[1]**2)||0.001;
+  if(norm<=r) return point;
+  return[point[0]/norm*r,point[1]/norm*r];
+}
+
+/* ══════════════════════════════════════
+   SECTION 5: COMPARISON CANVAS
+══════════════════════════════════════ */
+var CMPC=C('cmp-canvas'),CMPX=CMPC.getContext('2d');
+
+var CMP_DATA={
+  mixed:{
+    features:['F_linear','F_nonlin','F_interact','F_weak','F_noise1','F_noise2','F_corr','F_thresh','F_log','F_cat'],
+    filter:    [0.85,0.12,0.45,0.28,0.08,0.04,0.62,0.38,0.30,0.55],
+    wrapper:   [0.80,0.55,0.60,0.25,0.05,0.02,0.50,0.42,0.35,0.48],
+    embedded:  [0.78,0.58,0.55,0.22,0.03,0.01,0.48,0.40,0.32,0.45]
+  },
+  correlated:{
+    features:['F_A','F_B','F_C_corr','F_D_corr','F_E','F_F','F_noise1','F_noise2','F_noise3','F_noise4'],
+    filter:    [0.82,0.75,0.78,0.72,0.55,0.40,0.08,0.05,0.03,0.01],
+    wrapper:   [0.80,0.72,0.40,0.35,0.52,0.38,0.06,0.04,0.02,0.01],
+    embedded:  [0.78,0.70,0.30,0.25,0.50,0.36,0.05,0.03,0.02,0.01]
+  },
+  highdim:{
+    features:['F01','F02','F03','F04','F05','F06','F07','F08','F09','F10'],
+    filter:    [0.88,0.72,0.61,0.50,0.42,0.35,0.28,0.18,0.10,0.05],
+    wrapper:   [0.85,0.70,0.58,0.48,0.40,0.32,0.25,0.16,0.09,0.04],
+    embedded:  [0.90,0.75,0.62,0.52,0.43,0.34,0.26,0.17,0.08,0.03]
+  }
+};
+
+function drawComparison(){
+  var key=C('cmp-ds').value;
+  var ds=CMP_DATA[key];
+  var W=CMPC.width,H=CMPC.height,pad={l:80,r:20,t:25,b:35};
+  CMPX.clearRect(0,0,W,H);CMPX.fillStyle=bg();CMPX.fillRect(0,0,W,H);
+
+  var n=ds.features.length;
+  var methods=['filter','wrapper','embedded'];
+  var mColors=['#4b96ff','#3ecf8e','#fb8c40'];
+  var mLabels=['Filter','Wrapper','Embedded'];
+  var axX=[pad.l, pad.l+(W-pad.l-pad.r)/2, W-pad.r];
+  var iH=H-pad.t-pad.b;
+
+  // Ranks
+  var ranks={};
+  methods.forEach(function(m){
+    var scored=ds[m].map(function(s,i){return{s:s,i:i};}).sort(function(a,b){return b.s-a.s;});
+    ranks[m]=new Array(n);scored.forEach(function(item,r){ranks[m][item.i]=r;});
+  });
+
+  var yForRank=function(r){return pad.t+r*iH/(n-1);};
+
+  // Axes and labels
+  axX.forEach(function(ax,ai){
+    CMPX.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';CMPX.lineWidth=2;
+    CMPX.beginPath();CMPX.moveTo(ax,pad.t);CMPX.lineTo(ax,H-pad.b);CMPX.stroke();
+    CMPX.fillStyle=mColors[ai];CMPX.font='bold 12px sans-serif';CMPX.textAlign='center';
+    CMPX.fillText(mLabels[ai],ax,pad.t-8);
+    for(var r=0;r<n;r++){
+      CMPX.fillStyle=tc();CMPX.font='9px monospace';CMPX.textAlign='center';
+      CMPX.fillText('#'+(r+1),ax,yForRank(r)+3);
+    }
+  });
+
+  var topK=3,agree=0,disagree=0,stableTop=0,unstable=0;
+  ds.features.forEach(function(feat,fi){
+    var r0=ranks.filter[fi],r1=ranks.wrapper[fi],r2=ranks.embedded[fi];
+    var isTop=r0<topK||r1<topK||r2<topK;
+    var spread=Math.max(r0,r1,r2)-Math.min(r0,r1,r2);
+    CMPX.beginPath();
+    CMPX.globalAlpha=isTop?0.85:0.2;
+    var col=spread>3?'#f06060':spread>1?'#f0a500':'#3ecf8e';
+    CMPX.strokeStyle=col;CMPX.lineWidth=isTop?2:1;
+    CMPX.moveTo(axX[0],yForRank(r0));CMPX.lineTo(axX[1],yForRank(r1));CMPX.lineTo(axX[2],yForRank(r2));
+    CMPX.stroke();CMPX.globalAlpha=1;
+    if(isTop){
+      CMPX.fillStyle=col;CMPX.font='bold 9px sans-serif';
+      CMPX.textAlign='right';CMPX.fillText(feat,axX[0]-4,yForRank(r0)+3);
+      CMPX.textAlign='left';CMPX.fillText(feat,axX[2]+4,yForRank(r2)+3);
+    }
+    if(r0<topK&&r1<topK&&r2<topK){agree++;if(spread<2)stableTop++;}
+    else if(isTop){disagree++;if(spread>3)unstable++;}
+  });
+
+  // Find top-1 per method
+  var getTop=function(m){return ds.features[ranks[m].indexOf(0)];};
+  C('cmp-filter-top').textContent=getTop('filter');
+  C('cmp-wrapper-top').textContent=getTop('wrapper');
+  C('cmp-embedded-top').textContent=getTop('embedded');
+
+  // Consensus: feature in top-3 in all 3 methods
+  var consensus=ds.features.filter(function(_,fi){return ranks.filter[fi]<topK&&ranks.wrapper[fi]<topK&&ranks.embedded[fi]<topK;});
+  C('cmp-consensus').textContent=consensus.length?consensus.join(', '):'None';
+}
+
+/* ══════════════════════════════════════
+   LIVE EDITOR
+══════════════════════════════════════ */
+var SNIPPETS=[
+{file:'lasso_selection.py',label:'Lasso selection',code:`import numpy as np
+import pandas as pd
+from sklearn.datasets import make_regression
+from sklearn.linear_model import LassoCV, Lasso
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+
+np.random.seed(42)
+X, y, true_coef = make_regression(
+    n_samples=300, n_features=20, n_informative=6,
+    noise=15, coef=True, random_state=42)
+
+feature_names = [f'F{i+1:02d}' for i in range(20)]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# IMPORTANT: Scale before Lasso
+# LassoCV searches the alpha path with cross-validation
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('lasso',  LassoCV(cv=5, random_state=42, max_iter=5000))
+])
+pipe.fit(X_train, y_train)
+
+lasso = pipe.named_steps['lasso']
+coefs = lasso.coef_
+selected = [f for f,c in zip(feature_names, coefs) if abs(c) > 0.01]
+
+print(f"Optimal alpha: {lasso.alpha_:.4f}")
+print(f"Features selected: {len(selected)}/{len(feature_names)}")
+print(f"Non-zero coefficients:")
+ranked = sorted(zip(feature_names, coefs), key=lambda x: -abs(x[1]))
+for name, coef in ranked:
+    if abs(coef) > 0.01:
+        star = " *TRUE*" if abs(true_coef[feature_names.index(name)]) > 1 else ""
+        print(f"  {name}: {coef:+.4f}{star}")
+
+print(f"\\nTest R2: {pipe.score(X_test, y_test):.4f}")`},
+{file:'rf_importance.py',label:'RF importance',code:`import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+np.random.seed(42)
+X, y = make_classification(
+    n_samples=500, n_features=15, n_informative=5,
+    n_redundant=3, n_repeated=2, random_state=42)
+
+feature_names = [f'F{i+1:02d}' for i in range(15)]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+rf = RandomForestClassifier(n_estimators=200, random_state=42)
+rf.fit(X_train, y_train)
+
+# Method 1: MDI (impurity) importance
+mdi = rf.feature_importances_
+
+# Method 2: Permutation importance (on validation set!)
+pi = permutation_importance(rf, X_test, y_test, n_repeats=15, random_state=42)
+
+print(f"{'Feature':<8} {'MDI':>8} {'Perm mean':>11} {'Perm std':>10}")
+print("-" * 42)
+idx = mdi.argsort()[::-1]
+for i in idx:
+    print(f"{feature_names[i]:<8} {mdi[i]:>8.4f} {pi.importances_mean[i]:>11.4f} {pi.importances_std[i]:>10.4f}")
+
+print()
+print("Note: MDI and Permutation may rank features differently!")
+print("Permutation is more reliable for actual model selection.")`},
+{file:'selectfrommodel.py',label:'SelectFromModel',code:`from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import SelectFromModel
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+import numpy as np
+
+np.random.seed(42)
+X, y = make_classification(n_samples=500, n_features=20,
+    n_informative=6, n_redundant=4, random_state=42)
+
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+# SelectFromModel using Random Forest importance
+# Threshold: mean importance, median importance, or a number
+for threshold in ['mean', 'median', '1.5*mean', 0.05]:
+    pipe = Pipeline([
+        ('selector', SelectFromModel(
+            RandomForestClassifier(100, random_state=42),
+            threshold=threshold)),
+        ('scaler',   StandardScaler()),
+        ('clf',      LogisticRegression(max_iter=1000, random_state=42))
+    ])
+    scores = cross_val_score(pipe, X, y, cv=cv, scoring='accuracy')
+
+    # Fit once to see how many features selected
+    pipe.fit(X, y)
+    n_sel = pipe.named_steps['selector'].get_support().sum()
+    print(f"threshold={str(threshold):<12}: {n_sel:2d} features  acc={scores.mean():.4f} +/-{scores.std():.4f}")`},
+{file:'elasticnet.py',label:'ElasticNet',code:`import numpy as np
+from sklearn.datasets import make_regression
+from sklearn.linear_model import ElasticNetCV, LassoCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+
+np.random.seed(42)
+# Create dataset with correlated features
+X_base, y, coef = make_regression(n_samples=300, n_features=10,
+    n_informative=5, noise=10, coef=True, random_state=42)
+
+# Add correlated copies of first 3 features
+import numpy as np
+X_corr = X_base[:, :3] + np.random.normal(0, 0.3, (300, 3))
+X = np.hstack([X_base, X_corr])  # 13 features (3 highly correlated)
+
+feature_names = [f'F{i+1:02d}' for i in range(10)] + ['F01_corr','F02_corr','F03_corr']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Compare Lasso vs ElasticNet on correlated features
+for name, model in [
+    ('Lasso',      LassoCV(cv=5, random_state=42)),
+    ('ElasticNet', ElasticNetCV(l1_ratio=[0.1,0.5,0.9,1.0], cv=5, random_state=42))
+]:
+    pipe = Pipeline([('scaler', StandardScaler()), ('model', model)])
+    pipe.fit(X_train, y_train)
+    coefs = pipe.named_steps['model'].coef_
+    n_nonzero = (np.abs(coefs) > 0.01).sum()
+    r2 = pipe.score(X_test, y_test)
+    print(f"{name:12}: {n_nonzero:2d} features  R2={r2:.4f}")
+    # Show if correlated features both selected
+    corr_selected = [f for f,c in zip(feature_names[-3:], coefs[-3:]) if abs(c)>0.01]
+    print(f"  Correlated features selected: {corr_selected if corr_selected else 'none (Lasso picked one)'}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scipy','scikit-learn']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  buildLassoPath();
+  selectTreeMethod('impurity');
+  drawL1L2(50);
+  drawComparison();
+  initEditor();
+  new MutationObserver(function(){
+    buildLassoPath();selectTreeMethod(currentTreeMethod);
+    drawL1L2(document.getElementById('constraint-strength').value);
+    drawComparison();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

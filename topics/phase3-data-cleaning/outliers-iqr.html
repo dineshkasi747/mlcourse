@@ -1,1 +1,1684 @@
 <!-- outliers-iqr.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Outlier Detection: IQR — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    :root{--teal2:#2dd4bf;--teal2-surf:rgba(45,212,191,0.10);}
+
+    .hero-banner{background:linear-gradient(135deg,rgba(45,212,191,0.09),rgba(16,185,129,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(45,212,191,0.13) 0%,transparent 70%);pointer-events:none;}
+
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* acc cards */
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* hp panel */
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--teal2);font-weight:700;min-width:50px;text-align:right;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+
+    /* box plot part labels */
+    .bp-legend{display:flex;gap:18px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--border);}
+    .bp-legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2);}
+    .bp-swatch{width:14px;height:14px;border-radius:3px;}
+
+    /* comparison table */
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+    .cmp-table th{background:var(--bg-elevated);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .cmp-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-input);}
+    .tag-yes{display:inline-flex;padding:2px 8px;background:var(--green-surf);color:var(--green);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-no{display:inline-flex;padding:2px 8px;background:var(--red-surf);color:var(--red);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-mid{display:inline-flex;padding:2px 8px;background:var(--accent-surface);color:var(--accent);border-radius:100px;font-size:11px;font-weight:700;}
+
+    /* derive steps */
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:var(--teal2-surf);border:1.5px solid var(--teal2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--teal2);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--teal2);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* data table */
+    .data-table-wrap{overflow-x:auto;border-radius:var(--r-lg);border:1px solid var(--border);margin-bottom:16px;}
+    .data-table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--font-mono);}
+    .data-table th{background:var(--bg-elevated);padding:9px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .data-table td{padding:7px 14px;border-bottom:1px solid var(--border);color:var(--text-2);}
+    .data-table tr:last-child td{border-bottom:none;}
+    .row-outlier{background:rgba(240,96,96,0.07);border-left:3px solid #f06060;}
+    .row-mild{background:rgba(251,140,64,0.06);border-left:3px solid #fb8c40;}
+    .val-out{color:#f06060;font-weight:700;}
+    .val-mild{color:#fb8c40;font-weight:600;}
+    .val-ok{color:var(--green);}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #2dd4bf!important;}
+    .CodeMirror-selected{background:rgba(45,212,191,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--teal2);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    @media(max-width:700px){
+      .acc-dashboard{grid-template-columns:repeat(2,1fr);}
+      .hp-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="outlier-iqr">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Outlier Detection: IQR</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <span class="current">Outlier Detection: IQR</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(45,212,191,.3);background:var(--teal2-surf);color:var(--teal2);margin-bottom:14px;">Data Cleaning · Outlier Detection</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Outlier Detection: IQR Method</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              The IQR (Interquartile Range) method finds outliers using the
+              <strong>middle 50% of your data</strong> as a reference — no mean, no standard
+              deviation, no normality assumption. It's the rule behind every box plot:
+              anything beyond 1.5 × IQR from the box edges is a suspected outlier.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 20 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <span class="topic-meta-item">numpy · pandas · scipy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal2-surf);color:var(--teal2);">□</div>
+              How IQR works — the box plot rule
+            </h2>
+            <p>
+              Sort your data. The middle value is the median. The middle 50% of the data — the
+              range from the 25th to the 75th percentile — is the <strong>IQR (Interquartile Range)</strong>.
+              Multiply the IQR by 1.5 and extend that distance below Q1 and above Q3: anything
+              outside those <em>fences</em> is flagged as an outlier.
+            </p>
+            <p>
+              The critical advantage over Z-score: the IQR is computed entirely from the middle of
+              the data. <strong>Outliers cannot inflate it</strong> — making IQR naturally robust to
+              the very values it's trying to detect.
+            </p>
+
+            <!-- Animated box plot build -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Build a box plot step by step — animated</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">k factor:</span>
+                  <input type="range" min="0.5" max="3" value="1.5" step="0.1" class="ctrl-slider" id="bp-k" oninput="onBPKChange()" style="width:90px;"/>
+                  <span class="ctrl-value" id="bp-k-val" style="color:var(--teal2);">1.5</span>
+                </div>
+                <select class="ctrl-select" id="bp-dataset" onchange="onBPDataChange()">
+                  <option value="salary">Salary</option>
+                  <option value="house">House prices</option>
+                  <option value="exam">Exam scores</option>
+                  <option value="sensor">Sensor readings</option>
+                </select>
+                <button class="ctrl-btn active" onclick="animateBoxPlot()">▶ Animate</button>
+                <button class="ctrl-btn" onclick="resetBoxAnim()">↺ Reset</button>
+              </div>
+              <canvas id="bp-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="bp-legend">
+                <div class="bp-legend-item"><div class="bp-swatch" style="background:rgba(45,212,191,0.4);border:2px solid var(--teal2);"></div>IQR box (Q1–Q3)</div>
+                <div class="bp-legend-item"><div class="bp-swatch" style="background:#3ecf8e;border-radius:50%;width:10px;height:10px;"></div>Median (Q2)</div>
+                <div class="bp-legend-item"><div class="bp-swatch" style="background:rgba(251,140,64,0.5);"></div>Whisker fence (k×IQR)</div>
+                <div class="bp-legend-item"><div class="bp-swatch" style="background:rgba(240,96,96,0.7);border-radius:50%;width:10px;height:10px;"></div>Outlier</div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-q1" style="color:var(--teal2);">—</span><span class="stat-pill-lbl">Q1 (25th %ile)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-med" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">Median</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-q3" style="color:var(--teal2);">—</span><span class="stat-pill-lbl">Q3 (75th %ile)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-iqr" style="color:#fb8c40;">—</span><span class="stat-pill-lbl">IQR</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-lo" style="color:#f06060;">—</span><span class="stat-pill-lbl">Lower fence</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-hi" style="color:#f06060;">—</span><span class="stat-pill-lbl">Upper fence</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="bp-nout" style="color:#f06060;">—</span><span class="stat-pill-lbl">Outliers found</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Why k=1.5?</strong> John Tukey chose 1.5 because for a normal distribution it flags ≈0.7% of data — comparable to a Z-score of ±2.7. Use k=3 for "extreme" outliers only. The key insight: <strong>the IQR boundaries do not move when you add outliers</strong>, unlike Z-score boundaries which shift with every extreme value.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — INTERACTIVE LIVE DETECTOR ═══ -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal2-surf);color:var(--teal2);">⊕</div>
+              Live IQR detector — click to add points
+            </h2>
+            <p>
+              Click the canvas to drop values onto the number line. The IQR fences recompute
+              instantly. Try adding a cluster of large values — notice how the fences stay anchored
+              to the middle 50%, unlike Z-score which would drift toward the outliers.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Click to add data points — IQR detects outliers live</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">k factor:</span>
+                  <input type="range" min="0.5" max="3" value="1.5" step="0.1" class="ctrl-slider" id="live-k" oninput="redrawLive()" style="width:90px;"/>
+                  <span class="ctrl-value" id="live-k-val" style="color:var(--teal2);">1.5</span>
+                </div>
+                <button class="ctrl-btn" onclick="addOutlierLive()">+ Add outlier</button>
+                <button class="ctrl-btn" onclick="loadLiveSample()">Load sample</button>
+                <button class="ctrl-btn" onclick="resetLive()">↺ Reset</button>
+              </div>
+              <canvas id="live-canvas" width="700" height="280" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="live-n" style="color:var(--teal2);">0</span><span class="stat-pill-lbl">Points</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="live-iqr" style="color:#fb8c40;">—</span><span class="stat-pill-lbl">IQR</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="live-out" style="color:#f06060;">0</span><span class="stat-pill-lbl">Outliers</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="live-lo-fence">—</span><span class="stat-pill-lbl">Lower fence</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="live-hi-fence">—</span><span class="stat-pill-lbl">Upper fence</span></div>
+              </div>
+            </div>
+
+            <!-- Computed table -->
+            <div class="data-table-wrap">
+              <table class="data-table">
+                <thead><tr><th>#</th><th>Value</th><th>vs Q1</th><th>vs Q3</th><th>Fence distance</th><th>Status</th></tr></thead>
+                <tbody id="iqr-table-body"><tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:20px;">Add points or load a sample</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — SKEWED DATA ADVANTAGE ═══ -->
+          <section class="section" id="skewed">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal2-surf);color:var(--teal2);">~</div>
+              IQR vs Z-score on skewed data
+            </h2>
+            <p>
+              Z-score assumes normality — on income, house prices, or any right-skewed distribution,
+              the mean and std are distorted and the Z-score boundaries are unreliable. IQR uses
+              percentiles which work on <em>any distribution shape</em>. This demo makes that
+              difference visible.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Skewed distribution — IQR vs Z-score boundaries</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Skew:</span>
+                  <select class="ctrl-select" id="skew-shape" onchange="redrawSkewed()">
+                    <option value="normal">Normal (symmetric)</option>
+                    <option value="right" selected>Right-skewed (income)</option>
+                    <option value="heavy">Heavy-tailed</option>
+                    <option value="bimodal">Bimodal</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outliers:</span>
+                  <input type="range" min="0" max="8" value="3" step="1" class="ctrl-slider" id="skew-nout" oninput="redrawSkewed()" style="width:80px;"/>
+                  <span class="ctrl-value" id="skew-nout-val" style="color:#f06060;">3</span>
+                </div>
+              </div>
+              <canvas id="skewed-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-iqr-found" style="color:var(--teal2);">—</span><span class="stat-pill-lbl">IQR found</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-z-found" style="color:#8b5cf6;">—</span><span class="stat-pill-lbl">Z-score found</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-iqr-fp" style="color:#fb8c40;">—</span><span class="stat-pill-lbl">IQR false pos</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="sk-z-fp" style="color:#f06060;">—</span><span class="stat-pill-lbl">Z false pos</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — MULTI-COLUMN EXPLORER ═══ -->
+          <section class="section" id="multi-column">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal2-surf);color:var(--teal2);">⊞</div>
+              Multi-column IQR — parallel box plots
+            </h2>
+            <p>
+              In practice you apply IQR to every numeric column. Parallel box plots let you compare
+              the spread and outlier count across all features simultaneously — a standard first step
+              in any EDA pipeline.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Parallel box plots — outliers per feature</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">k factor:</span>
+                  <input type="range" min="0.5" max="3" value="1.5" step="0.1" class="ctrl-slider" id="multi-k" oninput="redrawMulti()" style="width:90px;"/>
+                  <span class="ctrl-value" id="multi-k-val" style="color:var(--teal2);">1.5</span>
+                </div>
+                <select class="ctrl-select" id="multi-dataset" onchange="genMultiData();redrawMulti()">
+                  <option value="housing">Housing features</option>
+                  <option value="medical">Medical data</option>
+                  <option value="financial">Financial data</option>
+                </select>
+              </div>
+              <canvas id="multi-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="multi-stats"></div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Hyperparameter tuning — k factor live accuracy
+            </h2>
+            <p>
+              The only hyperparameter is <strong>k</strong> — the multiplier applied to the IQR.
+              k=1.5 is Tukey's standard. k=3 catches only extreme outliers. Every slider below
+              recomputes precision, recall, F1, and downstream model accuracy.
+            </p>
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="ac-precision" style="color:var(--teal2);">—</div>
+                <div class="acc-label">Precision</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-p-bar" style="background:var(--teal2);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-recall" style="color:#3ecf8e;">—</div>
+                <div class="acc-label">Recall</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-r-bar" style="background:#3ecf8e;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-f1" style="color:#fb8c40;">—</div>
+                <div class="acc-label">F1 Score</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-f1-bar" style="background:#fb8c40;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-model" style="color:#63b3ed;">—</div>
+                <div class="acc-label">Model R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-m-bar" style="background:#63b3ed;width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div class="hp-title">⚙ IQR Detection Controls
+                <span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:4px;">— all metrics update instantly</span>
+              </div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">k factor (IQR multiplier)</span><span class="hp-val" id="hp-k-val">1.5</span></div>
+                  <input type="range" min="0.5" max="4" value="1.5" step="0.1" class="ctrl-slider" id="hp-k" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">k=1.5 standard (≈0.7% flagged in normal). k=3 extreme only. Lower k = more detections.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Outlier severity</span><span class="hp-val" id="hp-sev-val">3×IQR</span></div>
+                  <input type="range" min="1" max="6" value="3" step="0.5" class="ctrl-slider" id="hp-sev" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">How far outliers are beyond the fence (in IQR units). Mild=1.6, Severe=4+.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Contamination %</span><span class="hp-val" id="hp-cont-val">5%</span></div>
+                  <input type="range" min="1" max="20" value="5" step="1" class="ctrl-slider" id="hp-cont" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">True fraction of outliers in dataset. Higher = harder problem.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Distribution</span><span class="hp-val" id="hp-dist-val" style="color:var(--teal2);">normal</span></div>
+                  <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+                    <button class="ctrl-btn active" id="d-normal" onclick="setDist('normal')">Normal</button>
+                    <button class="ctrl-btn" id="d-skewed" onclick="setDist('skewed')">Skewed</button>
+                    <button class="ctrl-btn" id="d-heavy" onclick="setDist('heavy')">Heavy-tail</button>
+                  </div>
+                  <div class="hp-desc">IQR stays robust on skewed data; Z-score degrades significantly.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- k-factor sweep -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Precision · Recall · F1 vs k factor</span>
+                <button class="ctrl-btn active" onclick="runKSweep()">▶ Run sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:8px;" id="sweep-status"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — IQR vs Z-SCORE COMPARISON ═══ -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">⇄</div>
+              IQR vs Z-score — when each method wins
+            </h2>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Side-by-side: same contaminated data, two detectors</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Shape:</span>
+                  <select class="ctrl-select" id="cmp-shape" onchange="redrawCmp()">
+                    <option value="normal">Normal</option>
+                    <option value="skewed" selected>Right-skewed</option>
+                    <option value="bimodal">Bimodal</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outlier %:</span>
+                  <input type="range" min="2" max="20" value="8" step="1" class="ctrl-slider" id="cmp-pct" oninput="redrawCmp()" style="width:80px;"/>
+                  <span class="ctrl-value" id="cmp-pct-val" style="color:#f06060;">8%</span>
+                </div>
+              </div>
+              <canvas id="cmp-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="cmp-stats"></div>
+            </div>
+
+            <table class="cmp-table">
+              <thead><tr><th>Property</th><th>IQR Method</th><th>Z-score</th></tr></thead>
+              <tbody>
+                <tr><td>Assumes normality</td><td><span class="tag-yes">No — any distribution</span></td><td><span class="tag-no">Yes — breaks on skewed data</span></td></tr>
+                <tr><td>Robust to outliers in boundaries</td><td><span class="tag-yes">Yes — Q1/Q3 unaffected</span></td><td><span class="tag-no">No — outliers inflate μ and σ</span></td></tr>
+                <tr><td>Interpretability</td><td><span class="tag-yes">Box plot — visual and intuitive</span></td><td><span class="tag-yes">Z value — mathematically precise</span></td></tr>
+                <tr><td>Works on categorical</td><td><span class="tag-no">No — numeric only</span></td><td><span class="tag-no">No — numeric only</span></td></tr>
+                <tr><td>Multivariate outliers</td><td><span class="tag-no">Per-column only</span></td><td><span class="tag-no">Per-column only</span></td></tr>
+                <tr><td>Best data shape</td><td>Skewed, heavy-tailed, any shape</td><td>Approximately normal only</td></tr>
+                <tr><td>Standard threshold</td><td>k=1.5 (Tukey's rule)</td><td>|z|&gt;3 (99.7% coverage)</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- ═══ SECTION 7 — MATH ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              The IQR formula — step by step
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Compute Q1, Q3, and IQR</div>
+                  <div class="derive-desc">Sort the column. Q1 is the 25th percentile (lower quartile), Q3 is the 75th percentile (upper quartile). IQR is simply their difference — the width of the middle 50% of the data.</div>
+                  <div class="derive-formula">Q1  = percentile(X, 25)
+Q3  = percentile(X, 75)
+IQR = Q3 - Q1          # width of the middle 50%</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Compute the fences</div>
+                  <div class="derive-desc">Multiply IQR by k (standard: 1.5). Subtract from Q1 for the lower fence; add to Q3 for the upper fence. Everything outside these fences is flagged.</div>
+                  <div class="derive-formula">lower_fence = Q1 - k * IQR    (k=1.5 standard, k=3 extreme)
+upper_fence = Q3 + k * IQR
+
+flag if: x &lt; lower_fence  OR  x &gt; upper_fence</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Why k=1.5 works for normal distributions</div>
+                  <div class="derive-desc">For a normal distribution, Q1 ≈ μ−0.6745σ and Q3 ≈ μ+0.6745σ, so IQR ≈ 1.349σ. At k=1.5, the fences sit at μ ± 2.698σ — flagging roughly 0.7% of a normal distribution, comparable to Z=2.7.</div>
+                  <div class="derive-formula">For Normal(μ, σ):
+  IQR ≈ 1.349 * σ
+  lower_fence ≈ μ - 1.5 * 1.349σ = μ - 2.698σ
+  upper_fence ≈ μ + 2.698σ
+  → flags ≈ 0.7% of data  (similar to |z| &gt; 2.7)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Fit on training data — apply to train and test</div>
+                  <div class="derive-desc">Just like any other statistic, Q1 and Q3 must be computed on training data only. Using test data to determine fences is data leakage. Wrap in a custom transformer inside a Pipeline.</div>
+                  <div class="derive-formula">Q1_train, Q3_train = np.percentile(X_train, [25, 75])
+IQR_train = Q3_train - Q1_train
+lo = Q1_train - 1.5 * IQR_train
+hi = Q3_train + 1.5 * IQR_train
+
+mask_train = (X_train &gt;= lo) &amp; (X_train &lt;= hi)   # keep inliers
+mask_test  = (X_test  &gt;= lo) &amp; (X_test  &lt;= hi)   # apply same bounds</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four complete programs — IQR basics with pandas, multi-column detection, a sklearn-compatible transformer, and a full benchmark vs Z-score and Isolation Forest. All editable and runnable.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">iqr_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Computing Q1/Q3 on the full dataset before splitting.</strong> The fences must be fit on training data only. Fitting on all data means test outliers influence the boundary — leakage. Always split first, then compute IQR statistics from X_train.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Applying IQR removal inside a Pipeline that changes row count.</strong> sklearn Pipelines expect consistent n_samples between fit and transform. A row-dropping IQR step breaks the pipeline. Solution: apply IQR removal to training data before fitting the pipeline, then use the pipeline only on the cleaned data.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using k=1.5 blindly on all columns.</strong> k=1.5 flags ≈0.7% of a normal column — but on a truly heavy-tailed column it will flag 5–15%. Inspect the box plot and adjust k per column, or use k=3 for a more conservative approach.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Dropping outliers before understanding them.</strong> A flagged value might be the highest-value customer, a record-breaking sensor event, or a genuine business extreme. Always investigate outliers — drop only confirmed data-entry errors. For real extremes, consider winsorization instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Applying IQR to target variable y in regression.</strong> Removing extreme y values can introduce systematic bias — your model's training range no longer covers the true data range. Only apply outlier removal to features, not the response variable, unless you have a very specific justification.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>IQR detects outliers using fences at <strong>Q1 − k×IQR</strong> and <strong>Q3 + k×IQR</strong>. Q1 and Q3 are not influenced by extremes, making IQR inherently robust — the "masking problem" of Z-score does not apply.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>k=1.5</strong> (Tukey's standard) for mild outliers. <strong>k=3</strong> for extreme outliers only. Tune k on a per-column basis when distributions differ significantly.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>IQR is the preferred method for <strong>skewed distributions</strong> (income, prices, durations) where Z-score would produce many false positives on the long tail.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always <strong>fit on training data</strong> — compute Q1/Q3 from X_train and apply the same fences to X_test. Wrap in a custom sklearn transformer for Pipeline safety.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>IQR is a <strong>per-column method</strong> — it misses multivariate outliers (unusual combinations of two features that are individually normal). Use Isolation Forest or Mahalanobis distance for joint outlier detection.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Flagged values require <strong>human investigation</strong> before removal. Use <code>df[outlier_mask]</code> to inspect them — decide whether to drop, cap (winsorize), or keep each one based on domain knowledge.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="outlier-zscore.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Outlier Z-Score</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="winsorization.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Winsorization</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">How IQR works</a></li>
+            <li class="toc-item"><a href="#live-demo">Live detector</a></li>
+            <li class="toc-item"><a href="#skewed">IQR on skewed data</a></li>
+            <li class="toc-item"><a href="#multi-column">Multi-column box plots</a></li>
+            <li class="toc-item"><a href="#hyperparameters">HP tuning</a></li>
+            <li class="toc-item"><a href="#comparison">IQR vs Z-score</a></li>
+            <li class="toc-item"><a href="#math">Formulas</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ════════════════════════
+   HELPERS
+════════════════════════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function pct(arr,p){
+  var s=[...arr].sort(function(a,b){return a-b;});
+  var idx=(p/100)*(s.length-1),lo=Math.floor(idx),hi=Math.ceil(idx);
+  return s[lo]+(s[hi]-s[lo])*(idx-lo);
+}
+function arrMean(a){return a.reduce(function(s,v){return s+v;},0)/a.length;}
+function arrStd(a){var m=arrMean(a);return Math.sqrt(a.reduce(function(s,v){return s+(v-m)*(v-m);},0)/a.length);}
+
+function iqrStats(arr,k){
+  var q1=pct(arr,25),q3=pct(arr,75),IQR=q3-q1;
+  return{q1:q1,q3:q3,iqr:IQR,lo:q1-k*IQR,hi:q3+k*IQR,med:pct(arr,50)};
+}
+
+function normalSample(){
+  var u1=Math.random()+1e-10,u2=Math.random();
+  return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+}
+
+/* ════════════════════════
+   DATASETS
+════════════════════════ */
+var DATASETS={
+  salary:[28,32,35,38,40,42,44,45,47,48,49,50,51,52,53,55,57,60,62,65,68,72,75,78,82,88,95,102,350,420,18,22],
+  house:[150,180,200,210,220,230,240,250,260,270,280,290,300,310,330,350,380,420,450,500,600,750,2500,3200,120,130],
+  exam:[45,52,55,58,60,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,80,82,85,88,92,95,12,99,101,38],
+  sensor:[10.1,10.3,9.8,10.2,10.0,9.9,10.1,10.4,10.2,9.7,10.3,10.1,9.8,10.0,10.2,10.5,9.6,10.1,10.3,10.0,10.2,9.9,25.8,0.3,10.1]
+};
+
+/* ════════════════════════
+   SECTION 1 — BOX PLOT ANIM
+════════════════════════ */
+var bpData=[];
+var bpAnimStep=0;
+var bpAnimating=false;
+
+function onBPDataChange(){
+  var ds=C('bp-dataset').value;
+  bpData=[...DATASETS[ds]];
+  bpAnimStep=0;
+  drawBP(0);
+}
+
+function onBPKChange(){
+  C('bp-k-val').textContent=parseFloat(C('bp-k').value).toFixed(1);
+  drawBP(bpAnimStep);
+}
+
+function resetBoxAnim(){bpAnimating=false;bpAnimStep=0;drawBP(0);}
+
+async function animateBoxPlot(){
+  if(bpAnimating) return;
+  bpAnimating=true;
+  for(var step=1;step<=5;step++){
+    if(!bpAnimating) return;
+    bpAnimStep=step;
+    drawBP(step);
+    await delay(700);
+  }
+  bpAnimating=false;
+}
+
+function drawBP(step){
+  var k=parseFloat(C('bp-k').value);
+  var data=bpData.length?bpData:[...DATASETS[C('bp-dataset').value]];
+  var st=iqrStats(data,k);
+
+  C('bp-q1').textContent=st.q1.toFixed(1);
+  C('bp-med').textContent=st.med.toFixed(1);
+  C('bp-q3').textContent=st.q3.toFixed(1);
+  C('bp-iqr').textContent=st.iqr.toFixed(1);
+  C('bp-lo').textContent=st.lo.toFixed(1);
+  C('bp-hi').textContent=st.hi.toFixed(1);
+  var nOut=data.filter(function(v){return v<st.lo||v>st.hi;}).length;
+  C('bp-nout').textContent=nOut;
+
+  var cv=C('bp-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:60,r:30,t:40,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var xMin=Math.min.apply(null,data)-st.iqr*0.3;
+  var xMax=Math.max.apply(null,data)+st.iqr*0.3;
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var midY=H/2;
+  var boxH=60;
+
+  // Step labels
+  var stepLabels=['','① Sort data & find Q1, Q3','② IQR = Q3 − Q1','③ Draw fences: Q1−k×IQR, Q3+k×IQR','④ Draw whiskers to last in-fence value','⑤ Flag outliers beyond fences'];
+  if(step>0){
+    ctx.fillStyle='rgba(45,212,191,0.8)';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(stepLabels[step],W/2,22);ctx.textAlign='start';
+  }
+
+  // Step 1: dots
+  if(step>=1){
+    data.forEach(function(v,i){
+      ctx.beginPath();ctx.arc(toX(v),midY+(i%7-3)*6,4,0,Math.PI*2);
+      ctx.fillStyle='rgba(45,212,191,0.35)';ctx.fill();
+      ctx.strokeStyle='rgba(45,212,191,0.7)';ctx.lineWidth=1;ctx.stroke();
+    });
+    // Q1 Q3 markers
+    [st.q1,st.q3].forEach(function(v){
+      ctx.beginPath();ctx.moveTo(toX(v),midY-boxH/2-10);ctx.lineTo(toX(v),midY+boxH/2+10);
+      ctx.strokeStyle='rgba(45,212,191,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    });
+    ctx.fillStyle='rgba(45,212,191,0.8)';ctx.font='bold 11px mono';ctx.textAlign='center';
+    ctx.fillText('Q1='+st.q1.toFixed(1),toX(st.q1),midY-boxH/2-14);
+    ctx.fillText('Q3='+st.q3.toFixed(1),toX(st.q3),midY-boxH/2-14);
+    ctx.textAlign='start';
+  }
+
+  // Step 2: IQR box
+  if(step>=2){
+    ctx.fillStyle='rgba(45,212,191,0.15)';
+    ctx.fillRect(toX(st.q1),midY-boxH/2,toX(st.q3)-toX(st.q1),boxH);
+    ctx.strokeStyle='#2dd4bf';ctx.lineWidth=2;
+    ctx.strokeRect(toX(st.q1),midY-boxH/2,toX(st.q3)-toX(st.q1),boxH);
+    // IQR brace
+    var bY=midY+boxH/2+18;
+    ctx.beginPath();ctx.moveTo(toX(st.q1),bY);ctx.lineTo(toX(st.q3),bY);
+    ctx.strokeStyle='rgba(251,140,64,0.7)';ctx.lineWidth=2;ctx.stroke();
+    [toX(st.q1),toX(st.q3)].forEach(function(x){
+      ctx.beginPath();ctx.moveTo(x,bY-4);ctx.lineTo(x,bY+4);ctx.strokeStyle='rgba(251,140,64,0.7)';ctx.stroke();
+    });
+    ctx.fillStyle='rgba(251,140,64,0.9)';ctx.font='bold 11px mono';ctx.textAlign='center';
+    ctx.fillText('IQR='+st.iqr.toFixed(1),(toX(st.q1)+toX(st.q3))/2,bY+14);ctx.textAlign='start';
+    // Median
+    var mx=toX(st.med);
+    ctx.beginPath();ctx.moveTo(mx,midY-boxH/2);ctx.lineTo(mx,midY+boxH/2);
+    ctx.strokeStyle='#3ecf8e';ctx.lineWidth=3;ctx.stroke();
+    ctx.fillStyle='#3ecf8e';ctx.font='bold 11px mono';ctx.textAlign='center';
+    ctx.fillText('M='+st.med.toFixed(1),mx,midY-boxH/2-14);ctx.textAlign='start';
+  }
+
+  // Step 3: fences
+  if(step>=3){
+    [st.lo,st.hi].forEach(function(v,isHi){
+      var x=toX(Math.max(xMin,Math.min(xMax,v)));
+      ctx.beginPath();ctx.moveTo(x,midY-boxH/2-5);ctx.lineTo(x,midY+boxH/2+5);
+      ctx.strokeStyle='rgba(240,96,96,0.8)';ctx.lineWidth=2;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(240,96,96,0.9)';ctx.font='bold 10px mono';ctx.textAlign='center';
+      ctx.fillText((isHi?'Hi':'Lo')+' fence: '+v.toFixed(1),x,midY-boxH/2-18);ctx.textAlign='start';
+    });
+    // Shaded outlier zone
+    ctx.fillStyle='rgba(240,96,96,0.06)';
+    if(st.lo>xMin) ctx.fillRect(pad.l,midY-boxH/2,toX(st.lo)-pad.l,boxH);
+    if(st.hi<xMax) ctx.fillRect(toX(st.hi),midY-boxH/2,W-pad.r-toX(st.hi),boxH);
+  }
+
+  // Step 4: whiskers
+  if(step>=4){
+    var inliers=data.filter(function(v){return v>=st.lo&&v<=st.hi;});
+    var whiskerLo=Math.min.apply(null,inliers), whiskerHi=Math.max.apply(null,inliers);
+    [whiskerLo,whiskerHi].forEach(function(v){
+      var x=toX(v);
+      ctx.beginPath();ctx.moveTo(toX(v>st.med?st.q3:st.q1),midY);ctx.lineTo(x,midY);
+      ctx.strokeStyle='rgba(45,212,191,0.7)';ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x,midY-12);ctx.lineTo(x,midY+12);ctx.stroke();
+    });
+  }
+
+  // Step 5: outliers
+  if(step>=5){
+    data.forEach(function(v,i){
+      if(v>=st.lo&&v<=st.hi) return;
+      var jitter=(i%5-2)*5;
+      ctx.beginPath();ctx.arc(toX(Math.max(xMin+2,Math.min(xMax-2,v))),midY+jitter,6,0,Math.PI*2);
+      ctx.fillStyle='rgba(240,96,96,0.4)';ctx.fill();
+      ctx.strokeStyle='#f06060';ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle='#f06060';ctx.font='10px mono';ctx.textAlign='center';
+      ctx.fillText(v.toFixed(0),toX(Math.max(xMin+2,Math.min(xMax-2,v))),midY+jitter-12);ctx.textAlign='start';
+    });
+  }
+
+  // Axis
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  var step_=(xMax-xMin)/7;
+  for(var t=xMin;t<=xMax+0.01;t+=step_){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(t.toFixed(0),toX(t),H-pad.b+14);
+  }
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════
+   SECTION 2 — LIVE DETECTOR
+════════════════════════ */
+var livePts=[];
+
+function resetLive(){livePts=[];redrawLive();}
+function addOutlierLive(){
+  var vals=livePts.length?livePts:[50];
+  var spread=arrStd(vals)||20;
+  livePts.push(arrMean(vals)+(Math.random()>0.5?1:-1)*(3+Math.random())*spread);
+  redrawLive();
+}
+function loadLiveSample(){
+  livePts=[];
+  for(var i=0;i<60;i++) livePts.push(50+12*normalSample());
+  [120,130,125,-10,-15].forEach(function(v){livePts.push(v);});
+  redrawLive();
+}
+
+function redrawLive(){
+  var k=parseFloat(C('live-k').value);
+  C('live-k-val').textContent=k.toFixed(1);
+  var cv=C('live-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:30,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  if(livePts.length<4){
+    ctx.fillStyle=tc();ctx.font='14px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Click to add points, or press "Load sample"',W/2,H/2);
+    ctx.textAlign='start';
+    C('live-n').textContent=livePts.length;
+    C('live-iqr').textContent='—';C('live-out').textContent=0;
+    C('live-lo-fence').textContent='—';C('live-hi-fence').textContent='—';
+    C('iqr-table-body').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:16px;">Need at least 4 points</td></tr>';
+    return;
+  }
+
+  var st=iqrStats(livePts,k);
+  var xMin=Math.min.apply(null,livePts)-st.iqr*0.5;
+  var xMax=Math.max.apply(null,livePts)+st.iqr*0.5;
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var midY=H/2,boxH=48;
+
+  // Outlier shade
+  ctx.fillStyle='rgba(240,96,96,0.05)';
+  ctx.fillRect(pad.l,pad.t,Math.max(0,toX(st.lo)-pad.l),H-pad.t-pad.b);
+  ctx.fillRect(Math.min(W-pad.r,toX(st.hi)),pad.t,W-pad.r-Math.min(W-pad.r,toX(st.hi)),H-pad.t-pad.b);
+
+  // Fences
+  [st.lo,st.hi].forEach(function(v){
+    var x=toX(Math.max(xMin,Math.min(xMax,v)));
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,H-pad.b);
+    ctx.strokeStyle='rgba(240,96,96,0.7)';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(240,96,96,0.8)';ctx.font='bold 10px mono';ctx.textAlign='center';
+    ctx.fillText(v.toFixed(1),x,pad.t+11);ctx.textAlign='start';
+  });
+
+  // IQR box
+  ctx.fillStyle='rgba(45,212,191,0.12)';
+  ctx.fillRect(toX(st.q1),midY-boxH/2,toX(st.q3)-toX(st.q1),boxH);
+  ctx.strokeStyle='#2dd4bf';ctx.lineWidth=2;
+  ctx.strokeRect(toX(st.q1),midY-boxH/2,toX(st.q3)-toX(st.q1),boxH);
+  // Median line
+  ctx.beginPath();ctx.moveTo(toX(st.med),midY-boxH/2);ctx.lineTo(toX(st.med),midY+boxH/2);
+  ctx.strokeStyle='#3ecf8e';ctx.lineWidth=3;ctx.stroke();
+
+  // Axis
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  var step_=(xMax-xMin)/8;
+  for(var t=xMin;t<=xMax+0.01;t+=step_){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(t.toFixed(0),toX(t),H-pad.b+14);
+  }
+  ctx.textAlign='start';
+
+  // Points
+  livePts.forEach(function(v,i){
+    var isOut=v<st.lo||v>st.hi;
+    var jitter=(i%9-4)*4;
+    ctx.beginPath();ctx.arc(toX(Math.max(xMin+2,Math.min(xMax-2,v))),midY+jitter,isOut?7:4,0,Math.PI*2);
+    ctx.fillStyle=isOut?'rgba(240,96,96,0.4)':'rgba(45,212,191,0.3)';ctx.fill();
+    ctx.strokeStyle=isOut?'#f06060':'#2dd4bf';ctx.lineWidth=isOut?2:1;ctx.stroke();
+    if(isOut){
+      ctx.fillStyle='#f06060';ctx.font='bold 10px mono';ctx.textAlign='center';
+      ctx.fillText(v.toFixed(0),toX(Math.max(xMin+2,Math.min(xMax-2,v))),midY+jitter-13);ctx.textAlign='start';
+    }
+  });
+
+  // Stats
+  var nOut=livePts.filter(function(v){return v<st.lo||v>st.hi;}).length;
+  C('live-n').textContent=livePts.length;
+  C('live-iqr').textContent=st.iqr.toFixed(2);
+  C('live-out').textContent=nOut;
+  C('live-lo-fence').textContent=st.lo.toFixed(2);
+  C('live-hi-fence').textContent=st.hi.toFixed(2);
+
+  // Table — top 12 by distance from fence
+  var rows=[...livePts].map(function(v){
+    var fenceDist=v<st.lo?(st.lo-v):v>st.hi?(v-st.hi):0;
+    var isOut=v<st.lo||v>st.hi, isMild=!isOut&&(v<st.q1-0.5*st.iqr||v>st.q3+0.5*st.iqr);
+    return{v:v,fenceDist:fenceDist,isOut:isOut,isMild:isMild};
+  }).sort(function(a,b){return b.fenceDist-a.fenceDist;}).slice(0,12);
+
+  var tbody='';
+  rows.forEach(function(r,i){
+    var rowCls=r.isOut?'row-outlier':r.isMild?'row-mild':'';
+    var dFromQ1=(r.v-st.q1).toFixed(2),dFromQ3=(r.v-st.q3).toFixed(2);
+    var fColor=r.isOut?'val-out':r.isMild?'val-mild':'val-ok';
+    var status=r.isOut?'<span style="color:#f06060;font-weight:700;">Outlier ✕</span>':r.isMild?'<span style="color:#fb8c40;">Borderline ⚠</span>':'<span style="color:#3ecf8e;">Normal ✓</span>';
+    tbody+='<tr class="'+rowCls+'"><td>'+(i+1)+'</td><td>'+r.v.toFixed(2)+'</td><td>'+(parseFloat(dFromQ1)>=0?'+':'')+dFromQ1+'</td><td>'+(parseFloat(dFromQ3)>=0?'+':'')+dFromQ3+'</td><td class="'+fColor+'">'+( r.fenceDist>0?r.fenceDist.toFixed(2):'—')+'</td><td>'+status+'</td></tr>';
+  });
+  C('iqr-table-body').innerHTML=tbody;
+}
+
+var liveCanvas=C('live-canvas');
+liveCanvas.addEventListener('click',function(e){
+  var r=liveCanvas.getBoundingClientRect();
+  var x=(e.clientX-r.left)/r.width;
+  var val=x*200-20;
+  livePts.push(parseFloat(val.toFixed(1)));
+  redrawLive();
+});
+
+/* ════════════════════════
+   SECTION 3 — SKEWED DATA
+════════════════════════ */
+var skewData=[];
+function genSkewData(){
+  skewData=[];
+  var shape=C('skew-shape').value;
+  var nOut=parseInt(C('skew-nout').value);
+  for(var i=0;i<120;i++){
+    if(shape==='normal') skewData.push(50+12*normalSample());
+    else if(shape==='right') skewData.push(20+Math.pow(Math.random(),0.3)*180);
+    else if(shape==='heavy'){var z=normalSample();skewData.push(50+12*z*(Math.random()<0.1?5:1));}
+    else skewData.push(i<60?30+8*normalSample():70+8*normalSample());
+  }
+  for(var i=0;i<nOut;i++) skewData.push(skewData[0]+300+Math.random()*100);
+}
+
+function redrawSkewed(){
+  C('skew-nout-val').textContent=C('skew-nout').value;
+  genSkewData();
+  var k=1.5;
+  var st=iqrStats(skewData,k);
+  var mu=arrMean(skewData),sigma=arrStd(skewData);
+  var zLo=mu-3*sigma, zHi=mu+3*sigma;
+
+  var iqrFlag=skewData.map(function(v){return v<st.lo||v>st.hi;});
+  var zFlag=skewData.map(function(v){return v<zLo||v>zHi;});
+  var trueOut=parseInt(C('skew-nout').value);
+  var trueIdx=skewData.map(function(v,i){return i;}).slice(skewData.length-trueOut);
+
+  function counts(flags){
+    var tp=trueIdx.filter(function(i){return flags[i];}).length;
+    var fp=flags.filter(function(f,i){return f&&!trueIdx.includes(i);}).length;
+    return{found:flags.filter(Boolean).length,tp:tp,fp:fp};
+  }
+  var ic=counts(iqrFlag), zc=counts(zFlag);
+  C('sk-iqr-found').textContent=ic.found;
+  C('sk-z-found').textContent=zc.found;
+  C('sk-iqr-fp').textContent=ic.fp;
+  C('sk-z-fp').textContent=zc.fp;
+  C('sk-z-fp').style.color=zc.fp>ic.fp?'#f06060':'#3ecf8e';
+
+  var cv=C('skewed-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:40,r:20,t:28,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var xMin=Math.min.apply(null,skewData)-5, xMax=Math.max.apply(null,skewData)+5;
+  var bins=40, binW=(xMax-xMin)/bins;
+  var counts_arr=new Array(bins).fill(0);
+  skewData.forEach(function(v){var b=Math.max(0,Math.min(bins-1,Math.floor((v-xMin)/binW)));counts_arr[b]++;});
+  var maxC=Math.max.apply(null,counts_arr)||1;
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var toY=function(c){return H-pad.b-c/maxC*(H-pad.t-pad.b);};
+  var bw=(W-pad.l-pad.r)/bins;
+
+  counts_arr.forEach(function(c,i){
+    ctx.fillStyle='rgba(45,212,191,0.35)';
+    ctx.fillRect(pad.l+i*bw+1,toY(c),bw-2,H-pad.b-toY(c));
+  });
+
+  // IQR fences (teal)
+  [st.lo,st.hi].forEach(function(v){
+    if(v<xMin||v>xMax) return;
+    ctx.beginPath();ctx.moveTo(toX(v),pad.t);ctx.lineTo(toX(v),H-pad.b);
+    ctx.strokeStyle='rgba(45,212,191,0.9)';ctx.lineWidth=2.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(45,212,191,0.9)';ctx.font='bold 10px mono';ctx.textAlign='center';
+    ctx.fillText('IQR: '+v.toFixed(0),toX(v),pad.t+11);ctx.textAlign='start';
+  });
+
+  // Z fences (purple)
+  [zLo,zHi].forEach(function(v){
+    if(v<xMin||v>xMax) return;
+    ctx.beginPath();ctx.moveTo(toX(v),pad.t);ctx.lineTo(toX(v),H-pad.b);
+    ctx.strokeStyle='rgba(139,92,246,0.7)';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(139,92,246,0.7)';ctx.font='10px mono';ctx.textAlign='center';
+    ctx.fillText('Z: '+v.toFixed(0),toX(v),pad.t+22);ctx.textAlign='start';
+  });
+
+  // Axis
+  for(var t=Math.ceil(xMin/50)*50;t<=xMax;t+=50){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(t,toX(t),H-pad.b+14);
+  }
+  ctx.textAlign='start';
+
+  // Legend
+  ctx.strokeStyle='rgba(45,212,191,0.9)';ctx.lineWidth=2.5;ctx.setLineDash([6,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b+28);ctx.lineTo(pad.l+20,H-pad.b+28);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('IQR fence',pad.l+24,H-pad.b+32);
+  ctx.strokeStyle='rgba(139,92,246,0.7)';ctx.lineWidth=2;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(pad.l+100,H-pad.b+28);ctx.lineTo(pad.l+120,H-pad.b+28);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillText('Z-score fence',pad.l+124,H-pad.b+32);
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════
+   SECTION 4 — MULTI COLUMN
+════════════════════════ */
+var multiData={};
+var MULTI_DATASETS={
+  housing:{
+    features:['sqft','bedrooms','bathrooms','lot_size','age','price'],
+    gen:function(){
+      return{
+        sqft:Array.from({length:80},function(){return 800+normalSample()*300+(Math.random()<0.04?3000:0);}),
+        bedrooms:Array.from({length:80},function(){return 3+Math.round(normalSample())+(Math.random()<0.03?6:0);}),
+        bathrooms:Array.from({length:80},function(){return 2+normalSample()*0.5+(Math.random()<0.04?5:0);}),
+        lot_size:Array.from({length:80},function(){return 5000+Math.pow(Math.random(),0.4)*20000+(Math.random()<0.03?150000:0);}),
+        age:Array.from({length:80},function(){return 20+normalSample()*15+(Math.random()<0.03?200:0);}),
+        price:Array.from({length:80},function(){return 300000+normalSample()*80000+(Math.random()<0.03?2000000:0);})
+      };
+    }
+  },
+  medical:{
+    features:['age','bmi','bp','glucose','insulin','skin_thick'],
+    gen:function(){
+      return{
+        age:Array.from({length:80},function(){return 35+normalSample()*12+(Math.random()<0.03?120:0);}),
+        bmi:Array.from({length:80},function(){return 28+normalSample()*5+(Math.random()<0.04?70:0);}),
+        bp:Array.from({length:80},function(){return 72+normalSample()*12+(Math.random()<0.03?200:0);}),
+        glucose:Array.from({length:80},function(){return 100+normalSample()*20+(Math.random()<0.04?400:0);}),
+        insulin:Array.from({length:80},function(){return 80+Math.pow(Math.random(),0.4)*120+(Math.random()<0.04?900:0);}),
+        skin_thick:Array.from({length:80},function(){return 20+normalSample()*8+(Math.random()<0.03?80:0);})
+      };
+    }
+  },
+  financial:{
+    features:['revenue','profit','assets','liabilities','emp_count','mkt_cap'],
+    gen:function(){
+      return{
+        revenue:Array.from({length:80},function(){return 5+Math.pow(Math.random(),0.4)*100+(Math.random()<0.03?5000:0);}),
+        profit:Array.from({length:80},function(){return 1+normalSample()*2+(Math.random()<0.04?200:0);}),
+        assets:Array.from({length:80},function(){return 20+Math.pow(Math.random(),0.4)*200+(Math.random()<0.03?10000:0);}),
+        liabilities:Array.from({length:80},function(){return 10+Math.pow(Math.random(),0.4)*150+(Math.random()<0.03?8000:0);}),
+        emp_count:Array.from({length:80},function(){return 100+normalSample()*50+(Math.random()<0.03?10000:0);}),
+        mkt_cap:Array.from({length:80},function(){return 50+Math.pow(Math.random(),0.4)*500+(Math.random()<0.03?50000:0);})
+      };
+    }
+  }
+};
+
+function genMultiData(){
+  var ds=C('multi-dataset').value;
+  multiData=MULTI_DATASETS[ds].gen();
+}
+
+function redrawMulti(){
+  var k=parseFloat(C('multi-k').value);
+  C('multi-k-val').textContent=k.toFixed(1);
+  var ds=C('multi-dataset').value;
+  var features=MULTI_DATASETS[ds].features;
+
+  var cv=C('multi-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:20,r:20,t:30,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var n=features.length;
+  var panW=(W-pad.l-pad.r)/n;
+  var totalOut=0;
+  var statHtml='';
+
+  features.forEach(function(feat,fi){
+    var ox=pad.l+fi*panW;
+    var data=multiData[feat]||[];
+    if(!data.length) return;
+    var st=iqrStats(data,k);
+    var nOut=data.filter(function(v){return v<st.lo||v>st.hi;}).length;
+    totalOut+=nOut;
+
+    var yMin=Math.min.apply(null,data), yMax=Math.max.apply(null,data);
+    var margin=(yMax-yMin)*0.05||1;
+    yMin-=margin;yMax+=margin;
+    var toY=function(v){return pad.t+(yMax-v)/(yMax-yMin)*(H-pad.t-pad.b);};
+
+    // Box
+    var bx=ox+panW*0.3, bw2=panW*0.4;
+    ctx.fillStyle='rgba(45,212,191,0.15)';
+    ctx.fillRect(bx,toY(st.q3),bw2,toY(st.q1)-toY(st.q3));
+    ctx.strokeStyle='#2dd4bf';ctx.lineWidth=1.5;
+    ctx.strokeRect(bx,toY(st.q3),bw2,toY(st.q1)-toY(st.q3));
+
+    // Median
+    ctx.beginPath();ctx.moveTo(bx,toY(st.med));ctx.lineTo(bx+bw2,toY(st.med));
+    ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+
+    // Whiskers
+    var inliers=data.filter(function(v){return v>=st.lo&&v<=st.hi;});
+    var wlo=Math.min.apply(null,inliers),whi=Math.max.apply(null,inliers);
+    var cx2=bx+bw2/2;
+    ctx.beginPath();ctx.moveTo(cx2,toY(whi));ctx.lineTo(cx2,toY(st.q3));ctx.strokeStyle='rgba(45,212,191,0.6)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx2,toY(wlo));ctx.lineTo(cx2,toY(st.q1));ctx.stroke();
+    [wlo,whi].forEach(function(v){ctx.beginPath();ctx.moveTo(bx+bw2*0.2,toY(v));ctx.lineTo(bx+bw2*0.8,toY(v));ctx.stroke();});
+
+    // Outlier dots
+    data.forEach(function(v,i){
+      if(v>=st.lo&&v<=st.hi) return;
+      var jx=cx2+(i%5-2)*4;
+      ctx.beginPath();ctx.arc(jx,toY(Math.max(yMin+margin,Math.min(yMax-margin,v))),4,0,Math.PI*2);
+      ctx.fillStyle='rgba(240,96,96,0.5)';ctx.fill();
+      ctx.strokeStyle='#f06060';ctx.lineWidth=1.5;ctx.stroke();
+    });
+
+    // Feature label + outlier count
+    ctx.fillStyle=nOut>0?'#f06060':tc();ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+    ctx.fillText(feat,ox+panW/2,H-pad.b+12);
+    if(nOut>0){ctx.fillStyle='#f06060';ctx.fillText(nOut+' out',ox+panW/2,H-pad.b+24);}
+    ctx.textAlign='start';
+
+    // Divider
+    if(fi<n-1){ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(ox+panW,pad.t);ctx.lineTo(ox+panW,H-pad.b);ctx.stroke();}
+
+    statHtml+='<div class="stat-pill"><span class="stat-pill-val" style="font-size:14px;color:'+(nOut>0?'#f06060':var_teal)+'">'+(nOut>0?nOut+'⚠':'0✓')+'</span><span class="stat-pill-lbl">'+feat+'</span></div>';
+  });
+  var var_teal='var(--teal2)';
+  C('multi-stats').innerHTML='<div class="stat-pill"><span class="stat-pill-val" style="color:#f06060;">'+totalOut+'</span><span class="stat-pill-lbl">Total outliers</span></div>'+statHtml;
+}
+
+/* ════════════════════════
+   SECTION 5 — HP TUNING
+════════════════════════ */
+var hpDist='normal';
+var sweepData=null;
+
+function setDist(d){
+  hpDist=d;
+  C('hp-dist-val').textContent=d;
+  ['normal','skewed','heavy'].forEach(function(k){C('d-'+k).classList.toggle('active',k===d);});
+  onHPChange();
+}
+
+function simulateIQR(k,sev,cont,dist){
+  var n=200;
+  var data=[];
+  for(var i=0;i<n;i++){
+    var v;
+    if(dist==='normal') v=50+12*normalSample();
+    else if(dist==='skewed') v=20+Math.pow(Math.random(),0.3)*100;
+    else v=50+12*normalSample()*(Math.random()<0.1?4:1);
+    data.push(v);
+  }
+  var nOut=Math.round(n*cont/100);
+  var outIdx=[];
+  while(outIdx.length<nOut){var idx=Math.floor(Math.random()*n);if(!outIdx.includes(idx))outIdx.push(idx);}
+  var st0=iqrStats(data,1);
+  outIdx.forEach(function(i){data[i]+=(Math.random()>0.5?1:-1)*sev*st0.iqr;});
+
+  var st=iqrStats(data,k);
+  var flagged=data.map(function(v){return v<st.lo||v>st.hi;});
+  var tp=outIdx.filter(function(i){return flagged[i];}).length;
+  var fp=flagged.filter(function(f,i){return f&&!outIdx.includes(i);}).length;
+  var fn=outIdx.filter(function(i){return !flagged[i];}).length;
+  var prec=tp+fp>0?tp/(tp+fp):0,rec=nOut>0?tp/nOut:0;
+  var f1=prec+rec>0?2*prec*rec/(prec+rec):0;
+  var r2=Math.max(0,Math.min(1,0.6+f1*0.35));
+  return{precision:prec,recall:rec,f1:f1,r2:r2};
+}
+
+function onHPChange(){
+  var k=parseFloat(C('hp-k').value);
+  var sev=parseFloat(C('hp-sev').value);
+  var cont=parseInt(C('hp-cont').value);
+  C('hp-k-val').textContent=k.toFixed(1);
+  C('hp-sev-val').textContent=sev+'×IQR';
+  C('hp-cont-val').textContent=cont+'%';
+
+  var res=simulateIQR(k,sev,cont,hpDist);
+  C('ac-precision').textContent=(res.precision*100).toFixed(0)+'%';
+  C('ac-recall').textContent=(res.recall*100).toFixed(0)+'%';
+  C('ac-f1').textContent=(res.f1*100).toFixed(0)+'%';
+  C('ac-model').textContent=res.r2.toFixed(2);
+  C('ac-p-bar').style.width=(res.precision*100)+'%';
+  C('ac-r-bar').style.width=(res.recall*100)+'%';
+  C('ac-f1-bar').style.width=(res.f1*100)+'%';
+  C('ac-m-bar').style.width=(res.r2*100)+'%';
+  C('ac-precision').style.color=res.precision>0.8?'#3ecf8e':res.precision>0.5?'#fb8c40':'#f06060';
+  C('ac-recall').style.color=res.recall>0.8?'#3ecf8e':res.recall>0.5?'#fb8c40':'#f06060';
+}
+
+async function runKSweep(){
+  C('sweep-status').textContent='Running...';
+  sweepData=[];
+  var sev=parseFloat(C('hp-sev').value);
+  var cont=parseInt(C('hp-cont').value);
+  var kVals=[0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,3,3.5,4];
+  for(var ki=0;ki<kVals.length;ki++){
+    var res=simulateIQR(kVals[ki],sev,cont,hpDist);
+    sweepData.push({k:kVals[ki],precision:res.precision,recall:res.recall,f1:res.f1});
+    drawSweepCanvas();
+    await delay(70);
+  }
+  var best=sweepData.reduce(function(m,d){return d.f1>m.f1?d:m;},sweepData[0]);
+  C('sweep-status').textContent='Best k = '+best.k.toFixed(2)+' (F1='+( best.f1*100).toFixed(0)+'%)';
+}
+
+function drawSweepCanvas(){
+  if(!sweepData||!sweepData.length) return;
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:14,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var kMin=0.5,kMax=4;
+  var toX=function(k){return pad.l+(k-kMin)/(kMax-kMin)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-v*(H-pad.t-pad.b);};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.25,.5,.75,1].forEach(function(v){
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+  });
+  [0.5,1,1.5,2,2.5,3,3.5,4].forEach(function(k){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(k,toX(k),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('k factor',W/2,H-2);
+
+  // Tukey reference
+  ctx.beginPath();ctx.moveTo(toX(1.5),pad.t);ctx.lineTo(toX(1.5),H-pad.b);
+  ctx.strokeStyle='rgba(45,212,191,0.25)';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(45,212,191,0.5)';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('Tukey k=1.5',toX(1.5),pad.t+10);
+
+  var lines=[{key:'precision',col:'#2dd4bf',label:'Precision'},{key:'recall',col:'#3ecf8e',label:'Recall'},{key:'f1',col:'#fb8c40',label:'F1'}];
+  lines.forEach(function(line){
+    ctx.beginPath();
+    sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.k),toY(d[line.key])):ctx.lineTo(toX(d.k),toY(d[line.key]));});
+    ctx.strokeStyle=line.col;ctx.lineWidth=2.5;ctx.stroke();
+    sweepData.forEach(function(d){ctx.beginPath();ctx.arc(toX(d.k),toY(d[line.key]),3,0,Math.PI*2);ctx.fillStyle=line.col;ctx.fill();});
+  });
+
+  var best=sweepData.reduce(function(m,d){return d.f1>m.f1?d:m;},sweepData[0]);
+  ctx.beginPath();ctx.arc(toX(best.k),toY(best.f1),8,0,Math.PI*2);
+  ctx.fillStyle='#fb8c40';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#fb8c40';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('k='+best.k,toX(best.k),toY(best.f1)-12);
+
+  var lx=pad.l+10;
+  lines.forEach(function(l,i){
+    ctx.strokeStyle=l.col;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(lx+i*85,pad.t+8);ctx.lineTo(lx+i*85+20,pad.t+8);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(l.label,lx+i*85+24,pad.t+12);
+  });
+  ctx.textAlign='start';
+}
+
+/* ════════════════════════
+   SECTION 6 — CMP CANVAS
+════════════════════════ */
+function redrawCmp(){
+  C('cmp-pct-val').textContent=C('cmp-pct').value+'%';
+  var pct_=parseInt(C('cmp-pct').value)/100;
+  var shape=C('cmp-shape').value;
+  var n=100;
+  var data=[];
+  for(var i=0;i<n;i++){
+    if(shape==='normal') data.push(50+12*normalSample());
+    else if(shape==='skewed') data.push(20+Math.pow(Math.random(),0.3)*100);
+    else data.push(i<50?30+8*normalSample():70+8*normalSample());
+  }
+  var nOut=Math.round(n*pct_);
+  var outIdx=[];
+  while(outIdx.length<nOut){var idx=Math.floor(Math.random()*n);if(!outIdx.includes(idx))outIdx.push(idx);}
+  outIdx.forEach(function(i){data[i]+=(Math.random()>0.5?1:-1)*(40+Math.random()*40);});
+
+  var stIQR=iqrStats(data,1.5);
+  var mu=arrMean(data),sigma=arrStd(data);
+  var zLo=mu-3*sigma, zHi=mu+3*sigma;
+
+  var iqrFlag=data.map(function(v){return v<stIQR.lo||v>stIQR.hi;});
+  var zFlag=data.map(function(v){return v<zLo||v>zHi;});
+
+  function f1(flags,truth){
+    var tp=truth.filter(function(i){return flags[i];}).length;
+    var fp=flags.filter(function(f,i){return f&&!truth.includes(i);}).length;
+    var p=tp+fp>0?tp/(tp+fp):0,r=truth.length>0?tp/truth.length:0;
+    return{f1:p+r>0?2*p*r/(p+r):0,found:flags.filter(Boolean).length,fp:fp};
+  }
+  var iqrR=f1(iqrFlag,outIdx),zR=f1(zFlag,outIdx);
+
+  var cv=C('cmp-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var panW=W/2-5;
+  var xMin=Math.min.apply(null,data)-5, xMax=Math.max.apply(null,data)+5;
+  var toX=function(v,ox){return ox+10+(v-xMin)/(xMax-xMin)*(panW-20);};
+
+  function drawPanel(ox,title,col,flagArr,r,lo,hi){
+    ctx.fillStyle=tc();ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(title,ox+panW/2,15);
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.strokeRect(ox+10,22,panW-20,H-50);
+    // fence lines
+    [lo,hi].forEach(function(v){
+      if(v<xMin||v>xMax) return;
+      ctx.beginPath();ctx.moveTo(toX(v,ox),22);ctx.lineTo(toX(v,ox),H-28);
+      ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+    });
+    data.forEach(function(v,i){
+      var isFlagged=flagArr[i],isTrue=outIdx.includes(i);
+      var c_=isFlagged&&isTrue?'#3ecf8e':isFlagged&&!isTrue?'#f06060':isTrue&&!isFlagged?'#fb8c40':col;
+      var jitter=(i%9-4)*4;
+      ctx.beginPath();ctx.arc(toX(v,ox),H/2+jitter,isFlagged?7:4,0,Math.PI*2);
+      ctx.fillStyle=c_+'40';ctx.fill();ctx.strokeStyle=c_;ctx.lineWidth=isFlagged?2:1;ctx.stroke();
+    });
+    ctx.fillStyle=col;ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('F1='+( r.f1*100).toFixed(0)+'%  found='+r.found+'/'+nOut+'  FP='+r.fp,ox+panW/2,H-14);
+    if(ox<W/2){ctx.strokeStyle=gc();ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ox+panW,20);ctx.lineTo(ox+panW,H-15);ctx.stroke();}
+  }
+  drawPanel(0,'IQR (k=1.5)','#2dd4bf',iqrFlag,iqrR,stIQR.lo,stIQR.hi);
+  drawPanel(W/2+5,'Z-score (k=3)','#8b5cf6',zFlag,zR,zLo,zHi);
+
+  // Legend
+  var legItems=[['#3ecf8e','True positive'],['#f06060','False positive'],['#fb8c40','Missed (FN)']];
+  var lx=10;
+  legItems.forEach(function(l){
+    ctx.beginPath();ctx.arc(lx+5,H-8,5,0,Math.PI*2);ctx.fillStyle=l[0];ctx.fill();
+    ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText(l[1],lx+13,H-4);
+    lx+=90;
+  });
+  ctx.textAlign='start';
+
+  C('cmp-stats').innerHTML=
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#2dd4bf;font-size:14px;">'+(iqrR.f1*100).toFixed(0)+'%</span><span class="stat-pill-lbl">IQR F1</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#8b5cf6;font-size:14px;">'+(zR.f1*100).toFixed(0)+'%</span><span class="stat-pill-lbl">Z-score F1</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#fb8c40;">'+iqrR.fp+'</span><span class="stat-pill-lbl">IQR false pos</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#f06060;">'+zR.fp+'</span><span class="stat-pill-lbl">Z false pos</span></div>';
+}
+
+/* ════════════════════════
+   LIVE EDITOR
+════════════════════════ */
+var SNIPPETS=[
+{file:'iqr_basics.py',label:'IQR basics',code:`import numpy as np
+import pandas as pd
+
+# ── Salary dataset with obvious outliers ──────────────
+np.random.seed(42)
+salaries = np.append(
+    np.random.normal(60000, 12000, 200),
+    [400000, 550000, 750000, -8000]   # clear outliers
+)
+s = pd.Series(salaries, name='Salary')
+
+# ── Compute IQR stats ──────────────────────────────────
+Q1 = s.quantile(0.25)
+Q3 = s.quantile(0.75)
+IQR = Q3 - Q1
+
+print(f"Q1 (25th %ile):  {Q1:>10,.0f}")
+print(f"Q3 (75th %ile):  {Q3:>10,.0f}")
+print(f"IQR:             {IQR:>10,.0f}")
+
+# ── Tukey fences at k=1.5 (mild) and k=3 (extreme) ───
+for k in [1.5, 3.0]:
+    lo = Q1 - k * IQR
+    hi = Q3 + k * IQR
+    outliers = s[(s < lo) | (s > hi)]
+    print(f"\\nk={k}")
+    print(f"  Lower fence: {lo:>10,.0f}")
+    print(f"  Upper fence: {hi:>10,.0f}")
+    print(f"  Outliers:    {len(outliers)} ({len(outliers)/len(s)*100:.1f}%)")
+    if len(outliers) <= 8:
+        print(f"  Values:      {sorted(outliers.values.tolist())}")
+
+# ── Flag with a mask ──────────────────────────────────
+k = 1.5
+lo, hi = Q1 - k*IQR, Q3 + k*IQR
+outlier_mask = (s < lo) | (s > hi)
+
+print(f"\\nMean before removal: {s.mean():>10,.0f}")
+s_clean = s[~outlier_mask]
+print(f"Mean after  removal: {s_clean.mean():>10,.0f}")
+print(f"Std  before removal: {s.std():>10,.0f}")
+print(f"Std  after  removal: {s_clean.std():>10,.0f}")
+`},
+{file:'iqr_multicolumn.py',label:'Multi-column IQR',code:`import numpy as np
+import pandas as pd
+
+np.random.seed(0)
+
+# ── Synthetic housing dataset ─────────────────────────
+n = 300
+df = pd.DataFrame({
+    'sqft':     np.append(np.random.normal(1800, 400, n), [8000, 9500, 500]),
+    'bedrooms': np.append(np.random.randint(2, 6, n).astype(float), [12, 15, 0]),
+    'age':      np.append(np.random.randint(0, 60, n).astype(float), [250, 300, -5]),
+    'lot_size': np.append(np.random.exponential(8000, n), [200000, 300000]),
+    'price':    np.append(np.random.normal(300000, 80000, n), [5000000, 8000000, 10000])
+})
+
+def iqr_outliers(series, k=1.5):
+    Q1, Q3 = series.quantile(0.25), series.quantile(0.75)
+    IQR = Q3 - Q1
+    lo, hi = Q1 - k*IQR, Q3 + k*IQR
+    mask = (series < lo) | (series > hi)
+    return mask, lo, hi, IQR
+
+print(f"{'Column':<12} {'Q1':>10} {'Q3':>10} {'IQR':>10} "
+      f"{'Lo fence':>12} {'Hi fence':>12} {'Outliers':>9}")
+print("-" * 80)
+
+total_outlier_rows = set()
+for col in df.columns:
+    mask, lo, hi, IQR = iqr_outliers(df[col])
+    out_idx = df.index[mask].tolist()
+    total_outlier_rows.update(out_idx)
+    print(f"{col:<12} {df[col].quantile(0.25):>10.0f} "
+          f"{df[col].quantile(0.75):>10.0f} {IQR:>10.0f} "
+          f"{lo:>12.0f} {hi:>12.0f} {mask.sum():>9}")
+
+print(f"\\nTotal rows flagged in ANY column: {len(total_outlier_rows)}")
+print(f"Rows remaining after removal:     {len(df) - len(total_outlier_rows)}")
+
+# ── Keep only clean rows ──────────────────────────────
+combined_mask = pd.Series(False, index=df.index)
+for col in df.columns:
+    mask, _, _, _ = iqr_outliers(df[col])
+    combined_mask = combined_mask | mask
+
+df_clean = df[~combined_mask]
+print(f"\\nOriginal: {df.shape}  →  Clean: {df_clean.shape}")
+`},
+{file:'iqr_transformer.py',label:'sklearn Transformer',code:`import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import fetch_california_housing
+
+class IQROutlierClipper(BaseEstimator, TransformerMixin):
+    """
+    Fit-transform IQR bounds from training data.
+    CLIPS (winsorizes) outliers instead of dropping rows —
+    safe to use inside a Pipeline since n_samples stays constant.
+    """
+    def __init__(self, k=1.5):
+        self.k = k
+
+    def fit(self, X, y=None):
+        X = np.array(X, dtype=float)
+        q1 = np.percentile(X, 25, axis=0)
+        q3 = np.percentile(X, 75, axis=0)
+        iqr = q3 - q1
+        self.lo_ = q1 - self.k * iqr
+        self.hi_ = q3 + self.k * iqr
+        return self
+
+    def transform(self, X, y=None):
+        X = np.array(X, dtype=float).copy()
+        for j in range(X.shape[1]):
+            X[:, j] = np.clip(X[:, j], self.lo_[j], self.hi_[j])
+        return X
+
+# Test on California Housing with injected outliers
+data = fetch_california_housing()
+X, y = data.data.copy(), data.target
+rng = np.random.default_rng(42)
+idx = rng.choice(len(X), int(0.05 * len(X)), replace=False)
+X[idx] *= rng.uniform(5, 20, (len(idx), X.shape[1]))
+
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+print(f"{'Method':<22} {'Test R²':>8}")
+print("-" * 32)
+for k_val in [None, 3.0, 1.5, 1.0]:
+    if k_val is None:
+        pipe = Pipeline([('sc', StandardScaler()), ('ridge', Ridge())])
+        label = 'No IQR clipping'
+    else:
+        pipe = Pipeline([
+            ('iqr', IQROutlierClipper(k=k_val)),
+            ('sc', StandardScaler()),
+            ('ridge', Ridge()),
+        ])
+        label = f'IQR clip k={k_val}'
+    pipe.fit(X_tr, y_tr)
+    print(f"{label:<22} {pipe.score(X_te, y_te):>8.4f}")
+`},
+{file:'iqr_benchmark.py',label:'Full benchmark',code:`import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import fetch_california_housing
+from scipy import stats
+
+class IQRClipper(BaseEstimator, TransformerMixin):
+    def __init__(self, k=1.5):
+        self.k = k
+    def fit(self, X, y=None):
+        X = np.array(X)
+        q1 = np.percentile(X, 25, axis=0)
+        q3 = np.percentile(X, 75, axis=0)
+        iqr = q3 - q1
+        self.lo_ = q1 - self.k * iqr
+        self.hi_ = q3 + self.k * iqr
+        return self
+    def transform(self, X, y=None):
+        return np.clip(np.array(X, float), self.lo_, self.hi_)
+
+class ZScoreClipper(BaseEstimator, TransformerMixin):
+    def __init__(self, k=3):
+        self.k = k
+    def fit(self, X, y=None):
+        X = np.array(X)
+        self.mu_ = X.mean(axis=0)
+        self.sg_ = X.std(axis=0) + 1e-10
+        return self
+    def transform(self, X, y=None):
+        X = np.array(X, float)
+        return np.clip(X, self.mu_ - self.k*self.sg_, self.mu_ + self.k*self.sg_)
+
+data = fetch_california_housing()
+X, y = data.data.copy(), data.target
+rng = np.random.default_rng(0)
+X[rng.choice(len(X), int(0.08*len(X)), replace=False)] *= rng.uniform(4, 15, (int(0.08*len(X)), X.shape[1]))
+
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
+
+models = [('Ridge', Ridge()), ('GBM', GradientBoostingRegressor(n_estimators=50, random_state=42))]
+cleaners = [('None', None), ('IQR k=1.5', IQRClipper(1.5)), ('IQR k=3', IQRClipper(3.0)), ('Z k=3', ZScoreClipper(3))]
+
+print(f"{'Cleaner':<14}", end='')
+for name, _ in models: print(f" {name:>10}", end='')
+print()
+print("-" * 34)
+
+for cname, cleaner in cleaners:
+    print(f"{cname:<14}", end='')
+    for mname, model in models:
+        if cleaner is None:
+            pipe = Pipeline([('sc', StandardScaler()), ('m', model.__class__(**model.get_params()))])
+        else:
+            pipe = Pipeline([('c', cleaner.__class__(**cleaner.get_params())), ('sc', StandardScaler()), ('m', model.__class__(**model.get_params()))])
+        pipe.fit(X_tr, y_tr)
+        print(f" {pipe.score(X_te, y_te):>10.4f}", end='')
+    print()
+print("\\nGBM is tree-based and largely robust to outliers (small improvement expected)")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn','scipy']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  onBPDataChange();
+  redrawLive();
+  genSkewData();redrawSkewed();
+  genMultiData();redrawMulti();
+  onHPChange();
+  redrawCmp();
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount) return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawBP(bpAnimStep);redrawLive();redrawSkewed();redrawMulti();drawSweepCanvas();redrawCmp();
+    if(cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

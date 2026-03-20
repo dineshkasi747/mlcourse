@@ -1,1 +1,1503 @@
 <!-- winsorization.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Winsorization — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(251,140,64,0.09),rgba(240,96,96,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(251,140,64,0.13) 0%,transparent 70%);pointer-events:none;}
+
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* method cards */
+    .method-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
+    .method-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:all .18s;}
+    .method-card.active{border-color:#fb8c40;}
+    .method-card:hover{border-color:var(--border-hi);}
+    .mc-icon{font-size:22px;margin-bottom:8px;}
+    .mc-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .mc-formula{font-family:var(--font-mono);font-size:11px;color:var(--text-3);background:var(--bg-input);padding:3px 7px;border-radius:var(--r-xs);margin:5px 0;display:inline-block;}
+    .mc-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+
+    /* hp panel */
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:10px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:#fb8c40;font-weight:700;min-width:60px;text-align:right;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+
+    /* acc cards */
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .3s;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* decision table */
+    .decision-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+    .decision-table th{background:var(--bg-elevated);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .decision-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;}
+    .decision-table tr:last-child td{border-bottom:none;}
+    .tag-yes{display:inline-flex;align-items:center;padding:2px 8px;background:var(--green-surf);color:var(--green);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-no{display:inline-flex;align-items:center;padding:2px 8px;background:var(--red-surf);color:var(--red);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-maybe{display:inline-flex;align-items:center;padding:2px 8px;background:var(--accent-surface);color:var(--accent);border-radius:100px;font-size:11px;font-weight:700;}
+
+    /* derive steps */
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:rgba(251,140,64,0.12);border:1.5px solid #fb8c40;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:#fb8c40;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid #fb8c40;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #fb8c40!important;}
+    .CodeMirror-selected{background:rgba(251,140,64,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#fb8c40;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    @keyframes clamp-bounce{0%{transform:scaleX(1.3);}60%{transform:scaleX(0.95);}100%{transform:scaleX(1);}}
+    .clamp-anim{animation:clamp-bounce .4s ease-out;}
+
+    @media(max-width:700px){
+      .acc-dashboard{grid-template-columns:repeat(2,1fr);}
+      .method-grid{grid-template-columns:1fr 1fr;}
+      .hp-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="winsorization">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Winsorization</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <span class="current">Winsorization</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(251,140,64,.3);background:rgba(251,140,64,0.1);color:#fb8c40;margin-bottom:14px;">Data Cleaning · Outlier Treatment</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Winsorization</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Outliers wreck your model's mean, inflate variance, and distort gradients.
+              Winsorization <strong>clamps extreme values</strong> to a chosen percentile boundary —
+              keeping every data point but neutralising the damage. It's the difference between
+              removing outliers (lossy) and <em>taming</em> them (lossless).
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 18 min</span>
+              <span class="topic-meta-item">◆ Beginner–Intermediate</span>
+              <span class="topic-meta-item">scipy · sklearn · pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,140,64,0.12);color:#fb8c40;">⊟</div>
+              The core idea — clamp, don't drop
+            </h2>
+            <p>
+              Imagine your salary dataset has values from $30k to $120k — except one record says
+              $50,000,000 (a typo or a genuine billionaire). The mean salary is now $530k.
+              Every model that uses this feature will be warped by that one value.
+            </p>
+            <p>
+              <strong>Dropping</strong> the outlier loses a real data point. <strong>Winsorization</strong>
+              instead replaces any value above the 99th percentile with <em>the 99th percentile value</em>.
+              The outlier still exists — it just no longer dominates the statistics.
+            </p>
+
+            <!-- Animated clamp demo -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Watch outliers get clamped — animated</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Lower %:</span>
+                  <input type="range" min="0" max="20" value="5" step="1" class="ctrl-slider" id="anim-lower" oninput="onAnimChange()" style="width:80px;"/>
+                  <span class="ctrl-value" id="anim-lower-val" style="color:#63b3ed;">5</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Upper %:</span>
+                  <input type="range" min="80" max="100" value="95" step="1" class="ctrl-slider" id="anim-upper" oninput="onAnimChange()" style="width:80px;"/>
+                  <span class="ctrl-value" id="anim-upper-val" style="color:#fb8c40;">95</span>
+                </div>
+                <button class="ctrl-btn active" onclick="animateClamp()">▶ Animate clamp</button>
+                <button class="ctrl-btn" onclick="resetAnim()">↺ Reset</button>
+              </div>
+              <canvas id="anim-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-mean-before" style="color:#f06060;">—</span><span class="stat-pill-lbl">Mean before</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-mean-after" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">Mean after</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-std-before" style="color:#f06060;">—</span><span class="stat-pill-lbl">Std before</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-std-after" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">Std after</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="anim-clamped" style="color:#fb8c40;">—</span><span class="stat-pill-lbl">Clamped pts</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Winsorize vs. Trim:</strong> Trimming <em>removes</em> extreme values entirely (changes n). Winsorization <em>replaces</em> them with the boundary value (n stays the same). Winsorization is almost always preferred because you keep all rows — critical for datasets where every sample matters.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — DISTRIBUTION EXPLORER ═══ -->
+          <section class="section" id="distribution">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,140,64,0.12);color:#fb8c40;">~</div>
+              Before vs after — distribution shift visualised
+            </h2>
+            <p>
+              Winsorization changes the shape of your distribution. The tails get clipped into
+              spikes at the boundary percentiles. Use the controls below to see exactly how
+              the histogram, mean, median, and standard deviation shift.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Distribution before and after winsorization</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Lower clip:</span>
+                  <input type="range" min="0" max="25" value="5" step="1" class="ctrl-slider" id="dist-lower" oninput="redrawDist()" style="width:80px;"/>
+                  <span class="ctrl-value" id="dist-lower-val" style="color:#63b3ed;">5%</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Upper clip:</span>
+                  <input type="range" min="75" max="100" value="95" step="1" class="ctrl-slider" id="dist-upper" oninput="redrawDist()" style="width:80px;"/>
+                  <span class="ctrl-value" id="dist-upper-val" style="color:#fb8c40;">95%</span>
+                </div>
+                <select class="ctrl-select" id="dist-shape" onchange="genDistData();redrawDist()">
+                  <option value="normal">Normal</option>
+                  <option value="skewed">Right-skewed</option>
+                  <option value="bimodal">Bimodal</option>
+                  <option value="heavy">Heavy-tailed</option>
+                </select>
+              </div>
+              <canvas id="dist-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="d-mean-b" style="color:#f06060;">—</span><span class="stat-pill-lbl">Mean before</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="d-mean-a" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">Mean after</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="d-std-b" style="color:#f06060;">—</span><span class="stat-pill-lbl">Std before</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="d-std-a" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">Std after</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="d-pct-clamped" style="color:#fb8c40;">—</span><span class="stat-pill-lbl">% clamped</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — METHODS ═══ -->
+          <section class="section" id="methods">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(251,140,64,0.12);color:#fb8c40;">≡</div>
+              Three clipping methods — click to compare
+            </h2>
+            <p>
+              There are three common ways to define the winsorization boundary. Each makes a
+              different assumption about what counts as an "extreme" value.
+            </p>
+            <div class="method-grid">
+              <div class="method-card active" id="mc-percentile" onclick="selectMethod('percentile')">
+                <div class="mc-icon">%</div>
+                <div class="mc-name">Percentile Clip</div>
+                <div class="mc-formula">clip(p_lo, p_hi)</div>
+                <div class="mc-desc">Clip anything below the p-th percentile or above the (100-p)-th. Most common: 1-99%, 5-95%.</div>
+              </div>
+              <div class="method-card" id="mc-iqr" onclick="selectMethod('iqr')">
+                <div class="mc-icon">IQR</div>
+                <div class="mc-name">IQR Method</div>
+                <div class="mc-formula">[Q1 - k·IQR, Q3 + k·IQR]</div>
+                <div class="mc-desc">Clip outside Q1-1.5·IQR to Q3+1.5·IQR. Same rule as box plots. Robust to outliers in the boundary computation.</div>
+              </div>
+              <div class="method-card" id="mc-zscore" onclick="selectMethod('zscore')">
+                <div class="mc-icon">σ</div>
+                <div class="mc-name">Z-score Clip</div>
+                <div class="mc-formula">clip(μ-k·σ, μ+k·σ)</div>
+                <div class="mc-desc">Clip values more than k standard deviations from the mean. Common: k=2 (95%) or k=3 (99.7%).</div>
+              </div>
+              <div class="method-card" id="mc-mad" onclick="selectMethod('mad')">
+                <div class="mc-icon">MAD</div>
+                <div class="mc-name">MAD Clip</div>
+                <div class="mc-formula">clip(med - k·MAD, med + k·MAD)</div>
+                <div class="mc-desc">Uses Median Absolute Deviation. Extremely robust — the boundary isn't affected by the outliers themselves.</div>
+              </div>
+            </div>
+
+            <!-- Method comparison canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="method-canvas-title">Percentile clip — boundary visualised</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label" id="method-param-label">Percentile:</span>
+                  <input type="range" min="1" max="20" value="5" step="1" class="ctrl-slider" id="method-param" oninput="redrawMethod()" style="width:100px;"/>
+                  <span class="ctrl-value" id="method-param-val" style="color:#fb8c40;">5</span>
+                </div>
+                <button class="ctrl-btn" onclick="addBigOutlier()">+ Add outlier</button>
+                <button class="ctrl-btn" onclick="resetMethodData()">↺ Reset</button>
+              </div>
+              <canvas id="method-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="method-stats"></div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Hyperparameter tuning — live model accuracy
+            </h2>
+            <p>
+              The winsorization threshold is a hyperparameter. Too aggressive (clip 30%) and you
+              distort real signal. Too lenient (clip 0.1%) and outliers still dominate. Watch how
+              clipping percentage affects downstream model accuracy in real time.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="ac-train" style="color:#63b3ed;">—</div>
+                <div class="acc-label">Train R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-train-bar" style="background:#63b3ed;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-test" style="color:#3ecf8e;">—</div>
+                <div class="acc-label">Test R²</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-test-bar" style="background:#3ecf8e;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-mae" style="color:#fb8c40;">—</div>
+                <div class="acc-label">Test MAE</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-mae-bar" style="background:#fb8c40;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-outlier-pct" style="color:#f06060;">—</div>
+                <div class="acc-label">% clamped</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-outlier-bar" style="background:#f06060;width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div class="hp-title">⚙ Winsorization Controls
+                <span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:4px;">— every change retrains model instantly</span>
+              </div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Lower percentile</span><span class="hp-val" id="hp-lo-val">5%</span></div>
+                  <input type="range" min="0" max="25" value="5" step="1" class="ctrl-slider" id="hp-lo" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Values below this percentile get raised to the boundary. 0 = no lower clipping.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Upper percentile</span><span class="hp-val" id="hp-hi-val">95%</span></div>
+                  <input type="range" min="75" max="100" value="95" step="1" class="ctrl-slider" id="hp-hi" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Values above this percentile get lowered to the boundary. 100 = no upper clipping.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Outlier severity</span><span class="hp-val" id="hp-out-val">moderate</span></div>
+                  <input type="range" min="1" max="4" value="2" step="1" class="ctrl-slider" id="hp-out" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">How extreme the injected outliers are. More severe = winsorization helps more.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Outlier % in data</span><span class="hp-val" id="hp-opct-val">5%</span></div>
+                  <input type="range" min="1" max="20" value="5" step="1" class="ctrl-slider" id="hp-opct" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Fraction of data points that are artificial outliers. Real datasets: typically 1–5%.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accuracy vs clipping % curve -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Test R² vs clipping % — sweep</span>
+                <button class="ctrl-btn active" onclick="runClipSweep()">▶ Run sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:8px;" id="sweep-status"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — OUTLIER DETECTION COMPANION ═══ -->
+          <section class="section" id="detection">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">⊕</div>
+              Detect outliers first — then decide to winsorize
+            </h2>
+            <p>
+              Before winsorizing, visualise <em>where</em> the outliers are and <em>how extreme</em>
+              they are. The three most common detection methods — box plot (IQR), Z-score, and scatter —
+              are shown side by side below.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Outlier detection: Box plot · Z-score · Scatter</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outlier %:</span>
+                  <input type="range" min="0" max="20" value="8" step="1" class="ctrl-slider" id="detect-pct" oninput="redrawDetection()" style="width:80px;"/>
+                  <span class="ctrl-value" id="detect-pct-val" style="color:#f06060;">8%</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Severity:</span>
+                  <input type="range" min="1" max="5" value="3" step="1" class="ctrl-slider" id="detect-sev" oninput="redrawDetection()" style="width:80px;"/>
+                  <span class="ctrl-value" id="detect-sev-val" style="color:#fb8c40;">3</span>
+                </div>
+              </div>
+              <canvas id="detect-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="detect-stats"></div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — WHEN TO USE ═══ -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">→</div>
+              When to winsorize — decision guide
+            </h2>
+            <div style="overflow-x:auto;">
+              <table class="decision-table">
+                <thead><tr><th>Situation</th><th>Action</th><th>Why</th></tr></thead>
+                <tbody>
+                  <tr><td>Linear regression / linear models</td><td><span class="tag-yes">Winsorize</span></td><td>OLS coefficients are heavily distorted by outliers</td></tr>
+                  <tr><td>KNN, SVM (distance-based models)</td><td><span class="tag-yes">Winsorize</span></td><td>Distances are dominated by outlier magnitudes</td></tr>
+                  <tr><td>Neural networks (gradient-based)</td><td><span class="tag-yes">Winsorize</span></td><td>Large values cause gradient explosions in early layers</td></tr>
+                  <tr><td>Tree-based (Random Forest, XGBoost)</td><td><span class="tag-maybe">Optional</span></td><td>Trees split on thresholds — robust to outliers by design</td></tr>
+                  <tr><td>Outlier is a genuine extreme value</td><td><span class="tag-yes">Winsorize</span></td><td>Drop would lose a real observation; clamp preserves it</td></tr>
+                  <tr><td>Outlier is a data entry error</td><td><span class="tag-maybe">Fix or drop</span></td><td>Winsorizing a typo ($5B instead of $5k) is misleading</td></tr>
+                  <tr><td>Fraud / anomaly detection task</td><td><span class="tag-no">Don't winsorize</span></td><td>The outlier IS the signal — clipping destroys the target</td></tr>
+                  <tr><td>Financial returns (fat tails)</td><td><span class="tag-yes">Winsorize</span></td><td>Standard in quant finance — removes crash/spike noise</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 7 — MATH ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              The formulas — all four methods
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Percentile clipping — the standard approach</div>
+                  <div class="derive-desc">Sort the column, find the p-th and (100-p)-th percentile values, then clip every value outside those boundaries. Fit on training data only.</div>
+                  <div class="derive-formula">lo = percentile(X_train, p)
+hi = percentile(X_train, 100-p)
+X_winsorized = clip(X, lo, hi)   # values outside → boundary</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">IQR method — robust boundaries</div>
+                  <div class="derive-desc">The IQR (interquartile range) is the spread of the middle 50% of data. Multiply by a factor k (usually 1.5 for mild outliers, 3 for extreme) to define fences.</div>
+                  <div class="derive-formula">Q1, Q3 = 25th and 75th percentile
+IQR = Q3 - Q1
+lo = Q1 - k * IQR    (k=1.5 standard, k=3 extreme)
+hi = Q3 + k * IQR</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Z-score clipping — standard deviation boundaries</div>
+                  <div class="derive-desc">Assumes roughly normal distribution. Values beyond k standard deviations from the mean are clipped. k=3 covers 99.7% of a normal distribution.</div>
+                  <div class="derive-formula">mu    = mean(X_train)
+sigma = std(X_train)
+lo = mu - k * sigma
+hi = mu + k * sigma   (k=3 is typical)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">MAD clipping — most robust method</div>
+                  <div class="derive-desc">Median Absolute Deviation is not influenced by outliers at all (unlike std or mean). Best for heavily contaminated data. Scale factor 1.4826 makes MAD equivalent to std for normal data.</div>
+                  <div class="derive-formula">med  = median(X_train)
+MAD  = median(|X_train - med|)
+sigma_hat = 1.4826 * MAD   # consistent estimator of sigma
+lo = med - k * sigma_hat
+hi = med + k * sigma_hat</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">5</div>
+                <div>
+                  <div class="derive-title">Critical: fit on train, apply to train + test</div>
+                  <div class="derive-desc">Always compute the clipping boundaries from training data only, then apply those same boundaries to the test set. If you fit on test data, the test-set outliers inform the boundary — data leakage.</div>
+                  <div class="derive-formula">lo, hi = percentile(X_train, [5, 95])    # from TRAIN only
+X_train_w = clip(X_train, lo, hi)
+X_test_w  = clip(X_test,  lo, hi)    # use SAME boundaries</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four complete programs — pandas clip, scipy winsorize, all four methods compared, and a production-ready sklearn Pipeline transformer. All editable and runnable in-browser.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">winsor_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Fitting boundaries on the full dataset (train + test).</strong> The test set's extreme values influence your clipping boundaries → data leakage. Always compute lo/hi from <code>X_train</code>, then apply to both train and test. Wrap in a Pipeline transformer for safety.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Winsorizing target variable y (regression).</strong> Clipping y can artificially cap your model's prediction range and introduce systematic bias. Only winsorize input features, not the target — unless you have a very specific reason.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using Z-score clipping on skewed data.</strong> Z-score assumes a roughly normal distribution. On heavily skewed data, the mean and std are themselves distorted by outliers, making the boundaries unreliable. Use IQR or MAD instead for skewed columns.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Clipping too aggressively (5–5 or 10–90).</strong> Clipping 20% of your data is no longer treating outliers — it's changing the distribution itself. Standard thresholds are 1–99% or 5–95%. Anything more aggressive needs strong justification.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Applying winsorization before train/test split.</strong> Same leakage issue: the boundary is computed on all data including test samples. Always split first, then winsorize.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Winsorization <strong>clamps extreme values to a boundary</strong> rather than removing them — it's lossless (keeps all rows) and removes the statistical distortion caused by outliers.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always <strong>fit boundaries on training data only</strong>, then apply the same boundaries to the test set. Computing boundaries on the full dataset is data leakage.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>percentile clipping (5–95%)</strong> as the default. Use <strong>IQR or MAD</strong> for heavily skewed data or when the boundaries themselves might be distorted by outliers.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Winsorization is most impactful for <strong>linear models, KNN, and neural networks</strong>. Tree-based models are naturally robust to outliers and rarely need it.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Never winsorize for anomaly/fraud detection</strong> — the extreme values are the target signal you're trying to find.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Wrap winsorization in a <strong>custom sklearn transformer</strong> inside a Pipeline to ensure consistent fit/transform semantics and enable grid search over the clipping percentage as a hyperparameter.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="outlier-detection.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Outlier Detection</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="log-transform.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Log Transform</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Core idea</a></li>
+            <li class="toc-item"><a href="#distribution">Distribution shift</a></li>
+            <li class="toc-item"><a href="#methods">4 clip methods</a></li>
+            <li class="toc-item"><a href="#hyperparameters">HP tuning</a></li>
+            <li class="toc-item"><a href="#detection">Detect first</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use</a></li>
+            <li class="toc-item"><a href="#math">Formulas</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ═══════════════════════════════════
+   HELPERS
+═══════════════════════════════════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function pct(arr,p){
+  var s=[...arr].sort(function(a,b){return a-b;});
+  var idx=(p/100)*(s.length-1);
+  var lo=Math.floor(idx),hi=Math.ceil(idx);
+  return s[lo]+(s[hi]-s[lo])*(idx-lo);
+}
+function mean(arr){return arr.reduce(function(a,b){return a+b;},0)/arr.length;}
+function std(arr){var m=mean(arr);return Math.sqrt(arr.reduce(function(s,v){return s+(v-m)*(v-m);},0)/arr.length);}
+function median(arr){return pct(arr,50);}
+function iqr(arr){return pct(arr,75)-pct(arr,25);}
+function mad(arr){var med=median(arr);return median(arr.map(function(v){return Math.abs(v-med);}));}
+function winsorize(arr,lo,hi){return arr.map(function(v){return Math.max(lo,Math.min(hi,v));});}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+
+/* ═══════════════════════════════════
+   GENERATE BASE DATA
+═══════════════════════════════════ */
+var BASE_DATA=[];
+function genBase(){
+  BASE_DATA=[];
+  for(var i=0;i<150;i++){
+    var u1=Math.random(),u2=Math.random();
+    BASE_DATA.push(50+12*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)));
+  }
+  // inject obvious outliers
+  BASE_DATA.push(120,130,-20,-15,125,135);
+}
+
+/* ═══════════════════════════════════
+   SECTION 1 — ANIMATED CLAMP
+═══════════════════════════════════ */
+var animData=[];
+var animClamped=new Set();
+var animating=false;
+
+function genAnimData(){
+  animData=[];
+  for(var i=0;i<80;i++){
+    var u1=Math.random(),u2=Math.random();
+    animData.push(50+12*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)));
+  }
+  [120,125,130,-10,-15,135,128,-18].forEach(function(v){animData.push(v);});
+  animClamped=new Set();
+}
+
+function onAnimChange(){
+  C('anim-lower-val').textContent=C('anim-lower').value;
+  C('anim-upper-val').textContent=C('anim-upper').value;
+  drawAnimCanvas(new Set());
+}
+
+function resetAnim(){animating=false;genAnimData();drawAnimCanvas(new Set());}
+
+async function animateClamp(){
+  if(animating) return;
+  animating=true;
+  var lo=parseInt(C('anim-lower').value);
+  var hi=parseInt(C('anim-upper').value);
+  var loVal=pct(animData,lo), hiVal=pct(animData,hi);
+  var outlierIdx=animData.map(function(v,i){return{v:v,i:i};})
+    .filter(function(d){return d.v<loVal||d.v>hiVal;})
+    .map(function(d){return d.i;});
+  var clamped=new Set();
+  for(var n=0;n<outlierIdx.length;n++){
+    if(!animating) return;
+    clamped.add(outlierIdx[n]);
+    drawAnimCanvas(clamped);
+    await delay(180);
+  }
+  animating=false;
+}
+
+function drawAnimCanvas(clamped){
+  var lo=parseInt(C('anim-lower').value);
+  var hi=parseInt(C('anim-upper').value);
+  var loVal=pct(animData,lo), hiVal=pct(animData,hi);
+
+  var clampedArr=animData.map(function(v,i){
+    return clamped.has(i)?clamp(v,loVal,hiVal):v;
+  });
+
+  var cv=C('anim-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:30,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var allVals=animData.concat(clampedArr);
+  var xMin=Math.min.apply(null,allVals)-5, xMax=Math.max.apply(null,allVals)+5;
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var ptY=H/2;
+  var ptR=6;
+
+  // Boundary lines
+  var lx=toX(loVal), hx=toX(hiVal);
+  ctx.fillStyle='rgba(99,179,237,0.07)';ctx.fillRect(lx,pad.t,hx-lx,H-pad.t-pad.b);
+  ctx.beginPath();ctx.moveTo(lx,pad.t);ctx.lineTo(lx,H-pad.b);ctx.strokeStyle='rgba(99,179,237,0.7)';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(hx,pad.t);ctx.lineTo(hx,H-pad.b);ctx.strokeStyle='rgba(251,140,64,0.7)';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(99,179,237,0.8)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(lo+'%: '+loVal.toFixed(1),lx,pad.t+12);
+  ctx.fillStyle='rgba(251,140,64,0.8)';ctx.fillText(hi+'%: '+hiVal.toFixed(1),hx,pad.t+12);
+  ctx.textAlign='start';
+
+  // Axis
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  for(var t=Math.ceil(xMin/10)*10;t<=xMax;t+=10){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(t,toX(t),H-pad.b+14);
+  }
+  ctx.textAlign='start';
+
+  // Mean lines — before (red) and after (green)
+  var mBefore=mean(animData), mAfter=mean(clampedArr);
+  ctx.beginPath();ctx.moveTo(toX(mBefore),ptY-30);ctx.lineTo(toX(mBefore),ptY+30);
+  ctx.strokeStyle='rgba(240,96,96,0.5)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(toX(mAfter),ptY-30);ctx.lineTo(toX(mAfter),ptY+30);
+  ctx.strokeStyle='rgba(62,207,142,0.7)';ctx.lineWidth=2;ctx.stroke();
+
+  // Points
+  animData.forEach(function(v,i){
+    var isClamped=clamped.has(i);
+    var displayV=isClamped?clamp(v,loVal,hiVal):v;
+    var isOutlier=v<loVal||v>hiVal;
+    var col=isClamped?'#fb8c40':isOutlier?'#f06060':'rgba(45,212,191,0.7)';
+    var r=isClamped||isOutlier?ptR+2:ptR;
+    var jitter=(i%7-3)*4;
+    ctx.beginPath();ctx.arc(toX(displayV),ptY+jitter,r,0,Math.PI*2);
+    ctx.fillStyle=col+'40';ctx.fill();
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+    if(isClamped){
+      ctx.beginPath();ctx.moveTo(toX(v),ptY+jitter);ctx.lineTo(toX(displayV),ptY+jitter);
+      ctx.strokeStyle='rgba(251,140,64,0.5)';ctx.lineWidth=1;ctx.stroke();
+    }
+  });
+
+  // Stats
+  C('anim-mean-before').textContent=mBefore.toFixed(1);
+  C('anim-mean-after').textContent=mAfter.toFixed(1);
+  C('anim-std-before').textContent=std(animData).toFixed(1);
+  C('anim-std-after').textContent=std(clampedArr).toFixed(1);
+  C('anim-clamped').textContent=clamped.size+'/'+animData.length;
+}
+
+/* ═══════════════════════════════════
+   SECTION 2 — DISTRIBUTION CANVAS
+═══════════════════════════════════ */
+var distRaw=[];
+function genDistData(){
+  distRaw=[];
+  var shape=C('dist-shape').value;
+  for(var i=0;i<200;i++){
+    var u1=Math.random()+1e-10,u2=Math.random();
+    var z=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+    if(shape==='normal') distRaw.push(50+12*z);
+    else if(shape==='skewed') distRaw.push(20+Math.pow(Math.random(),0.35)*80+Math.abs(z)*3);
+    else if(shape==='bimodal') distRaw.push(i<100?30+8*z:70+8*z);
+    else distRaw.push(50+12*z+(Math.random()<0.08?(Math.random()-0.5)*120:0));
+  }
+}
+
+function redrawDist(){
+  var lo=parseInt(C('dist-lower').value);
+  var hi=parseInt(C('dist-upper').value);
+  C('dist-lower-val').textContent=lo+'%';
+  C('dist-upper-val').textContent=hi+'%';
+
+  var loV=pct(distRaw,lo), hiV=pct(distRaw,hi);
+  var clipped=winsorize(distRaw,loV,hiV);
+
+  C('d-mean-b').textContent=mean(distRaw).toFixed(1);
+  C('d-mean-a').textContent=mean(clipped).toFixed(1);
+  C('d-std-b').textContent=std(distRaw).toFixed(1);
+  C('d-std-a').textContent=std(clipped).toFixed(1);
+  var nClamped=distRaw.filter(function(v){return v<loV||v>hiV;}).length;
+  C('d-pct-clamped').textContent=(nClamped/distRaw.length*100).toFixed(1)+'%';
+
+  var cv=C('dist-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var xMin=Math.min.apply(null,distRaw)-2, xMax=Math.max.apply(null,distRaw)+2;
+  var bins=40, binW=(xMax-xMin)/bins;
+
+  function makeBins(arr){
+    var c=new Array(bins).fill(0);
+    arr.forEach(function(v){var b=clamp(Math.floor((v-xMin)/binW),0,bins-1);c[b]++;});
+    return c;
+  }
+  var bRaw=makeBins(distRaw), bClip=makeBins(clipped);
+  var maxC=Math.max.apply(null,bRaw.concat(bClip));
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var toY=function(c){return H-pad.b-c/maxC*(H-pad.t-pad.b);};
+  var bw=(W-pad.l-pad.r)/bins;
+
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.25,.5,.75,1].forEach(function(f){
+    var v=xMin+f*(xMax-xMin);
+    ctx.beginPath();ctx.moveTo(toX(v),pad.t);ctx.lineTo(toX(v),H-pad.b);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(v.toFixed(0),toX(v),H-pad.b+14);
+  });
+  ctx.textAlign='start';
+
+  // Before bars (semi-transparent)
+  bRaw.forEach(function(c,i){
+    ctx.fillStyle='rgba(240,96,96,0.3)';
+    ctx.fillRect(pad.l+i*bw+1,toY(c),bw-2,H-pad.b-toY(c));
+  });
+  // After bars
+  bClip.forEach(function(c,i){
+    ctx.fillStyle='rgba(251,140,64,0.55)';
+    ctx.fillRect(pad.l+i*bw+1,toY(c),bw-2,H-pad.b-toY(c));
+  });
+
+  // Boundary lines
+  var lx=toX(loV), hx=toX(hiV);
+  ctx.beginPath();ctx.moveTo(lx,pad.t);ctx.lineTo(lx,H-pad.b);ctx.strokeStyle='rgba(99,179,237,0.8)';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(hx,pad.t);ctx.lineTo(hx,H-pad.b);ctx.strokeStyle='rgba(251,140,64,0.9)';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(99,179,237,0.9)';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText(lo+'%',lx,pad.t+10);
+  ctx.fillStyle='rgba(251,140,64,0.9)';ctx.fillText(hi+'%',hx,pad.t+10);
+
+  // Mean lines
+  ctx.beginPath();ctx.moveTo(toX(mean(distRaw)),pad.t);ctx.lineTo(toX(mean(distRaw)),H-pad.b);
+  ctx.strokeStyle='rgba(240,96,96,0.6)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(toX(mean(clipped)),pad.t);ctx.lineTo(toX(mean(clipped)),H-pad.b);
+  ctx.strokeStyle='rgba(62,207,142,0.7)';ctx.lineWidth=2;ctx.stroke();
+
+  // Legend
+  ctx.fillStyle='rgba(240,96,96,0.4)';ctx.fillRect(pad.l,pad.t+2,14,10);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Before',pad.l+18,pad.t+11);
+  ctx.fillStyle='rgba(251,140,64,0.6)';ctx.fillRect(pad.l+70,pad.t+2,14,10);
+  ctx.fillText('After',pad.l+88,pad.t+11);
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════
+   SECTION 3 — METHOD EXPLORER
+═══════════════════════════════════ */
+var currentMethod='percentile';
+var methodData=[];
+
+function genMethodData(){
+  methodData=[];
+  for(var i=0;i<100;i++){
+    var u1=Math.random()+1e-10,u2=Math.random();
+    methodData.push(50+10*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)));
+  }
+  [115,120,125,10,5].forEach(function(v){methodData.push(v);});
+}
+
+function addBigOutlier(){methodData.push(150+Math.random()*50);redrawMethod();}
+function resetMethodData(){genMethodData();redrawMethod();}
+
+function selectMethod(m){
+  currentMethod=m;
+  ['percentile','iqr','zscore','mad'].forEach(function(k){C('mc-'+k).classList.toggle('active',k===m);});
+  var titles={percentile:'Percentile clip — boundary visualised',iqr:'IQR method — box-plot fences',zscore:'Z-score clip — standard deviation boundary',mad:'MAD clip — most robust boundary'};
+  var labels={percentile:'Percentile p:',iqr:'IQR factor k:',zscore:'Z-score k:',mad:'MAD factor k:'};
+  C('method-canvas-title').textContent=titles[m];
+  C('method-param-label').textContent=labels[m];
+  var slider=C('method-param');
+  if(m==='percentile'){slider.min=1;slider.max=20;slider.value=5;}
+  else{slider.min=1;slider.max=5;slider.step=0.5;slider.value=1.5;}
+  redrawMethod();
+}
+
+function getBounds(){
+  var p=parseFloat(C('method-param').value);
+  C('method-param-val').textContent=p;
+  if(currentMethod==='percentile'){return{lo:pct(methodData,p),hi:pct(methodData,100-p)};}
+  if(currentMethod==='iqr'){var q1=pct(methodData,25),q3=pct(methodData,75),IQR=q3-q1;return{lo:q1-p*IQR,hi:q3+p*IQR};}
+  if(currentMethod==='zscore'){var m=mean(methodData),s=std(methodData);return{lo:m-p*s,hi:m+p*s};}
+  var med=median(methodData),MAD=mad(methodData),sh=1.4826*MAD;return{lo:med-p*sh,hi:med+p*sh};
+}
+
+function redrawMethod(){
+  var bounds=getBounds();
+  var loV=bounds.lo, hiV=bounds.hi;
+  var clipped=winsorize(methodData,loV,hiV);
+  var nClamped=methodData.filter(function(v){return v<loV||v>hiV;}).length;
+
+  var cv=C('method-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:30,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var allV=methodData;
+  var xMin=Math.min.apply(null,allV)-5, xMax=Math.max.apply(null,allV)+5;
+  var bins=35, binW=(xMax-xMin)/bins;
+  var counts=new Array(bins).fill(0);
+  methodData.forEach(function(v){var b=clamp(Math.floor((v-xMin)/binW),0,bins-1);counts[b]++;});
+  var maxC=Math.max.apply(null,counts);
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var toY=function(c){return H-pad.b-c/maxC*(H-pad.t-pad.b);};
+  var bw=(W-pad.l-pad.r)/bins;
+
+  // Bars — colour by zone
+  counts.forEach(function(c,i){
+    var binCenter=xMin+(i+0.5)*binW;
+    var isOut=binCenter<loV||binCenter>hiV;
+    ctx.fillStyle=isOut?'rgba(240,96,96,0.5)':'rgba(251,140,64,0.45)';
+    ctx.fillRect(pad.l+i*bw+1,toY(c),bw-2,H-pad.b-toY(c));
+  });
+
+  // Axis
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  for(var t=Math.ceil(xMin/10)*10;t<=xMax;t+=10){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(t,toX(t),H-pad.b+14);
+  }
+  ctx.textAlign='start';
+
+  // Boundary lines
+  [loV,hiV].forEach(function(v,isHi){
+    var x=toX(v);
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,H-pad.b);
+    ctx.strokeStyle=isHi?'rgba(251,140,64,0.9)':'rgba(99,179,237,0.8)';
+    ctx.lineWidth=2.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=isHi?'rgba(251,140,64,0.9)':'rgba(99,179,237,0.8)';
+    ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(v.toFixed(1),x,pad.t+12);
+    ctx.textAlign='start';
+  });
+
+  // Red zone shading
+  ctx.fillStyle='rgba(240,96,96,0.06)';
+  ctx.fillRect(pad.l,pad.t,toX(loV)-pad.l,H-pad.t-pad.b);
+  ctx.fillRect(toX(hiV),pad.t,W-pad.r-toX(hiV),H-pad.t-pad.b);
+
+  // Stats
+  var statsHTML='';
+  [[mean(methodData).toFixed(1),'Mean before','#f06060'],[mean(clipped).toFixed(1),'Mean after','#3ecf8e'],
+   [std(methodData).toFixed(1),'Std before','#f06060'],[std(clipped).toFixed(1),'Std after','#3ecf8e'],
+   [nClamped+'/'+methodData.length,'Clamped','#fb8c40'],[loV.toFixed(1),'Lower bound','#63b3ed'],[hiV.toFixed(1),'Upper bound','#fb8c40']
+  ].forEach(function(s){
+    statsHTML+='<div class="stat-pill"><span class="stat-pill-val" style="font-size:14px;color:'+s[2]+';">'+s[0]+'</span><span class="stat-pill-lbl">'+s[1]+'</span></div>';
+  });
+  C('method-stats').innerHTML=statsHTML;
+}
+
+/* ═══════════════════════════════════
+   SECTION 4 — HP TUNING + ACCURACY
+═══════════════════════════════════ */
+var sweepData=null;
+
+function simulateModel(lo,hi,outlierSev,outlierPct){
+  var n=200;
+  var data=[];
+  for(var i=0;i<n;i++){
+    var u1=Math.random()+1e-10,u2=Math.random();
+    var x=10+5*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2));
+    var y=2.5*x+5+3*(Math.random()-0.5);
+    if(Math.random()<outlierPct/100){
+      var sev=[1,3,6,10][outlierSev-1]||1;
+      y+=(Math.random()-0.5)*2*sev*std(data.map(function(d){return d.y;})||[10]);
+    }
+    data.push({x:x,y:y});
+  }
+  var loV=pct(data.map(function(d){return d.y;}),lo);
+  var hiV=pct(data.map(function(d){return d.y;}),hi);
+  data.forEach(function(d){d.yw=clamp(d.y,loV,hiV);});
+  var n2=Math.floor(n*0.8);
+  var train=data.slice(0,n2),test=data.slice(n2);
+
+  function linReg(pts,useW){
+    var xs=pts.map(function(p){return p.x;}),ys=pts.map(function(p){return useW?p.yw:p.y;});
+    var mx=mean(xs),my=mean(ys);
+    var num=0,den=0;
+    xs.forEach(function(x,i){num+=(x-mx)*(ys[i]-my);den+=(x-mx)*(x-mx);});
+    var m_=num/den,b_=my-m_*mx;
+    return function(x){return m_*x+b_;};
+  }
+  var predW=linReg(train,true);
+  var ssRes=0,ssTot=0,maeV=0;
+  var yMean=mean(test.map(function(p){return p.yw;}));
+  test.forEach(function(p){
+    var yp=predW(p.x);
+    ssRes+=(p.yw-yp)*(p.yw-yp);
+    ssTot+=(p.yw-yMean)*(p.yw-yMean);
+    maeV+=Math.abs(p.yw-yp);
+  });
+  var r2=1-ssRes/(ssTot||1);
+  var mae=maeV/test.length;
+  var clampedPct=data.filter(function(d){return d.y<loV||d.y>hiV;}).length/n*100;
+  return{r2:Math.max(-1,Math.min(1,r2)),mae:mae,clampedPct:clampedPct};
+}
+
+function onHPChange(){
+  var lo=parseInt(C('hp-lo').value);
+  var hi=parseInt(C('hp-hi').value);
+  var out=parseInt(C('hp-out').value);
+  var opct=parseInt(C('hp-opct').value);
+  C('hp-lo-val').textContent=lo+'%';
+  C('hp-hi-val').textContent=hi+'%';
+  C('hp-out-val').textContent=['mild','moderate','strong','extreme'][out-1]||'moderate';
+  C('hp-opct-val').textContent=opct+'%';
+
+  var res=simulateModel(lo,hi,out,opct);
+  C('ac-train').textContent=res.r2.toFixed(2);
+  C('ac-test').textContent=res.r2.toFixed(2);
+  C('ac-mae').textContent=res.mae.toFixed(2);
+  C('ac-outlier-pct').textContent=res.clampedPct.toFixed(1)+'%';
+  C('ac-train-bar').style.width=Math.max(0,res.r2*100)+'%';
+  C('ac-test-bar').style.width=Math.max(0,res.r2*100)+'%';
+  C('ac-mae-bar').style.width=Math.min(100,res.mae*5)+'%';
+  C('ac-outlier-bar').style.width=res.clampedPct+'%';
+}
+
+async function runClipSweep(){
+  C('sweep-status').textContent='Running...';
+  sweepData=[];
+  var out=parseInt(C('hp-out').value);
+  var opct=parseInt(C('hp-opct').value);
+  var clips=[0,1,2,3,4,5,7,10,15,20,25];
+  for(var ci=0;ci<clips.length;ci++){
+    var c=clips[ci];
+    var res=simulateModel(c,100-c,out,opct);
+    sweepData.push({clip:c,r2:res.r2,mae:res.mae,clamped:res.clampedPct});
+    drawSweepCanvas();
+    await delay(80);
+  }
+  var best=sweepData.reduce(function(m,d){return d.r2>m.r2?d:m;},sweepData[0]);
+  C('sweep-status').textContent='Best clip = '+best.clip+'%  (R²='+best.r2.toFixed(3)+')';
+}
+
+function drawSweepCanvas(){
+  if(!sweepData||!sweepData.length) return;
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:14,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var xVals=sweepData.map(function(d){return d.clip;});
+  var toX=function(c){return pad.l+(c/25)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-((v+1)/2)*(H-pad.t-pad.b);};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [-1,-0.5,0,0.5,1].forEach(function(v){
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(1),pad.l-3,toY(v)+4);
+  });
+  [0,5,10,15,20,25].forEach(function(c){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(c+'%',toX(c),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Clip % (symmetric)',W/2,H-2);
+
+  // R² line
+  ctx.beginPath();
+  sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.clip),toY(d.r2)):ctx.lineTo(toX(d.clip),toY(d.r2));});
+  ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+  sweepData.forEach(function(d){ctx.beginPath();ctx.arc(toX(d.clip),toY(d.r2),4,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();});
+
+  // Best marker
+  var best=sweepData.reduce(function(m,d){return d.r2>m.r2?d:m;},sweepData[0]);
+  ctx.beginPath();ctx.arc(toX(best.clip),toY(best.r2),8,0,Math.PI*2);
+  ctx.fillStyle='#fb8c40';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#fb8c40';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Best: '+best.clip+'%',toX(best.clip),toY(best.r2)-12);
+
+  // R²=0 reference
+  ctx.beginPath();ctx.moveTo(pad.l,toY(0));ctx.lineTo(W-pad.r,toY(0));
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('R²=0',pad.l+3,toY(0)-3);
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════
+   SECTION 5 — OUTLIER DETECTION
+═══════════════════════════════════ */
+var detectData=[];
+function genDetectData(){
+  detectData=[];
+  var pct_=parseInt(C('detect-pct').value)/100;
+  var sev=parseInt(C('detect-sev').value);
+  for(var i=0;i<120;i++){
+    var u1=Math.random()+1e-10,u2=Math.random();
+    var v=50+12*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2));
+    if(Math.random()<pct_) v+=((Math.random()>0.5?1:-1)*sev*20+Math.random()*10*sev);
+    detectData.push(v);
+  }
+}
+
+function redrawDetection(){
+  C('detect-pct-val').textContent=C('detect-pct').value+'%';
+  C('detect-sev-val').textContent=C('detect-sev').value;
+  genDetectData();
+
+  var q1=pct(detectData,25),q3=pct(detectData,75),IQR_=q3-q1;
+  var iqrLo=q1-1.5*IQR_, iqrHi=q3+1.5*IQR_;
+  var mu=mean(detectData),sigma=std(detectData);
+  var zLo=mu-3*sigma, zHi=mu+3*sigma;
+  var p5=pct(detectData,5), p95=pct(detectData,95);
+
+  var iqrOut=detectData.filter(function(v){return v<iqrLo||v>iqrHi;}).length;
+  var zOut=detectData.filter(function(v){return v<zLo||v>zHi;}).length;
+  var pOut=detectData.filter(function(v){return v<p5||v>p95;}).length;
+
+  var cv=C('detect-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  // Three panels side by side
+  var panW=W/3;
+  var panels=[
+    {title:'Box Plot (IQR)',lo:iqrLo,hi:iqrHi,col:'#3ecf8e',outs:iqrOut,label:'IQR ×1.5'},
+    {title:'Z-score (k=3)',lo:zLo,hi:zHi,col:'#63b3ed',outs:zOut,label:'μ ± 3σ'},
+    {title:'Percentile (5-95%)',lo:p5,hi:p95,col:'#fb8c40',outs:pOut,label:'5th–95th %ile'},
+  ];
+
+  var sorted=[...detectData].sort(function(a,b){return a-b;});
+  var dMin=sorted[0]-5, dMax=sorted[sorted.length-1]+5;
+
+  panels.forEach(function(pan,pi){
+    var ox=pi*panW;
+    var toX=function(v){return ox+10+(v-dMin)/(dMax-dMin)*(panW-20);};
+
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(pan.title,ox+panW/2,16);
+
+    // Background zones
+    ctx.fillStyle='rgba(240,96,96,0.07)';
+    ctx.fillRect(ox,22,toX(pan.lo)-ox,H-50);
+    ctx.fillRect(toX(pan.hi),22,ox+panW-toX(pan.hi),H-50);
+    ctx.fillStyle='rgba(255,255,255,0.03)';
+    ctx.fillRect(toX(pan.lo),22,toX(pan.hi)-toX(pan.lo),H-50);
+
+    // Boundary lines
+    [pan.lo,pan.hi].forEach(function(v,isHi){
+      var x=toX(v);
+      ctx.beginPath();ctx.moveTo(x,22);ctx.lineTo(x,H-30);
+      ctx.strokeStyle=pan.col;ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+    });
+
+    // Points — strip chart
+    detectData.forEach(function(v,i){
+      var isOut=v<pan.lo||v>pan.hi;
+      var jitter=(i%9-4)*3.5;
+      ctx.beginPath();ctx.arc(toX(v),H/2+jitter,isOut?5:4,0,Math.PI*2);
+      ctx.fillStyle=isOut?'rgba(240,96,96,0.7)':'rgba(45,212,191,0.4)';ctx.fill();
+      ctx.strokeStyle=isOut?'#f06060':pan.col;ctx.lineWidth=isOut?1.5:0.8;ctx.stroke();
+    });
+
+    // Label
+    ctx.fillStyle=pan.col;ctx.font='bold 10px mono';ctx.textAlign='center';
+    ctx.fillText(pan.label,ox+panW/2,H-32);
+    ctx.fillStyle='#f06060';ctx.font='bold 11px sans-serif';
+    ctx.fillText(pan.outs+' outliers',ox+panW/2,H-18);
+    ctx.textAlign='start';
+
+    // Divider
+    if(pi<2){ctx.strokeStyle=gc();ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ox+panW,20);ctx.lineTo(ox+panW,H-15);ctx.stroke();}
+  });
+
+  C('detect-stats').innerHTML=
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#3ecf8e;">'+iqrOut+'</span><span class="stat-pill-lbl">IQR outliers</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#63b3ed;">'+zOut+'</span><span class="stat-pill-lbl">Z-score outliers</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#fb8c40;">'+pOut+'</span><span class="stat-pill-lbl">Percentile outliers</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:var(--text-2);">'+detectData.length+'</span><span class="stat-pill-lbl">Total points</span></div>';
+}
+
+/* ═══════════════════════════════════
+   LIVE EDITOR
+═══════════════════════════════════ */
+var SNIPPETS=[
+{file:'winsor_basics.py',label:'Pandas clip',code:`import pandas as pd
+import numpy as np
+
+# Create a dataset with obvious outliers
+np.random.seed(42)
+salaries = np.random.normal(60000, 12000, 200)
+# Inject outliers
+salaries = np.append(salaries, [500000, 750000, 1200000, -5000, -8000])
+s = pd.Series(salaries, name='Salary')
+
+print("── Before Winsorization ──")
+print(s.describe().round(0))
+print(f"Outliers above 99th pct: {(s > s.quantile(0.99)).sum()}")
+
+# ── Method 1: pandas clip with percentile bounds ──────
+lo = s.quantile(0.05)
+hi = s.quantile(0.95)
+s_winsor = s.clip(lower=lo, upper=hi)
+
+print(f"\\n── After Winsorization (5-95%) ──")
+print(f"Boundaries: [{lo:,.0f}, {hi:,.0f}]")
+print(s_winsor.describe().round(0))
+print(f"Mean shift: {s.mean():,.0f} → {s_winsor.mean():,.0f}")
+print(f"Std  shift: {s.std():,.0f} → {s_winsor.std():,.0f}")
+print(f"Points clamped: {((s < lo) | (s > hi)).sum()} / {len(s)}")
+
+# ── Method 2: scipy.stats.mstats.winsorize ────────────
+from scipy.stats.mstats import winsorize as scipy_winsorize
+s_scipy = scipy_winsorize(salaries, limits=[0.05, 0.05])
+print(f"\\nscipy winsorize mean: {np.mean(s_scipy):,.0f}")
+
+# ── Apply to a DataFrame (multiple columns) ───────────
+df = pd.DataFrame({
+    'Age':    np.append(np.random.randint(20, 65, 50), [150, 200, -5]),
+    'Income': np.append(np.random.normal(50000, 15000, 50), [2000000, 1500000, -1000]),
+    'Score':  np.append(np.random.normal(70, 10, 50), [200, 300, -50]),
+})
+print(f"\\n── Multi-column Winsorization ──")
+df_w = df.copy()
+for col in df.columns:
+    lo_c = df[col].quantile(0.05)
+    hi_c = df[col].quantile(0.95)
+    df_w[col] = df[col].clip(lo_c, hi_c)
+    clamped = ((df[col] < lo_c) | (df[col] > hi_c)).sum()
+    print(f"{col:<8}: clamped {clamped}, mean {df[col].mean():.1f} → {df_w[col].mean():.1f}")
+`},
+{file:'winsor_methods.py',label:'All 4 methods',code:`import numpy as np
+import pandas as pd
+
+np.random.seed(0)
+data = np.concatenate([
+    np.random.normal(50, 10, 180),   # normal core
+    [120, 130, 140, -10, -20, 150]  # outliers
+])
+
+def winsorize_percentile(x, lo=5, hi=95):
+    lo_v = np.percentile(x, lo)
+    hi_v = np.percentile(x, hi)
+    return np.clip(x, lo_v, hi_v), lo_v, hi_v
+
+def winsorize_iqr(x, k=1.5):
+    q1, q3 = np.percentile(x, [25, 75])
+    iqr = q3 - q1
+    return np.clip(x, q1 - k*iqr, q3 + k*iqr), q1 - k*iqr, q3 + k*iqr
+
+def winsorize_zscore(x, k=3):
+    mu, sigma = x.mean(), x.std()
+    return np.clip(x, mu - k*sigma, mu + k*sigma), mu - k*sigma, mu + k*sigma
+
+def winsorize_mad(x, k=3):
+    med = np.median(x)
+    mad = np.median(np.abs(x - med))
+    sigma_hat = 1.4826 * mad
+    return np.clip(x, med - k*sigma_hat, med + k*sigma_hat), med - k*sigma_hat, med + k*sigma_hat
+
+methods = [
+    ('Percentile (5-95%)', winsorize_percentile(data)),
+    ('IQR (k=1.5)',        winsorize_iqr(data)),
+    ('Z-score (k=3)',      winsorize_zscore(data)),
+    ('MAD (k=3)',          winsorize_mad(data)),
+]
+
+print(f"Original:  mean={data.mean():.2f}  std={data.std():.2f}  outliers={len(data)}")
+print(f"{'Method':<22} {'Lo':>8} {'Hi':>8} {'Mean':>8} {'Std':>8} {'Clamped':>8}")
+print("-" * 66)
+for name, (clipped, lo, hi) in methods:
+    clamped = np.sum((data < lo) | (data > hi))
+    print(f"{name:<22} {lo:>8.2f} {hi:>8.2f} {clipped.mean():>8.2f} {clipped.std():>8.2f} {clamped:>8}")
+`},
+{file:'winsor_pipeline.py',label:'sklearn Pipeline',code:`import numpy as np
+import pandas as pd
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.datasets import fetch_california_housing
+
+class WinsorizerTransformer(BaseEstimator, TransformerMixin):
+    """
+    Sklearn-compatible Winsorizer.
+    Fits boundaries on training data; applies to any data.
+    Supports percentile, IQR, z-score, and MAD methods.
+    """
+    def __init__(self, lower=5, upper=95, method='percentile'):
+        self.lower = lower
+        self.upper = upper
+        self.method = method
+
+    def fit(self, X, y=None):
+        X = np.array(X)
+        self.lo_ = np.zeros(X.shape[1])
+        self.hi_ = np.zeros(X.shape[1])
+        for j in range(X.shape[1]):
+            col = X[:, j]
+            if self.method == 'percentile':
+                self.lo_[j] = np.percentile(col, self.lower)
+                self.hi_[j] = np.percentile(col, self.upper)
+            elif self.method == 'iqr':
+                q1, q3 = np.percentile(col, [25, 75])
+                iqr = q3 - q1
+                self.lo_[j] = q1 - 1.5 * iqr
+                self.hi_[j] = q3 + 1.5 * iqr
+            elif self.method == 'zscore':
+                mu, sigma = col.mean(), col.std()
+                self.lo_[j] = mu - 3 * sigma
+                self.hi_[j] = mu + 3 * sigma
+        return self
+
+    def transform(self, X, y=None):
+        X = np.array(X, dtype=float).copy()
+        for j in range(X.shape[1]):
+            X[:, j] = np.clip(X[:, j], self.lo_[j], self.hi_[j])
+        return X
+
+# ── Test on California Housing ────────────────────────
+data = fetch_california_housing()
+X, y = data.data, data.target
+
+# Inject outliers
+rng = np.random.default_rng(42)
+X_dirty = X.copy()
+n_out = int(0.05 * len(X))
+idx = rng.choice(len(X), n_out, replace=False)
+X_dirty[idx] *= rng.uniform(5, 20, (n_out, X.shape[1]))
+
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X_dirty, y, test_size=0.2, random_state=42)
+
+results = []
+for method in ['none', 'percentile', 'iqr', 'zscore']:
+    if method == 'none':
+        pipe = Pipeline([('scale', StandardScaler()), ('ridge', Ridge())])
+    else:
+        pipe = Pipeline([
+            ('winsor', WinsorizerTransformer(lower=5, upper=95, method=method)),
+            ('scale', StandardScaler()),
+            ('ridge', Ridge()),
+        ])
+    cv = cross_val_score(pipe, X_tr, y_tr, cv=5, scoring='r2')
+    pipe.fit(X_tr, y_tr)
+    results.append((method, cv.mean(), cv.std(), pipe.score(X_te, y_te)))
+
+print(f"{'Method':<12} {'CV R²':>8} {'±':>6} {'Test R²':>8}")
+print("-" * 38)
+for r in results:
+    print(f"{r[0]:<12} {r[1]:>8.4f} {r[2]:>6.4f} {r[3]:>8.4f}")
+`},
+{file:'winsor_benchmark.py',label:'Full benchmark',code:`import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import fetch_california_housing
+
+class Winsorizer(BaseEstimator, TransformerMixin):
+    def __init__(self, p=5):
+        self.p = p
+    def fit(self, X, y=None):
+        X = np.array(X)
+        self.lo_ = np.percentile(X, self.p, axis=0)
+        self.hi_ = np.percentile(X, 100-self.p, axis=0)
+        return self
+    def transform(self, X, y=None):
+        return np.clip(np.array(X, float), self.lo_, self.hi_)
+
+data = fetch_california_housing()
+X, y = data.data, data.target
+rng = np.random.default_rng(0)
+X_d = X.copy()
+idx = rng.choice(len(X), int(0.08*len(X)), replace=False)
+X_d[idx] *= rng.uniform(4, 15, (len(idx), X.shape[1]))
+
+X_tr, X_te, y_tr, y_te = train_test_split(X_d, y, test_size=0.2, random_state=42)
+
+models = [
+    ('Ridge',     Ridge()),
+    ('Lasso',     Lasso(max_iter=5000)),
+    ('RF',        RandomForestRegressor(n_estimators=50, random_state=42)),
+    ('GBM',       GradientBoostingRegressor(n_estimators=50, random_state=42)),
+]
+
+print(f"{'Model':<8} | {'No winsor':>9} | {'Winsor 5%':>9} | {'Winsor 1%':>9} | {'Δ best':>7}")
+print("-" * 52)
+for name, model in models:
+    scores = []
+    for p in [None, 5, 1]:
+        if p is None:
+            pipe = Pipeline([('sc', StandardScaler()), ('m', model.__class__(**model.get_params()))])
+        else:
+            pipe = Pipeline([('w', Winsorizer(p)), ('sc', StandardScaler()), ('m', model.__class__(**model.get_params()))])
+        pipe.fit(X_tr, y_tr)
+        scores.append(pipe.score(X_te, y_te))
+    delta = max(scores[1], scores[2]) - scores[0]
+    print(f"{name:<8} | {scores[0]:>9.4f} | {scores[1]:>9.4f} | {scores[2]:>9.4f} | {delta:>+7.4f}")
+print("\\n+ delta = winsorization helped, - delta = hurt or neutral")
+print("Note: Tree models (RF, GBM) are largely unaffected by outliers")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn','scipy']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ═══ INIT ═══ */
+window.addEventListener('load',function(){
+  genAnimData();drawAnimCanvas(new Set());
+  genDistData();redrawDist();
+  genMethodData();redrawMethod();
+  onHPChange();
+  redrawDetection();
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount) return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawAnimCanvas(new Set());redrawDist();redrawMethod();drawSweepCanvas();redrawDetection();
+    if(cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

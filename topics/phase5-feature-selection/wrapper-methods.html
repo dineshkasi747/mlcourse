@@ -1,1 +1,753 @@
-<!-- wrapper-methods.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wrapper Methods — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(167,139,250,0.09),rgba(75,150,255,0.04));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .compare-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;}
+    .compare-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);padding:10px 14px;background:var(--bg-card);border-bottom:2px solid var(--border-md);text-align:left;}
+    .compare-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-2);line-height:1.5;vertical-align:top;}
+    .compare-table tr:last-child td{border-bottom:none;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--purple);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+  </style>
+</head>
+<body data-topic-id="wrapper-methods">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Wrapper Methods</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Feature Selection</a><span class="sep">/</span>
+            <span class="current">Wrapper Methods</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);color:var(--purple);margin-bottom:14px;border-radius:100px;padding:4px 14px;font-size:12px;font-weight:700;display:inline-block;">Phase 5 &middot; Feature Selection</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Wrapper Methods</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Train the model repeatedly on different feature subsets and keep the subset that scores best. Slower than filter methods, but actually accounts for how features interact inside the model.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">20 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: CORE IDEA -->
+          <section class="section" id="core-idea">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">?</div>
+              What is a wrapper method?
+            </h2>
+            <p>The idea is simple: <strong>use the model itself to judge which features are useful.</strong> You train the model with different subsets of features and keep the subset with the best cross-validation score.</p>
+
+            <div class="callout info" style="margin-bottom:20px;">
+              <span class="callout-icon">i</span>
+              <p><strong>Filter vs Wrapper in one sentence:</strong> Filter methods score each feature individually using statistics — no model involved. Wrapper methods score feature <em>subsets</em> by actually training the model. This means wrappers can find that "feature A alone is useless, but A + B together are powerful" — something filters completely miss.</p>
+            </div>
+
+            <p style="font-size:14px;color:var(--text-2);line-height:1.7;margin-bottom:16px;">There are three main wrapper strategies. They only differ in <em>how they search</em> the space of possible subsets:</p>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
+              <div style="background:var(--bg-card);border:2px solid rgba(167,139,250,0.5);border-radius:var(--r-lg);padding:18px;">
+                <div style="font-family:var(--font-display);font-size:15px;font-weight:800;color:var(--purple);margin-bottom:8px;">Forward Selection</div>
+                <div style="font-size:13.5px;color:var(--text-2);line-height:1.6;margin-bottom:10px;">Start with <strong>no features</strong>. Each step: try adding every remaining feature, keep the one that improves the model the most. Stop when nothing improves it.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);color:var(--text-1);">{} &rarr; {A} &rarr; {A,C} &rarr; {A,C,F} &check;</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(75,150,255,0.5);border-radius:var(--r-lg);padding:18px;">
+                <div style="font-family:var(--font-display);font-size:15px;font-weight:800;color:var(--blue);margin-bottom:8px;">Backward Elimination</div>
+                <div style="font-size:13.5px;color:var(--text-2);line-height:1.6;margin-bottom:10px;">Start with <strong>all features</strong>. Each step: remove the one feature whose removal hurts performance the least. Stop when any removal hurts.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);color:var(--text-1);">{A,B,C,D} &rarr; {A,C,D} &rarr; {A,C} &check;</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(62,207,142,0.5);border-radius:var(--r-lg);padding:18px;">
+                <div style="font-family:var(--font-display);font-size:15px;font-weight:800;color:var(--green);margin-bottom:8px;">RFE (Recursive)</div>
+                <div style="font-size:13.5px;color:var(--text-2);line-height:1.6;margin-bottom:10px;">Like backward elimination, but uses the model's own feature weights to decide which to cut next. Cheaper and usually better.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);color:var(--text-1);">sklearn: RFE(estimator, n_features_to_select=5)</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 2: FORWARD SELECTION STEP BY STEP -->
+          <section class="section" id="forward-selection">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">F</div>
+              Forward selection &mdash; step by step
+            </h2>
+            <p>Click <strong>Next step</strong> to walk through the algorithm. At each step it tries every remaining feature, scores the model with it added, and picks the best one.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Forward selection walkthrough</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Features:</span>
+                  <input type="range" min="4" max="8" value="6" class="ctrl-slider" id="n-features" style="width:80px;" oninput="resetFS()"/>
+                  <span class="ctrl-value" id="n-features-val" style="color:var(--purple);">6</span>
+                </div>
+                <button class="ctrl-btn active" id="fs-next-btn" onclick="fsStep()">Next step</button>
+                <button class="ctrl-btn" onclick="resetFS()">Reset</button>
+              </div>
+              <canvas id="fs-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="fs-step" style="color:var(--purple);">0</span><span class="stat-pill-lbl">Step</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="fs-selected">0</span><span class="stat-pill-lbl">Selected</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="fs-remaining">-</span><span class="stat-pill-lbl">Remaining</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="fs-best-score" style="color:var(--green);">-</span><span class="stat-pill-lbl">Best CV score</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="fs-added" style="font-size:12px;color:var(--purple);">-</span><span class="stat-pill-lbl">Added this step</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: RFE -->
+          <section class="section" id="rfe">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">RFE</div>
+              RFE &mdash; how it works
+            </h2>
+            <p>RFE fits the model on all features, reads the feature importances/weights, removes the weakest one, and repeats. Drag the slider to set how many features to keep.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">RFE &mdash; elimination order (weakest removed first)</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Keep top:</span>
+                  <input type="range" min="1" max="9" value="4" class="ctrl-slider" id="rfe-k" style="width:80px;" oninput="drawRFE(this.value)"/>
+                  <span class="ctrl-value" id="rfe-k-val" style="color:var(--green);">4</span>
+                </div>
+              </div>
+              <canvas id="rfe-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="rfe-kept" style="color:var(--green);">-</span><span class="stat-pill-lbl">Features kept</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rfe-removed" style="color:var(--red);">-</span><span class="stat-pill-lbl">Eliminated</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rfe-top" style="font-size:12px;color:var(--green);">-</span><span class="stat-pill-lbl">Top features</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 4: COST -->
+          <section class="section" id="cost">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">$</div>
+              Computational cost &mdash; how many models get trained?
+            </h2>
+            <p>The main downside of wrapper methods is cost. With 5-fold CV it multiplies fast. This is why you should <strong>filter first, then wrap</strong>.</p>
+
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:18px;">
+              <table class="compare-table">
+                <thead>
+                  <tr><th>Method</th><th>Models trained (p features, k=5 CV)</th><th>p=20 example</th><th>When to use</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong style="color:var(--purple);">Forward / Backward</strong></td>
+                    <td>k &times; p(p+1)/2</td>
+                    <td>5 &times; 210 = <strong style="color:var(--red);">1,050</strong></td>
+                    <td>p &lt; 30, fast model</td>
+                  </tr>
+                  <tr>
+                    <td><strong style="color:var(--green);">RFE</strong></td>
+                    <td>k &times; p (one fit per elimination)</td>
+                    <td>5 &times; 20 = <strong style="color:var(--green);">100</strong></td>
+                    <td>Default choice — use this</td>
+                  </tr>
+                  <tr>
+                    <td><strong style="color:var(--teal);">RFECV</strong></td>
+                    <td>k &times; p (CV also finds optimal k)</td>
+                    <td>5 &times; 20 = <strong style="color:var(--green);">100</strong></td>
+                    <td>Best all-around: auto picks feature count</td>
+                  </tr>
+                  <tr>
+                    <td><strong style="color:var(--red);">Exhaustive</strong></td>
+                    <td>k &times; 2<sup>p</sup></td>
+                    <td>5 &times; 1M = <strong style="color:var(--red);">5M+</strong></td>
+                    <td>Only for p &lt; 15</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">!</span>
+              <p><strong>Practical rule:</strong> Use filter methods first to cut to p &lt; 30 features, then apply RFECV. This keeps total model fits low while still benefiting from wrapper-quality selection.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 5: RFECV CURVE -->
+          <section class="section" id="rfecv">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">CV</div>
+              RFECV &mdash; finding the optimal number of features automatically
+            </h2>
+            <p>RFECV plots cross-validation score at every feature count. The peak is your answer. Click the canvas to place a custom pointer and read off the score.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">RFECV score curve &mdash; CV accuracy vs number of features</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="rfecv-ds" onchange="drawRFECV()">
+                    <option value="clean">Clean dataset</option>
+                    <option value="noisy">Noisy dataset</option>
+                    <option value="plateau">Plateau (ambiguous)</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="rfecv-canvas" width="700" height="260" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="rfecv-optimal" style="color:var(--teal);">-</span><span class="stat-pill-lbl">Optimal features</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rfecv-peak-score" style="color:var(--green);">-</span><span class="stat-pill-lbl">Peak CV score</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rfecv-gain">-</span><span class="stat-pill-lbl">Gain vs 1 feature</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="rfecv-verdict" style="font-size:12px;">-</span><span class="stat-pill-lbl">Recommendation</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">rfe_basic.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Running wrapper on the full dataset, then evaluating.</strong> The selection step itself must be inside cross-validation. Use Pipeline so RFE only sees training fold data.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Applying wrapper methods to 100+ features directly.</strong> Filter first. Cut to &lt;30 features with VarianceThreshold + mutual information, then wrap.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Wrapping with a slow model.</strong> Use Logistic Regression or Decision Tree as the base estimator for selection. Save your expensive model for after features are chosen.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Forgetting to scale before RFE with linear models.</strong> RFE uses coefficient magnitudes to rank features. If features are on different scales, Lasso/LogReg coefficients are unfair. Always StandardScale first.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Wrapper methods evaluate feature subsets by training the model — they catch interactions that filter methods miss.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use RFECV as the default. It is cheap (k&times;p fits), automatically finds the optimal feature count, and gives you a learning curve to inspect.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always filter first to &lt;30 features, then wrap. This keeps cost low.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Wrap with a fast model (LogReg, Decision Tree). Train your actual model on the selected features separately.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Put the wrapper inside a Pipeline so feature selection never sees test fold data.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="filter-methods.html"><span class="pn-dir">Previous</span><span class="pn-title">Filter Methods</span></a>
+            <a class="pn-card next" id="next-card" href="embedded-methods.html"><span class="pn-dir">Next</span><span class="pn-title">Embedded Methods</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#core-idea">What is a wrapper?</a></li>
+            <li class="toc-item"><a href="#forward-selection">Forward selection</a></li>
+            <li class="toc-item"><a href="#rfe">RFE</a></li>
+            <li class="toc-item"><a href="#cost">Computational cost</a></li>
+            <li class="toc-item"><a href="#rfecv">RFECV curve</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+
+/* SECTION 2: FORWARD SELECTION */
+var FSC=C('fs-canvas'),FSX=FSC.getContext('2d');
+var FS_FEATURES=['glucose','bmi','age','insulin','bp','skin','pedigree','noise'];
+var FS_IMPORTANCE=[0.28,0.18,0.14,0.10,0.08,0.06,0.09,0.01];
+var fsState={step:0,selected:[],remaining:[],scores:[],baseScore:0.62};
+
+function resetFS(){
+  var n=parseInt(C('n-features').value);
+  C('n-features-val').textContent=n;
+  fsState={step:0,selected:[],remaining:Array.from({length:n},function(_,i){return i;}),
+           scores:[],imp:FS_IMPORTANCE.slice(0,n),baseScore:0.62,n:n,done:false};
+  C('fs-next-btn').textContent='Next step';
+  C('fs-next-btn').classList.add('active');
+  drawFS();
+}
+
+function fsStep(){
+  var s=fsState;
+  if(s.done||!s.remaining.length)return;
+  var curScore=s.scores.length?s.scores[s.scores.length-1].score:s.baseScore;
+  var candidates=s.remaining.map(function(fi){
+    var gain=s.imp[fi]*(1-s.selected.length*0.04);
+    return{fi:fi,score:Math.min(0.99,curScore+gain+(Math.random()-0.5)*0.008)};
+  }).sort(function(a,b){return b.score-a.score;});
+  var best=candidates[0];
+  if(best.score-curScore<0.003){
+    s.done=true;C('fs-next-btn').textContent='Converged';C('fs-next-btn').classList.remove('active');
+    drawFS();return;
+  }
+  s.step++;s.selected.push(best.fi);
+  s.remaining=s.remaining.filter(function(fi){return fi!==best.fi;});
+  s.scores.push({step:s.step,score:best.score,added:FS_FEATURES[best.fi]});
+  drawFS();
+}
+
+function drawFS(){
+  var s=fsState,W=FSC.width,H=FSC.height,pad={l:55,r:20,t:30,b:50};
+  FSX.clearRect(0,0,W,H);FSX.fillStyle=bg();FSX.fillRect(0,0,W,H);
+  var iW=W-pad.l-pad.r,iH=H-pad.t-pad.b,maxSteps=s.n;
+
+  FSX.strokeStyle=gc();FSX.lineWidth=0.5;
+  [0.6,0.7,0.8,0.9,1.0].forEach(function(v){
+    var y=pad.t+(1-(v-0.55)/0.5)*iH;
+    FSX.beginPath();FSX.moveTo(pad.l,y);FSX.lineTo(W-pad.r,y);FSX.stroke();
+    FSX.fillStyle=tc();FSX.font='9px monospace';FSX.textAlign='right';FSX.fillText(v.toFixed(2),pad.l-3,y+3);
+  });
+  for(var xi=0;xi<=maxSteps;xi++){
+    var gx=pad.l+xi*(iW/maxSteps);
+    FSX.strokeStyle=gc();FSX.beginPath();FSX.moveTo(gx,pad.t);FSX.lineTo(gx,H-pad.b);FSX.stroke();
+    FSX.fillStyle=tc();FSX.font='9px monospace';FSX.textAlign='center';FSX.fillText(xi,gx,H-pad.b+13);
+  }
+  FSX.fillStyle=tc();FSX.font='11px sans-serif';FSX.textAlign='center';
+  FSX.fillText('Number of features selected',W/2,H-4);
+
+  var allPts=[{step:0,score:s.baseScore}].concat(s.scores);
+  if(allPts.length>1){
+    FSX.beginPath();FSX.strokeStyle='rgba(167,139,250,0.8)';FSX.lineWidth=2.5;
+    allPts.forEach(function(pt,i){
+      var x=pad.l+pt.step*(iW/maxSteps),y=pad.t+(1-(pt.score-0.55)/0.5)*iH;
+      i===0?FSX.moveTo(x,y):FSX.lineTo(x,y);
+    });
+    FSX.stroke();
+    allPts.forEach(function(pt,i){
+      if(!i)return;
+      var x=pad.l+pt.step*(iW/maxSteps),y=pad.t+(1-(pt.score-0.55)/0.5)*iH;
+      FSX.beginPath();FSX.arc(x,y,6,0,Math.PI*2);FSX.fillStyle='var(--purple)';FSX.fill();
+      FSX.strokeStyle='#fff';FSX.lineWidth=2;FSX.stroke();
+      FSX.fillStyle='var(--purple)';FSX.font='bold 10px sans-serif';FSX.textAlign='center';FSX.fillText(pt.added,x,y-10);
+      FSX.fillStyle=tc();FSX.font='9px monospace';FSX.fillText(pt.score.toFixed(3),x,y+18);
+    });
+  }
+  var x0=pad.l,y0=pad.t+(1-(s.baseScore-0.55)/0.5)*iH;
+  FSX.beginPath();FSX.arc(x0,y0,4,0,Math.PI*2);FSX.fillStyle=tc();FSX.fill();
+
+  /* Candidate panel */
+  var last=allPts[allPts.length-1];
+  FSX.fillStyle=tc();FSX.font='bold 10px sans-serif';FSX.textAlign='left';
+  FSX.fillText('Candidates for next step:',pad.l+iW*0.58,pad.t+16);
+  s.remaining.forEach(function(fi,i){
+    var gain=s.imp[fi]*(1-s.selected.length*0.04);
+    var sc=Math.min(0.99,last.score+gain);
+    var x=pad.l+iW*0.58,y=pad.t+30+i*18;
+    FSX.fillStyle='rgba(167,139,250,0.55)';FSX.fillRect(x,y,sc*75,13);
+    FSX.fillStyle=tc();FSX.font='10px monospace';FSX.textAlign='left';FSX.fillText(FS_FEATURES[fi],x+sc*75+4,y+10);
+  });
+  if(!s.remaining.length){
+    FSX.fillStyle='var(--green)';FSX.font='bold 12px sans-serif';
+    FSX.fillText(s.done?'Converged!':'No more candidates',pad.l+iW*0.58,pad.t+30);
+  }
+
+  var best2=allPts[allPts.length-1];
+  C('fs-step').textContent=s.step;C('fs-selected').textContent=s.selected.length;
+  C('fs-remaining').textContent=s.remaining.length;C('fs-best-score').textContent=best2.score.toFixed(4);
+  C('fs-added').textContent=s.scores.length?s.scores[s.scores.length-1].added:'—';
+}
+
+/* SECTION 3: RFE */
+var RFEC=C('rfe-canvas'),RFEX=RFEC.getContext('2d');
+var RFE_FEATS=['glucose','bmi','age','dp_func','insulin','bp','pregnancies','skin','noise_1','noise_2'];
+var RFE_W=[0.28,0.21,0.17,0.13,0.10,0.08,0.07,0.06,0.02,0.01];
+
+function drawRFE(kVal){
+  var k=parseInt(kVal);C('rfe-k-val').textContent=k;
+  var n=RFE_FEATS.length;
+  var sorted=RFE_W.map(function(w,i){return{w:w,feat:RFE_FEATS[i]};}).sort(function(a,b){return b.w-a.w;});
+  var W=RFEC.width,H=RFEC.height,pad={l:110,r:20,t:25,b:20};
+  RFEX.clearRect(0,0,W,H);RFEX.fillStyle=bg();RFEX.fillRect(0,0,W,H);
+  var bh=(H-pad.t-pad.b)/n-5;
+  var maxW=sorted[0].w;
+  RFEX.fillStyle=tc();RFEX.font='bold 11px sans-serif';RFEX.textAlign='center';
+  RFEX.fillText('Model weights \u2014 RFE removes lowest weight first, keeps top '+k,W/2,pad.t-5);
+
+  sorted.forEach(function(f,i){
+    var kept=i<k,y=pad.t+i*(bh+5),bw=(f.w/maxW)*(W-pad.l-pad.r)*0.7;
+    RFEX.fillStyle=kept?'rgba(62,207,142,0.75)':'rgba(240,96,96,0.35)';
+    RFEX.fillRect(pad.l,y,bw,bh);
+    if(kept){RFEX.strokeStyle='var(--green)';RFEX.lineWidth=1.5;RFEX.strokeRect(pad.l,y,bw,bh);}
+    RFEX.fillStyle=kept?'var(--text-1)':tc();RFEX.font=(kept?'bold ':'')+'12px monospace';
+    RFEX.textAlign='right';RFEX.fillText(f.feat,pad.l-6,y+bh/2+4);
+    RFEX.fillStyle=kept?'var(--green)':tc();RFEX.font='10px monospace';RFEX.textAlign='left';
+    RFEX.fillText(f.w.toFixed(3),pad.l+bw+6,y+bh/2+4);
+    RFEX.fillStyle=kept?'rgba(62,207,142,0.15)':'rgba(240,96,96,0.12)';
+    RFEX.fillRect(pad.l+bw+55,y,42,bh);
+    RFEX.fillStyle=kept?'var(--green)':'var(--red)';RFEX.font='bold 9px sans-serif';RFEX.textAlign='center';
+    RFEX.fillText(kept?'KEEP':'DROP',pad.l+bw+76,y+bh/2+3);
+  });
+  C('rfe-kept').textContent=k;C('rfe-removed').textContent=n-k;
+  C('rfe-top').textContent=sorted.slice(0,Math.min(k,3)).map(function(f){return f.feat;}).join(', ');
+}
+
+/* SECTION 5: RFECV CURVE */
+var RVC=C('rfecv-canvas'),RVX=RVC.getContext('2d');
+var RFECV_DATA={
+  clean:{s:[0.64,0.72,0.81,0.88,0.91,0.92,0.92,0.91,0.90,0.89],sd:[0.04,0.04,0.03,0.02,0.02,0.02,0.02,0.02,0.02,0.02]},
+  noisy:{s:[0.62,0.66,0.71,0.74,0.75,0.74,0.73,0.72,0.71,0.70],sd:[0.06,0.05,0.05,0.06,0.07,0.07,0.07,0.08,0.08,0.08]},
+  plateau:{s:[0.70,0.78,0.84,0.87,0.88,0.88,0.88,0.87,0.87,0.86],sd:[0.03,0.03,0.02,0.02,0.02,0.02,0.02,0.03,0.03,0.03]}
+};
+
+function drawRFECV(){
+  var key=C('rfecv-ds').value;
+  var data=RFECV_DATA[key];
+  var n=data.s.length;
+  var peakIdx=data.s.indexOf(Math.max.apply(null,data.s));
+  var W=RVC.width,H=RVC.height,pad={l:50,r:20,t:25,b:40};
+  RVX.clearRect(0,0,W,H);RVX.fillStyle=bg();RVX.fillRect(0,0,W,H);
+  var iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  var minS=Math.min.apply(null,data.s.map(function(s,i){return s-data.sd[i];}));
+  var maxS=Math.min(1,Math.max.apply(null,data.s.map(function(s,i){return s+data.sd[i]+0.02;})));
+  var range=(maxS-minS)||0.4;
+  var xC=function(i){return pad.l+i*(iW/(n-1));};
+  var yC=function(s){return H-pad.b-(s-minS)/range*iH;};
+
+  /* Grid */
+  RVX.strokeStyle=gc();RVX.lineWidth=0.5;
+  for(var gi=0;gi<=5;gi++){
+    var gv=minS+gi/5*range,gy=yC(gv);
+    RVX.beginPath();RVX.moveTo(pad.l,gy);RVX.lineTo(W-pad.r,gy);RVX.stroke();
+    RVX.fillStyle=tc();RVX.font='9px monospace';RVX.textAlign='right';RVX.fillText(gv.toFixed(2),pad.l-3,gy+3);
+  }
+  for(var xi=0;xi<n;xi++){
+    RVX.strokeStyle=gc();RVX.beginPath();RVX.moveTo(xC(xi),pad.t);RVX.lineTo(xC(xi),H-pad.b);RVX.stroke();
+    RVX.fillStyle=tc();RVX.font='9px monospace';RVX.textAlign='center';RVX.fillText(xi+1,xC(xi),H-pad.b+13);
+  }
+  RVX.fillStyle=tc();RVX.font='11px sans-serif';RVX.textAlign='center';RVX.fillText('Number of features',W/2,H-4);
+
+  /* Std band */
+  RVX.beginPath();
+  data.s.forEach(function(s,i){i===0?RVX.moveTo(xC(i),yC(s+data.sd[i])):RVX.lineTo(xC(i),yC(s+data.sd[i]));});
+  for(var i=n-1;i>=0;i--){RVX.lineTo(xC(i),yC(data.s[i]-data.sd[i]));}
+  RVX.closePath();RVX.fillStyle='rgba(167,139,250,0.12)';RVX.fill();
+
+  /* Score line */
+  RVX.beginPath();RVX.strokeStyle='rgba(167,139,250,0.85)';RVX.lineWidth=2.5;
+  data.s.forEach(function(s,i){i===0?RVX.moveTo(xC(i),yC(s)):RVX.lineTo(xC(i),yC(s));});
+  RVX.stroke();
+
+  /* Dots */
+  data.s.forEach(function(s,i){
+    RVX.beginPath();RVX.arc(xC(i),yC(s),i===peakIdx?8:4,0,Math.PI*2);
+    RVX.fillStyle=i===peakIdx?'var(--purple)':'rgba(167,139,250,0.6)';RVX.fill();
+    if(i===peakIdx){RVX.strokeStyle='#fff';RVX.lineWidth=2;RVX.stroke();}
+  });
+
+  /* Peak line */
+  RVX.beginPath();RVX.strokeStyle='rgba(167,139,250,0.6)';RVX.lineWidth=1.5;RVX.setLineDash([5,4]);
+  RVX.moveTo(xC(peakIdx),pad.t);RVX.lineTo(xC(peakIdx),H-pad.b);RVX.stroke();RVX.setLineDash([]);
+  RVX.fillStyle='var(--purple)';RVX.font='bold 11px sans-serif';RVX.textAlign='center';
+  RVX.fillText('Optimal: '+(peakIdx+1)+' features',xC(peakIdx),pad.t-5);
+
+  C('rfecv-optimal').textContent=peakIdx+1;
+  C('rfecv-peak-score').textContent=data.s[peakIdx].toFixed(4);
+  C('rfecv-gain').textContent='+'+((data.s[peakIdx]-data.s[0])*100).toFixed(1)+'%';
+  C('rfecv-verdict').textContent=key==='plateau'?'Use 1-SE rule':'Clear elbow at '+(peakIdx+1);
+}
+
+/* LIVE EDITOR */
+var SNIPPETS=[
+{file:'rfe_basic.py',label:'RFE basics',code:`from sklearn.datasets import make_classification
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+np.random.seed(42)
+X, y = make_classification(
+    n_samples=300, n_features=10,
+    n_informative=5, n_redundant=2, random_state=42)
+
+feature_names = [f'F{i+1:02d}' for i in range(10)]
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('rfe',    RFE(estimator=LogisticRegression(max_iter=1000),
+                  n_features_to_select=5))
+])
+pipe.fit(X, y)
+
+rfe = pipe.named_steps['rfe']
+print("RFE results (keep 5 of 10):")
+print(f"  Selected:  {[f for f,s in zip(feature_names,rfe.support_) if s]}")
+print(f"  Removed:   {[f for f,s in zip(feature_names,rfe.support_) if not s]}")
+print()
+print("Rankings (1 = selected, higher = eliminated earlier):")
+for name, rank in sorted(zip(feature_names, rfe.ranking_), key=lambda x: x[1]):
+    bar = '#' * max(1, 6-min(rank,5))
+    print(f"  {name}: rank={rank} {bar}")`},
+{file:'rfecv_auto.py',label:'RFECV',code:`from sklearn.datasets import make_classification
+from sklearn.feature_selection import RFECV
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+np.random.seed(42)
+X, y = make_classification(
+    n_samples=400, n_features=15,
+    n_informative=6, n_redundant=3, random_state=42)
+
+feature_names = [f'F{i+1:02d}' for i in range(15)]
+
+# RFECV finds the optimal number of features automatically
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('rfecv',  RFECV(
+        estimator=LogisticRegression(max_iter=1000),
+        cv=StratifiedKFold(5, shuffle=True, random_state=42),
+        scoring='accuracy'
+    ))
+])
+pipe.fit(X, y)
+
+rfecv = pipe.named_steps['rfecv']
+selected = [f for f,s in zip(feature_names, rfecv.support_) if s]
+
+print(f"Optimal number of features: {rfecv.n_features_}")
+print(f"Selected: {selected}")
+print()
+print("CV score at each feature count:")
+for k, score in enumerate(rfecv.cv_results_['mean_test_score'], 1):
+    std = rfecv.cv_results_['std_test_score'][k-1]
+    bar = '#' * int(score * 25)
+    mark = " <-- OPTIMAL" if k == rfecv.n_features_ else ""
+    print(f"  k={k:2d}: {score:.4f}+/-{std:.4f} {bar}{mark}")`},
+{file:'forward_sel.py',label:'Forward selection',code:`from sklearn.datasets import make_classification
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+np.random.seed(42)
+X, y = make_classification(
+    n_samples=300, n_features=8,
+    n_informative=4, n_redundant=2, random_state=42)
+
+feature_names = [f'F{i+1:02d}' for i in range(8)]
+cv = StratifiedKFold(5, shuffle=True, random_state=42)
+X_s = StandardScaler().fit_transform(X)
+
+selected, remaining = [], list(range(8))
+best_score = 0.0
+
+print("Forward Selection:")
+print("=" * 45)
+
+while remaining:
+    scores = {}
+    for fi in remaining:
+        subset = selected + [fi]
+        score = cross_val_score(
+            LogisticRegression(max_iter=1000),
+            X_s[:, subset], y, cv=cv, scoring='accuracy'
+        ).mean()
+        scores[fi] = score
+
+    best_fi = max(scores, key=scores.get)
+    if scores[best_fi] - best_score < 0.003:
+        print(f"Stopped: no improvement > 0.003")
+        break
+
+    selected.append(best_fi)
+    remaining.remove(best_fi)
+    best_score = scores[best_fi]
+    feats = [feature_names[i] for i in selected]
+    print(f"Step {len(selected)}: +{feature_names[best_fi]:6s}  score={best_score:.4f}  set={feats}")
+
+print(f"Final: {[feature_names[i] for i in selected]}")`},
+{file:'wrapper_pipeline.py',label:'Full pipeline',code:`from sklearn.datasets import make_classification
+from sklearn.feature_selection import RFECV
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+import numpy as np
+
+np.random.seed(42)
+X, y = make_classification(
+    n_samples=500, n_features=20,
+    n_informative=7, n_redundant=5, random_state=42)
+
+cv = StratifiedKFold(5, shuffle=True, random_state=42)
+
+# Correct: RFECV inside Pipeline prevents leakage
+# Use fast estimator (LogReg) for selection step
+pipe = Pipeline([
+    ('scaler',   StandardScaler()),
+    ('selector', RFECV(
+        estimator=LogisticRegression(max_iter=1000),
+        cv=StratifiedKFold(3), scoring='accuracy')),
+    ('clf',      GradientBoostingClassifier(n_estimators=100, random_state=42))
+])
+
+scores = cross_val_score(pipe, X, y, cv=cv, scoring='accuracy')
+print(f"With wrapper selection: {scores.mean():.4f} +/- {scores.std():.4f}")
+
+# Baseline: all features
+pipe_all = Pipeline([
+    ('scaler', StandardScaler()),
+    ('clf',    GradientBoostingClassifier(n_estimators=100, random_state=42))
+])
+scores_all = cross_val_score(pipe_all, X, y, cv=cv, scoring='accuracy')
+print(f"All 20 features:        {scores_all.mean():.4f} +/- {scores_all.std():.4f}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  resetFS();drawRFE(4);drawRFECV();initEditor();
+  new MutationObserver(function(){
+    drawFS();drawRFE(document.getElementById('rfe-k').value);drawRFECV();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

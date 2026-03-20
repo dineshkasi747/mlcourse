@@ -1,1 +1,857 @@
 <!-- standardization.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Standardization — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(75,150,255,0.1),rgba(167,139,250,0.06));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(75,150,255,0.12) 0%,transparent 70%);pointer-events:none;}
+    /* Big visual concept cards */
+    .concept-row{display:flex;gap:14px;margin-bottom:22px;align-items:stretch;}
+    .concept-box{flex:1;background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-xl);padding:20px;text-align:center;}
+    .concept-box.highlight{border-color:var(--blue);}
+    .concept-box-icon{font-size:32px;margin-bottom:8px;}
+    .concept-box-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:4px;}
+    .concept-box-val{font-family:var(--font-display);font-size:26px;font-weight:800;line-height:1.1;margin-bottom:6px;}
+    .concept-box-desc{font-size:12px;color:var(--text-3);line-height:1.5;}
+    .arrow-box{display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--text-3);flex-shrink:0;width:40px;}
+    /* Before/after table */
+    .ba-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;}
+    .ba-table th{padding:10px 14px;background:var(--bg-card);border-bottom:2px solid var(--border-md);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);text-align:left;}
+    .ba-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);}
+    .ba-table tr:hover td{background:var(--bg-hover);}
+    .ba-table tr:last-child td{border-bottom:none;}
+    /* Canvas */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* Formula display */
+    .formula-block{background:var(--bg-card);border:1px solid var(--border-md);border-left:5px solid var(--blue);border-radius:0 var(--r-lg) var(--r-lg) 0;padding:18px 22px;margin-bottom:20px;}
+    .formula-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--blue);margin-bottom:10px;}
+    .formula-math{font-family:var(--font-mono);font-size:15px;color:var(--text-1);line-height:2;margin-bottom:8px;}
+    .formula-explain{font-size:13px;color:var(--text-2);line-height:1.6;}
+    /* Step cards */
+    .step-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+    .step-card{display:flex;gap:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;}
+    .step-num{width:36px;height:36px;border-radius:50%;background:var(--blue-surf);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--blue);flex-shrink:0;}
+    .step-body{flex:1;}
+    .step-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .step-desc{font-size:13.5px;color:var(--text-2);line-height:1.6;}
+    .step-code{font-family:var(--font-mono);font-size:12px;background:var(--bg-input);border-left:3px solid var(--blue);padding:8px 12px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin-top:8px;line-height:1.7;color:var(--text-1);}
+    /* Editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--blue);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    /* when-to-use grid */
+    .when-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+    .when-card{background:var(--bg-card);border-radius:var(--r-lg);padding:16px;}
+    .when-card-title{font-family:var(--font-display);font-size:13px;font-weight:700;margin-bottom:10px;}
+    .when-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;font-size:13px;color:var(--text-2);line-height:1.5;}
+    @media(max-width:640px){.concept-row{flex-direction:column;}.when-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="standardization">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Standardization</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Feature Engineering</a><span class="sep">/</span>
+            <span class="current">Standardization</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-4" style="border-color:rgba(75,150,255,.25);margin-bottom:14px;">Phase 4 &middot; Feature Engineering</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Standardization (Z-score scaling)</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Age (18–80) and Salary ($20k–$500k) are on completely different scales. Without standardization, your model thinks salary is 10,000× more important than age just because the numbers are bigger. Standardization fixes this by putting everything on the same scale.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">15 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">sklearn &middot; pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- THE BIG IDEA -->
+          <section class="section" id="big-idea">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">!</div>
+              The problem — why scale matters
+            </h2>
+            <p>Imagine you have two features: <strong>Age</strong> (25 years) and <strong>Salary</strong> ($75,000). The salary number is 3,000× bigger — but that doesn't mean salary is 3,000× more important. Many ML algorithms treat bigger numbers as more important. <strong>Standardization levels the playing field.</strong></p>
+
+            <div class="concept-row">
+              <div class="concept-box">
+                <div class="concept-box-icon">📅</div>
+                <div class="concept-box-label">Before scaling — Age</div>
+                <div class="concept-box-val" style="color:var(--blue);">25 years</div>
+                <div class="concept-box-desc">Range: 18 to 80<br>Typical step: 1 year</div>
+              </div>
+              <div class="arrow-box">+</div>
+              <div class="concept-box">
+                <div class="concept-box-icon">💰</div>
+                <div class="concept-box-label">Before scaling — Salary</div>
+                <div class="concept-box-val" style="color:var(--red);">$75,000</div>
+                <div class="concept-box-desc">Range: $20k to $500k<br>Typical step: $1,000</div>
+              </div>
+              <div class="arrow-box" style="font-size:20px;color:var(--red);">⚠</div>
+              <div class="concept-box" style="border-color:rgba(240,96,96,0.4);">
+                <div class="concept-box-icon">🤖</div>
+                <div class="concept-box-label">Model sees</div>
+                <div class="concept-box-val" style="color:var(--red);font-size:18px;">Salary = 3,000× Age</div>
+                <div class="concept-box-desc" style="color:var(--red);">Algorithm is dominated by salary even if age is equally important!</div>
+              </div>
+            </div>
+
+            <div class="concept-row">
+              <div class="concept-box highlight">
+                <div class="concept-box-icon">📅</div>
+                <div class="concept-box-label">After standardization — Age</div>
+                <div class="concept-box-val" style="color:var(--blue);">-0.72</div>
+                <div class="concept-box-desc">Mean = 0, Std = 1<br>Same scale as salary!</div>
+              </div>
+              <div class="arrow-box">+</div>
+              <div class="concept-box highlight">
+                <div class="concept-box-icon">💰</div>
+                <div class="concept-box-label">After standardization — Salary</div>
+                <div class="concept-box-val" style="color:var(--blue);">+0.84</div>
+                <div class="concept-box-desc">Mean = 0, Std = 1<br>Same scale as age!</div>
+              </div>
+              <div class="arrow-box" style="font-size:20px;color:var(--green);">✓</div>
+              <div class="concept-box" style="border-color:rgba(62,207,142,0.4);">
+                <div class="concept-box-icon">🤖</div>
+                <div class="concept-box-label">Model now sees</div>
+                <div class="concept-box-val" style="color:var(--green);font-size:18px;">Both equally important</div>
+                <div class="concept-box-desc" style="color:var(--green);">Fair comparison — model decides importance from data, not from scale!</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- THE FORMULA -->
+          <section class="section" id="formula">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">z</div>
+              The formula — simple subtraction and division
+            </h2>
+
+            <div class="formula-block">
+              <div class="formula-name">Z-score standardization formula</div>
+              <div class="formula-math">z = (x − mean) ÷ std</div>
+              <div class="formula-explain">
+                <strong>x</strong> = the original value &nbsp;|&nbsp;
+                <strong>mean</strong> = average of all values &nbsp;|&nbsp;
+                <strong>std</strong> = standard deviation (how spread out values are)<br><br>
+                <strong>Result:</strong> z tells you <em>how many standard deviations away from the average</em> the value is.
+                z = 0 means exactly average. z = +1 means one std above average. z = −2 means two stds below average.
+              </div>
+            </div>
+
+            <!-- Worked example -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;">
+              <div style="padding:14px 20px;background:var(--bg-input);border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue);">Worked example — step by step</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;">
+                <div style="padding:16px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Raw ages</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);line-height:2.2;">20<br>35<br>45<br>28<br>52</div>
+                </div>
+                <div style="padding:16px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Subtract mean (36)</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);line-height:2.2;">20−36 = <span style="color:var(--red);">−16</span><br>35−36 = <span style="color:var(--text-3);">−1</span><br>45−36 = <span style="color:var(--green);">+9</span><br>28−36 = <span style="color:var(--red);">−8</span><br>52−36 = <span style="color:var(--green);">+16</span></div>
+                </div>
+                <div style="padding:16px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">÷ std (12.4)</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);line-height:2.2;">−16÷12.4<br>−1÷12.4<br>+9÷12.4<br>−8÷12.4<br>+16÷12.4</div>
+                </div>
+                <div style="padding:16px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:8px;">Z-scores ✓</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;line-height:2.2;"><span style="color:var(--red);">−1.29</span><br><span style="color:var(--text-3);">−0.08</span><br><span style="color:var(--green);">+0.73</span><br><span style="color:var(--red);">−0.65</span><br><span style="color:var(--green);">+1.29</span></div>
+                </div>
+              </div>
+              <div style="padding:12px 20px;background:var(--bg-input);border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);">
+                <strong style="color:var(--blue);">Notice:</strong> Mean of z-scores = 0 &nbsp;|&nbsp; Std of z-scores = 1 &nbsp;|&nbsp; Relative differences preserved &nbsp;|&nbsp; 20 is still the youngest, 52 still the oldest
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE INTERACTIVE DEMO -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">~</div>
+              Live demo — drag values, see standardization in real time
+            </h2>
+            <p>Click anywhere on the <strong>Before</strong> chart to add a data point. Watch the standardized version update instantly. See how the shape stays the same, only the numbers on the axis change.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Before &amp; After Standardization</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="demo-dataset" onchange="loadDataset(this.value)">
+                    <option value="ages">Ages (18–80)</option>
+                    <option value="salaries">Salaries ($20k–$200k)</option>
+                    <option value="mixed">Mixed scales</option>
+                    <option value="custom">Custom (click to add)</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn active" onclick="loadDataset(document.getElementById('demo-dataset').value)">Reset</button>
+                <button class="ctrl-btn" onclick="addOutlier()">+ Add outlier</button>
+              </div>
+              <canvas id="std-canvas" width="700" height="360" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="std-mean" style="color:var(--blue);">-</span><span class="stat-pill-lbl">Original mean</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="std-std">-</span><span class="stat-pill-lbl">Original std</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="std-new-mean" style="color:var(--green);">≈0</span><span class="stat-pill-lbl">Z-score mean</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="std-new-std" style="color:var(--green);">≈1</span><span class="stat-pill-lbl">Z-score std</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="std-n">-</span><span class="stat-pill-lbl">n points</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Key insight:</strong> The <em>shape</em> of the distribution never changes. If the original data is right-skewed, the standardized data is still right-skewed. Standardization only changes the <em>location</em> (mean → 0) and <em>scale</em> (std → 1). It does NOT make your data normally distributed.</p>
+            </div>
+          </section>
+
+          <!-- WHAT CHANGES AND WHAT DOESN'T -->
+          <section class="section" id="what-changes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">✓</div>
+              What changes vs what stays the same
+            </h2>
+
+            <div class="when-grid">
+              <div class="when-card" style="border:2px solid rgba(62,207,142,0.4);">
+                <div class="when-card-title" style="color:var(--green);">✓ What CHANGES after standardization</div>
+                <div class="when-item"><span style="color:var(--green);font-weight:700;flex-shrink:0;">→</span>The actual numbers (e.g. 75,000 becomes +0.84)</div>
+                <div class="when-item"><span style="color:var(--green);font-weight:700;flex-shrink:0;">→</span>The mean shifts to exactly 0</div>
+                <div class="when-item"><span style="color:var(--green);font-weight:700;flex-shrink:0;">→</span>The standard deviation becomes exactly 1</div>
+                <div class="when-item"><span style="color:var(--green);font-weight:700;flex-shrink:0;">→</span>Numbers are now comparable across features</div>
+              </div>
+              <div class="when-card" style="border:2px solid rgba(240,96,96,0.4);">
+                <div class="when-card-title" style="color:var(--red);">✗ What does NOT change</div>
+                <div class="when-item"><span style="color:var(--red);font-weight:700;flex-shrink:0;">→</span>The shape of the distribution (skew, kurtosis)</div>
+                <div class="when-item"><span style="color:var(--red);font-weight:700;flex-shrink:0;">→</span>Relative ordering (smallest stays smallest)</div>
+                <div class="when-item"><span style="color:var(--red);font-weight:700;flex-shrink:0;">→</span>Outliers are still outliers (just as z-scores)</div>
+                <div class="when-item"><span style="color:var(--red);font-weight:700;flex-shrink:0;">→</span>Non-normal data does NOT become normal</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- WHEN TO USE -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">?</div>
+              When to use standardization — visual guide
+            </h2>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title">Which algorithms need standardization?</span>
+              </div>
+              <canvas id="algo-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div class="when-grid">
+              <div class="when-card" style="border:2px solid rgba(62,207,142,0.3);">
+                <div class="when-card-title" style="color:var(--green);">Use StandardScaler for these</div>
+                <div class="when-item">✓ <strong>Linear Regression / Logistic Regression</strong> — coefficients are scale-sensitive</div>
+                <div class="when-item">✓ <strong>SVM / SVR</strong> — distance-based, heavily scale-sensitive</div>
+                <div class="when-item">✓ <strong>KNN</strong> — Euclidean distance is meaningless without scaling</div>
+                <div class="when-item">✓ <strong>PCA</strong> — variance-based, dominated by large-scale features</div>
+                <div class="when-item">✓ <strong>Neural Networks</strong> — gradient descent converges faster</div>
+                <div class="when-item">✓ <strong>K-Means clustering</strong> — centroid distances need equal scale</div>
+              </div>
+              <div class="when-card" style="border:2px solid rgba(120,120,120,0.2);">
+                <div class="when-card-title" style="color:var(--text-3);">Skip standardization for these</div>
+                <div class="when-item">— <strong>Decision Trees</strong> — split on thresholds, scale doesn't matter</div>
+                <div class="when-item">— <strong>Random Forests</strong> — tree-based, scale-invariant</div>
+                <div class="when-item">— <strong>XGBoost / LightGBM</strong> — tree-based, no distance calculations</div>
+                <div class="when-item">— <strong>Naive Bayes</strong> — works on probabilities, not distances</div>
+                <div class="when-item">⚠ <strong>When you need to explain</strong> the original units to stakeholders</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- HOW TO DO IT IN CODE -->
+          <section class="section" id="how-to-code">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">{ }</div>
+              How to do it — step by step
+            </h2>
+
+            <div class="step-cards">
+              <div class="step-card">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Import and create the scaler</div>
+                  <div class="step-desc">Import StandardScaler from sklearn. Just one line — nothing complicated.</div>
+                  <div class="step-code">from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()</div>
+                </div>
+              </div>
+              <div class="step-card">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Split FIRST, then scale (critical!)</div>
+                  <div class="step-desc">Always split into train/test before scaling. If you scale the whole dataset first, your model gets to "peek" at test data statistics — that's cheating.</div>
+                  <div class="step-code">X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+# Now scale — NEVER before this step</div>
+                </div>
+              </div>
+              <div class="step-card">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Fit on training data only, then transform both</div>
+                  <div class="step-desc"><strong>fit_transform</strong> on training: learns the mean and std from training data, then applies them. <strong>transform only</strong> on test: uses the training mean/std (not test).</div>
+                  <div class="step-code">X_train_scaled = scaler.fit_transform(X_train)  # learns mean & std here
+X_test_scaled  = scaler.transform(X_test)       # reuses training mean & std</div>
+                </div>
+              </div>
+              <div class="step-card">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                  <div class="step-title">Better: use a Pipeline (prevents leakage automatically)</div>
+                  <div class="step-desc">A Pipeline automatically applies the scaler only to training folds during cross-validation. This is the safest way to work.</div>
+                  <div class="step-code">from sklearn.pipeline import Pipeline
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('model',  LogisticRegression())
+])
+pipe.fit(X_train, y_train)  # scaler only sees X_train</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor — try it yourself</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">standardization_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Scaling before train-test split.</strong> This leaks test set statistics into training. Always split first, then scale.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using fit_transform on the test set.</strong> This fits a new scaler to the test data — the test set should use the training set's mean and std. Use transform() only on test data.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Scaling tree-based models (Random Forest, XGBoost).</strong> Trees don't need scaling — they split on thresholds and are completely scale-invariant. Scaling doesn't hurt but wastes time and makes feature values harder to interpret.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Thinking standardization makes data normal.</strong> It only changes mean to 0 and std to 1. A right-skewed distribution stays right-skewed after standardization. For normality, use log transform or Box-Cox.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not scaling after getting new production data.</strong> When your model goes to production, apply the same scaler (with training statistics) to all new data. Never refit the scaler on production data.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary — remember these 5 things</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Formula:</strong> z = (x − mean) ÷ std &nbsp;→&nbsp; result has mean=0, std=1</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Shape is preserved:</strong> standardization doesn't change distribution shape, only location and scale</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always split first:</strong> fit the scaler only on training data, then transform both train and test</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Required for:</strong> Linear/Logistic Regression, SVM, KNN, PCA, Neural Networks, K-Means</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Not needed for:</strong> Decision Trees, Random Forest, XGBoost — these are scale-invariant</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="../../index.html#roadmap"><span class="pn-dir">Phase start</span><span class="pn-title">Feature Engineering</span></a>
+            <a class="pn-card next" id="next-card" href="minmax-scaling.html"><span class="pn-dir">Next</span><span class="pn-title">Min-Max Scaling</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#big-idea">The problem</a></li>
+            <li class="toc-item"><a href="#formula">The formula</a></li>
+            <li class="toc-item"><a href="#live-demo">Live demo</a></li>
+            <li class="toc-item"><a href="#what-changes">What changes</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use</a></li>
+            <li class="toc-item"><a href="#how-to-code">Code steps</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgCard(){return isDark()?'#1e1e26':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function normalRand(mu,sigma){
+  var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return(mu||0)+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+/* ══════════════════════════════
+   DATA & STATE
+══════════════════════════════ */
+var data=[];
+
+var DATASETS={
+  ages:    function(){var d=[];for(var i=0;i<40;i++)d.push(Math.round(Math.max(18,Math.min(80,normalRand(38,12)))));return d;},
+  salaries:function(){var d=[];for(var i=0;i<40;i++)d.push(Math.round(Math.max(20000,Math.min(200000,normalRand(65000,28000)))/1000)*1000);return d;},
+  mixed:   function(){var d=[];for(var i=0;i<40;i++)d.push(Math.max(0.1,normalRand(5,1.5)));return d;},
+  custom:  function(){return[25,30,35,42,50];}
+};
+
+function loadDataset(key){
+  data=DATASETS[key]?DATASETS[key]():DATASETS.ages();
+  drawAll();
+}
+
+function addOutlier(){
+  var max=Math.max.apply(null,data);
+  data.push(max*3);
+  drawAll();
+}
+
+/* ══════════════════════════════
+   STANDARDIZE HELPER
+══════════════════════════════ */
+function standardize(arr){
+  var n=arr.length;
+  var mean=arr.reduce(function(s,v){return s+v;},0)/n;
+  var std=Math.sqrt(arr.reduce(function(s,v){return s+(v-mean)**2;},0)/n)||1;
+  return{
+    z:arr.map(function(v){return(v-mean)/std;}),
+    mean:mean, std:std
+  };
+}
+
+/* ══════════════════════════════
+   SECTION 1: MAIN DEMO CANVAS
+══════════════════════════════ */
+var SC=C('std-canvas'),SX=SC.getContext('2d');
+
+SC.addEventListener('click',function(e){
+  var key=document.getElementById('demo-dataset').value;
+  if(key!=='custom')return;
+  var r=SC.getBoundingClientRect(),sx=SC.width/r.width;
+  var x=(e.clientX-r.left)*sx;
+  // Map x pos on left half to a value
+  var leftW=SC.width/2-10;
+  if(x<leftW){
+    var frac=x/leftW;
+    var minV=0,maxV=100;
+    data.push(minV+frac*(maxV-minV));
+    drawAll();
+  }
+});
+
+function drawAll(){
+  if(!data.length){drawDemo();return;}
+  var s=standardize(data);
+  C('std-mean').textContent=s.mean.toFixed(1);
+  C('std-std').textContent=s.std.toFixed(1);
+  C('std-new-mean').textContent=(s.z.reduce(function(a,b){return a+b;},0)/s.z.length).toFixed(3);
+  C('std-new-std').textContent=Math.sqrt(s.z.reduce(function(a,b){return a+b*b;},0)/s.z.length).toFixed(3);
+  C('std-n').textContent=data.length;
+  drawDemo(data,s.z,s.mean,s.std);
+}
+
+function drawDemo(orig,zscore,mean,std){
+  var W=SC.width,H=SC.height,pad={l:55,r:15,t:35,b:50};
+  SX.clearRect(0,0,W,H);SX.fillStyle=bg();SX.fillRect(0,0,W,H);
+
+  var halfW=(W-20)/2;
+
+  /* --- LEFT: BEFORE --- */
+  var lpad={l:pad.l,r:10,t:pad.t,b:pad.b};
+  var drawSide=function(vals,xOff,label,color,xLabel){
+    if(!vals||!vals.length)return;
+    var n=vals.length,nb=12;
+    var minV=Math.min.apply(null,vals),maxV=Math.max.apply(null,vals);
+    var range=maxV-minV||1;
+    var bw=range/nb,counts=new Array(nb).fill(0);
+    vals.forEach(function(v){var b=Math.min(Math.floor((v-minV)/bw),nb-1);counts[b]++;});
+    var mc=Math.max.apply(null,counts)||1;
+    var iW=halfW-lpad.l-lpad.r,iH=H-lpad.t-lpad.b;
+    var xC=function(v){return xOff+lpad.l+(v-minV)/range*iW;};
+    var yC=function(c){return H-lpad.b-(c/mc)*iH*0.85;};
+
+    // Grid lines
+    SX.strokeStyle=gc();SX.lineWidth=0.5;
+    for(var gi=0;gi<=4;gi++){
+      var gy=lpad.t+gi*iH/4;
+      SX.beginPath();SX.moveTo(xOff+lpad.l,gy);SX.lineTo(xOff+halfW-lpad.r,gy);SX.stroke();
+    }
+
+    // X axis
+    SX.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';SX.lineWidth=1;
+    SX.beginPath();SX.moveTo(xOff+lpad.l,H-lpad.b);SX.lineTo(xOff+halfW-lpad.r,H-lpad.b);SX.stroke();
+
+    // Bars
+    counts.forEach(function(c,i){
+      if(c===0)return;
+      var x=xOff+lpad.l+i*(iW/nb);
+      var bh=(c/mc)*iH*0.85;
+      SX.fillStyle=color+'55';SX.fillRect(x+1,H-lpad.b-bh,iW/nb-2,bh);
+      SX.strokeStyle=color;SX.lineWidth=1.5;SX.strokeRect(x+1,H-lpad.b-bh,iW/nb-2,bh);
+    });
+
+    // Mean line
+    var mx=xC(mean!==undefined?mean:vals.reduce(function(a,b){return a+b;},0)/vals.length);
+    SX.beginPath();SX.strokeStyle='#f0a500';SX.lineWidth=2;SX.setLineDash([5,4]);
+    SX.moveTo(mx,lpad.t);SX.lineTo(mx,H-lpad.b);SX.stroke();SX.setLineDash([]);
+    SX.fillStyle='#f0a500';SX.font='bold 10px sans-serif';SX.textAlign='center';
+    SX.fillText('mean',mx,lpad.t-5);
+
+    // X axis labels
+    SX.fillStyle=tc();SX.font='9px monospace';SX.textAlign='center';
+    for(var xi=0;xi<=4;xi++){
+      var v2=minV+xi/4*range;
+      SX.fillText(v2.toFixed(1),xOff+lpad.l+xi/4*iW,H-lpad.b+14);
+    }
+
+    // Panel title
+    SX.fillStyle=color;SX.font='bold 13px sans-serif';SX.textAlign='center';
+    SX.fillText(label,xOff+halfW/2,22);
+    SX.fillStyle=tc();SX.font='11px sans-serif';
+    SX.fillText(xLabel,xOff+halfW/2,H-lpad.b+28);
+  };
+
+  if(orig&&orig.length){
+    drawSide(orig,0,'BEFORE standardization','#4b96ff','Original values (mean='+mean.toFixed(1)+', std='+std.toFixed(1)+')');
+    drawSide(zscore,halfW+20,'AFTER standardization','#3ecf8e','Z-scores (mean=0, std=1)');
+    // Centre divider
+    SX.strokeStyle=gc();SX.lineWidth=2;
+    SX.beginPath();SX.moveTo(halfW+10,20);SX.lineTo(halfW+10,H-20);SX.stroke();
+    // Arrow in middle
+    SX.fillStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';
+    SX.font='22px sans-serif';SX.textAlign='center';
+    SX.fillText('→',halfW+10,H/2+8);
+    SX.fillStyle=tc();SX.font='bold 10px sans-serif';
+    SX.fillText('z=(x−μ)/σ',halfW+10,H/2+24);
+  } else {
+    SX.fillStyle=tc();SX.font='14px sans-serif';SX.textAlign='center';
+    SX.fillText('Select a dataset above to see the visualization',W/2,H/2);
+  }
+}
+
+/* ══════════════════════════════
+   SECTION 2: ALGORITHM CHART
+══════════════════════════════ */
+var AC=C('algo-canvas'),AX=AC.getContext('2d');
+function drawAlgoChart(){
+  var W=AC.width,H=AC.height;
+  AX.clearRect(0,0,W,H);AX.fillStyle=bg();AX.fillRect(0,0,W,H);
+
+  var algos=[
+    {name:'Linear Regression',  need:true,  reason:'Coefficients are scale-sensitive'},
+    {name:'Logistic Regression',need:true,  reason:'Gradient descent needs equal scale'},
+    {name:'SVM',                need:true,  reason:'Distance-based — MUST scale'},
+    {name:'KNN',                need:true,  reason:'Euclidean distance — MUST scale'},
+    {name:'Neural Network',     need:true,  reason:'Faster gradient convergence'},
+    {name:'PCA',                need:true,  reason:'Variance dominated by large scale'},
+    {name:'K-Means',            need:true,  reason:'Centroid distances need equal scale'},
+    {name:'Decision Tree',      need:false, reason:'Threshold splits — scale-invariant'},
+    {name:'Random Forest',      need:false, reason:'Tree-based — scale-invariant'},
+    {name:'XGBoost',            need:false, reason:'Tree-based — scale-invariant'},
+  ];
+
+  var colW=W/2-20,rowH=(H-20)/Math.ceil(algos.length/2);
+  algos.forEach(function(a,i){
+    var col=Math.floor(i/5),row=i%5;
+    var x=col*(colW+40)+10,y=10+row*rowH;
+    var col2=a.need?'rgba(62,207,142,0.7)':'rgba(120,120,120,0.4)';
+    var icon=a.need?'✓':'—';
+    var iconCol=a.need?'var(--green)':'var(--text-3)';
+
+    AX.fillStyle=bgCard();AX.fillRect(x,y+2,colW,rowH-6);
+    AX.strokeStyle=a.need?'rgba(62,207,142,0.3)':'rgba(120,120,120,0.15)';AX.lineWidth=1;AX.strokeRect(x,y+2,colW,rowH-6);
+
+    // Icon
+    AX.fillStyle=iconCol;AX.font='bold 15px sans-serif';AX.textAlign='left';AX.fillText(icon,x+10,y+rowH/2+5);
+    // Algorithm name
+    AX.fillStyle=isDark()?'#e2e0d9':'#1a1916';AX.font='bold 12px sans-serif';AX.fillText(a.name,x+28,y+rowH/2-2);
+    // Reason
+    AX.fillStyle=tc();AX.font='10px sans-serif';AX.fillText(a.reason,x+28,y+rowH/2+12);
+  });
+
+  // Column headers
+  AX.fillStyle='var(--green)';AX.font='bold 11px sans-serif';AX.textAlign='center';AX.fillText('NEEDS SCALING',colW/2+10,8);
+  AX.fillStyle=tc();AX.fillText('SCALE-INVARIANT (optional)',colW+50+colW/2,8);
+}
+
+/* ══════════════════════════════
+   LIVE EDITOR
+══════════════════════════════ */
+var SNIPPETS=[
+{file:'standardization_basics.py',label:'Basics',code:`import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+# Real example: age and salary have very different scales
+data = pd.DataFrame({
+    'age'    : [22, 35, 28, 45, 52, 31, 60, 25],
+    'salary' : [35000, 72000, 48000, 95000, 110000, 58000, 130000, 42000],
+    'score'  : [7.2, 8.5, 6.8, 9.1, 8.8, 7.5, 9.5, 6.5],
+})
+
+print("BEFORE standardization:")
+print(data.describe().round(2))
+print()
+
+scaler = StandardScaler()
+scaled = scaler.fit_transform(data)
+df_scaled = pd.DataFrame(scaled, columns=data.columns)
+
+print("AFTER standardization:")
+print(df_scaled.describe().round(4))
+print()
+print("Key things to notice:")
+print(f"  Mean of each column: {df_scaled.mean().round(4).values}  (all ~0)")
+print(f"  Std  of each column: {df_scaled.std().round(4).values}  (all ~1)")
+print()
+print("The scaler learned these values from the data:")
+for feat, m, s in zip(data.columns, scaler.mean_, scaler.scale_):
+    print(f"  {feat:10}: mean={m:.1f}  std={s:.1f}")`},
+{file:'standardization_pipeline.py',label:'Pipeline (correct way)',code:`import numpy as np
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, train_test_split, StratifiedKFold
+
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# WRONG WAY: scale before splitting — data leakage!
+scaler_wrong = StandardScaler()
+X_all_scaled = scaler_wrong.fit_transform(X)  # sees test data!
+# This gives overly optimistic results
+
+# CORRECT WAY 1: fit on train only, transform both
+scaler = StandardScaler()
+X_train_s = scaler.fit_transform(X_train)  # learns mean/std here
+X_test_s  = scaler.transform(X_test)       # uses train mean/std
+
+# CORRECT WAY 2: Pipeline (best — prevents leakage in CV too)
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('clf', LogisticRegression(max_iter=2000, random_state=42))
+])
+
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+scores = cross_val_score(pipe, X_train, y_train, cv=cv)
+print(f"Cross-val accuracy: {scores.mean():.4f} +/- {scores.std():.4f}")
+pipe.fit(X_train, y_train)
+print(f"Test accuracy:       {pipe.score(X_test, y_test):.4f}")`},
+{file:'std_vs_no_std.py',label:'Does it help?',code:`import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import Pipeline
+
+np.random.seed(42)
+X, y = make_classification(
+    n_samples=500, n_features=10,
+    n_informative=5, random_state=42)
+
+# Create artificial scale difference
+X[:, 0] *= 10000   # feature 0 is 10,000x bigger
+X[:, 1] *= 0.001   # feature 1 is 0.001x smaller
+
+models = {
+    'LogReg (no scale)':  LogisticRegression(max_iter=1000),
+    'LogReg (scaled)':    Pipeline([('s',StandardScaler()),('m',LogisticRegression(max_iter=1000))]),
+    'SVM (no scale)':     SVC(),
+    'SVM (scaled)':       Pipeline([('s',StandardScaler()),('m',SVC())]),
+    'RF (no scale)':      RandomForestClassifier(100, random_state=42),
+    'RF (scaled)':        Pipeline([('s',StandardScaler()),('m',RandomForestClassifier(100, random_state=42))]),
+}
+
+print(f"{'Model':<25} {'Accuracy':>10}")
+print("-" * 38)
+for name, model in models.items():
+    scores = cross_val_score(model, X, y, cv=5)
+    flag = " <-- big difference!" if "LogReg" in name or "SVM" in name else ""
+    print(f"{name:<25} {scores.mean():.4f}{flag}")`},
+{file:'inverse_transform.py',label:'Inverse transform',code:`import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+# Real use case: you standardized, trained a model,
+# now you need to understand predictions in original units
+
+ages    = np.array([22., 35., 28., 45., 52., 31., 60., 25.])
+salaries= np.array([35000., 72000., 48000., 95000., 110000., 58000., 130000., 42000.])
+X = np.column_stack([ages, salaries])
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Simulate a model making a prediction in scaled space
+# Prediction says: age_z = +0.8, salary_z = +1.2
+prediction_scaled = np.array([[0.8, 1.2]])
+
+# Convert back to original units
+prediction_original = scaler.inverse_transform(prediction_scaled)
+print("Scaled prediction:   ", prediction_scaled)
+print("Original prediction: age =", prediction_original[0,0].round(1),
+      "salary =", prediction_original[0,1].round(0))
+print()
+print("Scaler stored values:")
+print(f"  means:  {scaler.mean_}")
+print(f"  stds:   {scaler.scale_}")
+print()
+print("Manual check: 0.8 * std(age) + mean(age) =",
+      round(0.8 * scaler.scale_[0] + scaler.mean_[0], 1))`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  loadDataset('ages');
+  drawAlgoChart();
+  initEditor();
+  new MutationObserver(function(){
+    drawAll();drawAlgoChart();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

@@ -1,1 +1,1611 @@
 <!-- outliers-zscore.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Outlier Detection: Z-Score — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(139,92,246,0.09),rgba(99,102,241,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(139,92,246,0.13) 0%,transparent 70%);pointer-events:none;}
+
+    :root{--violet:#8b5cf6;--violet-surf:rgba(139,92,246,0.12);}
+
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* z-score gauge */
+    .zscore-gauge-wrap{display:flex;align-items:center;gap:16px;padding:16px 18px;border-top:1px solid var(--border);}
+    .gauge-track{flex:1;height:20px;background:var(--bg-input);border-radius:10px;overflow:hidden;position:relative;}
+    .gauge-fill{height:100%;border-radius:10px;transition:width .4s ease,background .4s;}
+    .gauge-label{font-family:var(--font-mono);font-size:13px;font-weight:700;min-width:60px;text-align:right;}
+
+    /* acc cards */
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* hp panel */
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--violet);font-weight:700;min-width:50px;text-align:right;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+
+    /* comparison table */
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+    .cmp-table th{background:var(--bg-elevated);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .cmp-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-input);}
+    .tag-yes{display:inline-flex;padding:2px 8px;background:var(--green-surf);color:var(--green);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-no{display:inline-flex;padding:2px 8px;background:var(--red-surf);color:var(--red);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-mid{display:inline-flex;padding:2px 8px;background:var(--accent-surface);color:var(--accent);border-radius:100px;font-size:11px;font-weight:700;}
+
+    /* derive steps */
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:var(--violet-surf);border:1.5px solid var(--violet);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--violet);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--violet);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* data row highlight */
+    .data-table-wrap{overflow-x:auto;border-radius:var(--r-lg);border:1px solid var(--border);margin-bottom:16px;}
+    .data-table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--font-mono);}
+    .data-table th{background:var(--bg-elevated);padding:9px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .data-table td{padding:7px 14px;border-bottom:1px solid var(--border);color:var(--text-2);}
+    .data-table tr:last-child td{border-bottom:none;}
+    .row-normal{background:transparent;}
+    .row-outlier{background:rgba(240,96,96,0.08);border-left:3px solid #f06060;}
+    .row-borderline{background:rgba(251,140,64,0.06);border-left:3px solid #fb8c40;}
+    .z-extreme{color:#f06060;font-weight:700;}
+    .z-borderline{color:#fb8c40;font-weight:600;}
+    .z-normal{color:var(--green);}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #8b5cf6!important;}
+    .CodeMirror-selected{background:rgba(139,92,246,0.2)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--violet);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    @media(max-width:700px){
+      .acc-dashboard{grid-template-columns:repeat(2,1fr);}
+      .hp-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="outlier-zscore">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Outlier Detection: Z-Score</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <span class="current">Outlier Detection: Z-Score</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(139,92,246,.3);background:var(--violet-surf);color:var(--violet);margin-bottom:14px;">Data Cleaning · Outlier Detection</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Outlier Detection: Z-Score</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              A Z-score measures <strong>how many standard deviations</strong> a value sits from
+              the mean. Values beyond ±2 or ±3 are flagged as outliers. It's the fastest, most
+              interpretable outlier detector — one formula, one threshold, instant results.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 20 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <span class="topic-meta-item">numpy · scipy · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--violet-surf);color:var(--violet);">σ</div>
+              What is a Z-score?
+            </h2>
+            <p>
+              A Z-score answers one question: <strong>"How unusual is this value compared to
+              the rest of the column?"</strong> It subtracts the mean and divides by the
+              standard deviation, converting any value into a universal "deviation units" scale.
+            </p>
+            <p>
+              A Z-score of 0 means exactly average. A Z-score of +2 means 2 standard deviations
+              above average — unusual but not unheard of. A Z-score of +5 means something has
+              gone very wrong (or very right — it's extreme either way).
+            </p>
+
+            <!-- Interactive Z-score explorer -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Z-score live calculator — drag the value point</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Mean (μ):</span>
+                  <input type="range" min="20" max="80" value="50" step="1" class="ctrl-slider" id="z-mean" oninput="redrawZGauge()" style="width:80px;"/>
+                  <span class="ctrl-value" id="z-mean-val" style="color:var(--violet);">50</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Std (σ):</span>
+                  <input type="range" min="2" max="25" value="10" step="1" class="ctrl-slider" id="z-std" oninput="redrawZGauge()" style="width:80px;"/>
+                  <span class="ctrl-value" id="z-std-val" style="color:var(--violet);">10</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Value x:</span>
+                  <input type="range" min="-10" max="110" value="50" step="0.5" class="ctrl-slider" id="z-val" oninput="redrawZGauge()" style="width:100px;"/>
+                  <span class="ctrl-value" id="z-val-val" style="color:#fb8c40;">50</span>
+                </div>
+              </div>
+              <canvas id="zgauge-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="zscore-gauge-wrap">
+                <span style="font-size:12px;color:var(--text-3);min-width:80px;">|Z-score|</span>
+                <div class="gauge-track">
+                  <div class="gauge-fill" id="z-gauge-fill" style="width:0%;background:var(--green);"></div>
+                </div>
+                <span class="gauge-label" id="z-gauge-label" style="color:var(--green);">0.00</span>
+                <span style="font-size:12px;min-width:100px;" id="z-verdict">Normal</span>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>The 68-95-99.7 rule:</strong> For a normal distribution, ~68% of values fall within ±1σ, ~95% within ±2σ, and ~99.7% within ±3σ. So a Z-score threshold of 3 flags only the most extreme 0.3% of a normal distribution as outliers.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — NORMAL CURVE + ZONES ═══ -->
+          <section class="section" id="normal-curve">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--violet-surf);color:var(--violet);">∫</div>
+              The normal curve — Z-score zones visualised
+            </h2>
+            <p>
+              Drag the threshold slider to see exactly how much of the distribution you flag
+              as outliers at each Z-score cutoff. Notice how aggressively the flagged area
+              grows as you lower the threshold below 2.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Normal distribution — outlier zones by Z-score threshold</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Threshold k:</span>
+                  <input type="range" min="1" max="4" value="3" step="0.1" class="ctrl-slider" id="norm-k" oninput="redrawNormalCurve()" style="width:110px;"/>
+                  <span class="ctrl-value" id="norm-k-val" style="color:var(--violet);">3.0</span>
+                </div>
+                <select class="ctrl-select" id="norm-tail" onchange="redrawNormalCurve()">
+                  <option value="two">Two-tailed (|Z| &gt; k)</option>
+                  <option value="upper">Upper tail (Z &gt; k)</option>
+                  <option value="lower">Lower tail (Z &lt; -k)</option>
+                </select>
+              </div>
+              <canvas id="normal-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="norm-flagged" style="color:#f06060;">0.27%</span><span class="stat-pill-lbl">% flagged</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="norm-safe" style="color:#3ecf8e;">99.73%</span><span class="stat-pill-lbl">% normal</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="norm-boundary" style="color:var(--violet);">±3.0σ</span><span class="stat-pill-lbl">Boundary</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="norm-in100" style="color:#fb8c40;">3 in 1000</span><span class="stat-pill-lbl">Expected outliers</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — LIVE DATASET DEMO ═══ -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--violet-surf);color:var(--violet);">⊕</div>
+              Live dataset — detect outliers in real time
+            </h2>
+            <p>
+              Click to add data points, or load a sample dataset. The Z-score is computed
+              for every point the moment you change anything. Red = outlier, orange = borderline,
+              green = normal. Drag the threshold slider to see detections update instantly.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Click canvas to add points — Z-score flags outliers</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Threshold k:</span>
+                  <input type="range" min="1" max="4" value="3" step="0.1" class="ctrl-slider" id="demo-k" oninput="redrawDemo()" style="width:100px;"/>
+                  <span class="ctrl-value" id="demo-k-val" style="color:var(--violet);">3.0</span>
+                </div>
+                <select class="ctrl-select" id="demo-dataset" onchange="loadDataset(this.value)">
+                  <option value="custom">Custom (click to add)</option>
+                  <option value="salary">Salary data</option>
+                  <option value="sensor">Sensor readings</option>
+                  <option value="exam">Exam scores</option>
+                </select>
+                <button class="ctrl-btn" onclick="loadDataset('custom');resetDemo()">↺ Reset</button>
+              </div>
+              <canvas id="demo-canvas" width="700" height="320" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-n" style="color:var(--violet);">0</span><span class="stat-pill-lbl">Points</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-mean" style="color:#63b3ed;">—</span><span class="stat-pill-lbl">Mean</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-std" style="color:#fb8c40;">—</span><span class="stat-pill-lbl">Std Dev</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-outliers" style="color:#f06060;">0</span><span class="stat-pill-lbl">Outliers</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-borderline" style="color:#fb8c40;">0</span><span class="stat-pill-lbl">Borderline</span></div>
+              </div>
+            </div>
+
+            <!-- Computed Z-score table -->
+            <div class="data-table-wrap" id="zscore-table-wrap">
+              <table class="data-table">
+                <thead><tr><th>#</th><th>Value</th><th>Z-score</th><th>|Z-score|</th><th>Status</th></tr></thead>
+                <tbody id="zscore-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — MODIFIED Z-SCORE (MAD) ═══ -->
+          <section class="section" id="modified-zscore">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--violet-surf);color:var(--violet);">~</div>
+              Modified Z-score — robust to outliers in μ and σ
+            </h2>
+            <p>
+              The standard Z-score has a flaw: it computes μ and σ <em>including</em> the outliers.
+              A few extreme values inflate both, making the Z-scores of outliers look smaller than
+              they really are — the outliers "mask" each other. The <strong>Modified Z-score</strong>
+              uses the median and MAD instead, which are not affected by outliers at all.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Standard Z vs Modified Z — outlier masking effect</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Num outliers:</span>
+                  <input type="range" min="0" max="10" value="2" step="1" class="ctrl-slider" id="mod-nout" oninput="redrawModified()" style="width:80px;"/>
+                  <span class="ctrl-value" id="mod-nout-val" style="color:#f06060;">2</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outlier size:</span>
+                  <input type="range" min="2" max="8" value="4" step="0.5" class="ctrl-slider" id="mod-sev" oninput="redrawModified()" style="width:80px;"/>
+                  <span class="ctrl-value" id="mod-sev-val" style="color:#fb8c40;">4σ</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Threshold:</span>
+                  <input type="range" min="2" max="4" value="3" step="0.1" class="ctrl-slider" id="mod-k" oninput="redrawModified()" style="width:80px;"/>
+                  <span class="ctrl-value" id="mod-k-val" style="color:var(--violet);">3.0</span>
+                </div>
+              </div>
+              <canvas id="modified-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="mod-std-found" style="color:#63b3ed;">—</span><span class="stat-pill-lbl">Std Z outliers</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mod-mad-found" style="color:var(--violet);">—</span><span class="stat-pill-lbl">Mod Z outliers</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mod-masked" style="color:#f06060;">—</span><span class="stat-pill-lbl">Masked (missed)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mod-mean-shift" style="color:#fb8c40;">—</span><span class="stat-pill-lbl">Mean shift</span></div>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>Masking problem:</strong> When you have multiple outliers, each one inflates μ and σ, which makes all their Z-scores smaller. With 5 extreme outliers, none of them may cross the threshold of 3 even though each is genuinely extreme. Use Modified Z-score (MAD-based) whenever you suspect multiple outliers or heavily contaminated data.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Hyperparameter tuning — threshold k live accuracy
+            </h2>
+            <p>
+              The threshold k is the only hyperparameter. Too low = false alarms (flagging real data).
+              Too high = missed outliers. Watch precision, recall, F1, and model accuracy update
+              as you tune every control below.
+            </p>
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="ac-precision" style="color:var(--violet);">—</div>
+                <div class="acc-label">Precision</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-precision-bar" style="background:var(--violet);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-recall" style="color:#3ecf8e;">—</div>
+                <div class="acc-label">Recall</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-recall-bar" style="background:#3ecf8e;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-f1" style="color:#fb8c40;">—</div>
+                <div class="acc-label">F1 Score</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-f1-bar" style="background:#fb8c40;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-model" style="color:#63b3ed;">—</div>
+                <div class="acc-label">Model R² (after removal)</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-model-bar" style="background:#63b3ed;width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div class="hp-title">⚙ Detection Controls
+                <span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:4px;">— all metrics update instantly</span>
+              </div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Threshold k</span><span class="hp-val" id="hp-k-val">3.0</span></div>
+                  <input type="range" min="1" max="4" value="3" step="0.1" class="ctrl-slider" id="hp-k" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Z-scores above |k| are flagged. k=3 → flags 0.27% of normal data. k=2 → flags 4.55%.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Outlier severity</span><span class="hp-val" id="hp-sev-val">4σ</span></div>
+                  <input type="range" min="2" max="8" value="4" step="0.5" class="ctrl-slider" id="hp-sev" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">How many σ away the injected outliers are. Mild (2σ) vs extreme (8σ).</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Contamination %</span><span class="hp-val" id="hp-cont-val">5%</span></div>
+                  <input type="range" min="1" max="20" value="5" step="1" class="ctrl-slider" id="hp-cont" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">True fraction of outliers in the data. Higher = harder detection problem.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Method</span><span class="hp-val" id="hp-method-val" style="color:var(--violet);">standard</span></div>
+                  <div style="display:flex;gap:6px;margin-top:4px;">
+                    <button class="ctrl-btn active" id="m-std" onclick="setMethod('standard')">Standard Z</button>
+                    <button class="ctrl-btn" id="m-mod" onclick="setMethod('modified')">Modified Z</button>
+                  </div>
+                  <div class="hp-desc">Modified Z uses median+MAD — more robust when outliers contaminate μ and σ.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Threshold sweep curve -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Precision · Recall · F1 vs threshold k</span>
+                <button class="ctrl-btn active" onclick="runThreshSweep()">▶ Run sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:8px;" id="sweep-status"></span>
+              </div>
+              <canvas id="sweep-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — Z-SCORE vs OTHER METHODS ═══ -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">⇄</div>
+              Z-score vs IQR vs Isolation Forest
+            </h2>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Side-by-side comparison — same data, 3 detectors</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outlier %:</span>
+                  <input type="range" min="2" max="20" value="8" step="1" class="ctrl-slider" id="cmp-pct" oninput="redrawComparison()" style="width:80px;"/>
+                  <span class="ctrl-value" id="cmp-pct-val" style="color:#f06060;">8%</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Shape:</span>
+                  <select class="ctrl-select" id="cmp-shape" onchange="redrawComparison()">
+                    <option value="normal">Normal</option>
+                    <option value="skewed">Skewed</option>
+                    <option value="bimodal">Bimodal</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="cmp-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row" id="cmp-stats"></div>
+            </div>
+
+            <table class="cmp-table">
+              <thead><tr><th>Property</th><th>Z-score</th><th>IQR method</th><th>Isolation Forest</th></tr></thead>
+              <tbody>
+                <tr><td>Assumes normality</td><td><span class="tag-no">Yes — breaks on skewed data</span></td><td><span class="tag-yes">No</span></td><td><span class="tag-yes">No</span></td></tr>
+                <tr><td>Speed</td><td><span class="tag-yes">O(n) — instant</span></td><td><span class="tag-yes">O(n log n)</span></td><td><span class="tag-mid">O(n log n) + fit time</span></td></tr>
+                <tr><td>Multivariate outliers</td><td><span class="tag-no">Per-column only</span></td><td><span class="tag-no">Per-column only</span></td><td><span class="tag-yes">Detects joint outliers</span></td></tr>
+                <tr><td>Robust to multiple outliers</td><td><span class="tag-no">Masking problem</span></td><td><span class="tag-yes">Robust</span></td><td><span class="tag-yes">Robust</span></td></tr>
+                <tr><td>Interpretability</td><td><span class="tag-yes">High — exact Z value</span></td><td><span class="tag-yes">High — box plot rule</span></td><td><span class="tag-mid">Score only, no clear rule</span></td></tr>
+                <tr><td>Best for</td><td>Normal numeric features, quick EDA</td><td>Skewed data, categorical features</td><td>High-dim data, complex patterns</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- ═══ SECTION 7 — MATH ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              The formulas — standard and modified Z-score
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Standard Z-score</div>
+                  <div class="derive-desc">Subtract the column mean and divide by the standard deviation. The result is unit-free and tells you how many standard deviations the value is from the center.</div>
+                  <div class="derive-formula">z = (x - μ) / σ
+
+where:  μ = mean(X)
+        σ = std(X)   (use ddof=0 for population, ddof=1 for sample)
+
+Flag as outlier if: |z| > k  (k = 2, 2.5, or 3)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Why Z-score fails on skewed / contaminated data</div>
+                  <div class="derive-desc">μ and σ are both non-robust statistics — a single extreme outlier shifts both significantly. This causes the "masking effect": outliers inflate σ, making their own Z-scores smaller, hiding them from detection.</div>
+                  <div class="derive-formula">Example: X = [10, 11, 12, 11, 10, 1000]
+μ = 175.7    σ = 393.5
+z(1000) = (1000 - 175.7) / 393.5 = 2.09   ← only 2σ, not flagged at k=3!
+But it clearly IS an outlier.</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Modified Z-score (Iglewicz & Hoaglin, 1993)</div>
+                  <div class="derive-desc">Replace mean with median, replace std with MAD × 1.4826 (the scale factor makes MAD consistent with σ for normal data). Now the center and spread are not influenced by outliers.</div>
+                  <div class="derive-formula">MAD = median(|X - median(X)|)
+M = 0.6745 * (x - median(X)) / MAD
+
+Flag as outlier if: |M| > k  (k = 3.5 is the Iglewicz–Hoaglin recommendation)
+
+Note: 0.6745 = Φ⁻¹(0.75) — same scaling constant as 1/1.4826</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Z-score for multivariate data — Mahalanobis distance</div>
+                  <div class="derive-desc">For multiple features, the standard Z-score is applied per column and misses joint outliers (e.g. a man with height=6ft and weight=60lbs — each feature is normal, but the combination is extreme). Mahalanobis distance generalises Z-score to multiple dimensions.</div>
+                  <div class="derive-formula">D² = (x - μ)ᵀ Σ⁻¹ (x - μ)   # Mahalanobis distance²
+D ~ chi²(p) under normality, where p = n_features
+Flag if D > chi²_critical(p, alpha=0.001)</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four complete programs — Z-score basics, modified Z-score, multivariate Mahalanobis, and a full sklearn pipeline with outlier removal. All editable and runnable in-browser.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">zscore_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using Z-score on skewed distributions.</strong> Z-score assumes normality — on income, house prices, or any right-skewed column, the boundaries are asymmetric and unreliable. Apply a log transform first, or use the IQR method instead for skewed data.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Computing Z-score on the full dataset before splitting.</strong> The mean and std must be computed on training data only, then applied to test data. Computing on all data leaks test statistics — use a Pipeline with StandardScaler so this is handled automatically.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Ignoring the masking problem with multiple outliers.</strong> Multiple outliers inflate μ and σ, masking each other. If you suspect 5+ outliers in a column, use the Modified Z-score (MAD-based) or iterative Z-score (remove and recompute) instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Automatically dropping all detected outliers.</strong> High Z-score ≠ error. Some extremes are real (the highest-performing sales rep, the most fuel-efficient car). Always inspect flagged rows before deciding to drop, winsorize, or keep them.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using the same threshold for all columns.</strong> A Z-score of 3 flags 0.27% of a normal column, but may flag 15% of a heavy-tailed column. Tune k per column, or switch to a rank-based method like IQR for columns with unknown distributions.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Z-score = (x − μ) / σ. It converts any value to "how many standard deviations from the mean". The threshold |z| > 3 flags the most extreme 0.27% of a normal distribution.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Only valid for roughly normal distributions.</strong> Apply log-transform first for skewed data; use IQR for heavily skewed columns; use Isolation Forest for multivariate outliers.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>Modified Z-score</strong> (MAD-based) whenever you suspect multiple outliers — it avoids the masking problem by not letting outliers inflate the center and spread estimates.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always <strong>fit on training data</strong>: compute μ and σ on X_train, then apply to X_test. Wrap in a Pipeline. Never compute statistics on the full dataset.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>A flagged outlier is a <strong>starting point for investigation</strong>, not an automatic deletion. Check whether it's a data entry error, a valid extreme value, or a meaningful anomaly before taking action.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>For multivariate outliers (unusual combinations of features), use <strong>Mahalanobis distance</strong> — the multivariate generalisation of Z-score that accounts for feature correlations.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="handle-duplicates.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Handle Duplicates</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="winsorization.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Winsorization</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">What is a Z-score</a></li>
+            <li class="toc-item"><a href="#normal-curve">Normal curve zones</a></li>
+            <li class="toc-item"><a href="#live-demo">Live dataset demo</a></li>
+            <li class="toc-item"><a href="#modified-zscore">Modified Z-score</a></li>
+            <li class="toc-item"><a href="#hyperparameters">HP tuning</a></li>
+            <li class="toc-item"><a href="#comparison">Z vs IQR vs IsoForest</a></li>
+            <li class="toc-item"><a href="#math">Formulas</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ═══════════════════════════════════
+   HELPERS
+═══════════════════════════════════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function arrMean(a){return a.reduce(function(s,v){return s+v;},0)/a.length;}
+function arrStd(a){var m=arrMean(a);return Math.sqrt(a.reduce(function(s,v){return s+(v-m)*(v-m);},0)/a.length);}
+function arrMedian(a){var s=[...a].sort(function(x,y){return x-y;});var m=Math.floor(s.length/2);return s.length%2===0?(s[m-1]+s[m])/2:s[m];}
+function arrMAD(a){var med=arrMedian(a);return arrMedian(a.map(function(v){return Math.abs(v-med);}));}
+function normalPDF(x){return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI);}
+function normalCDF(x){
+  var t=1/(1+0.2316419*Math.abs(x));
+  var p=t*(0.319381530+t*(-0.356563782+t*(1.781477937+t*(-1.821255978+t*1.330274429))));
+  var cdf=1-normalPDF(x)*p;
+  return x>=0?cdf:1-cdf;
+}
+function zscores(arr){var m=arrMean(arr),s=arrStd(arr);return arr.map(function(v){return s>0?(v-m)/s:0;});}
+function modZscores(arr){
+  var med=arrMedian(arr),mad=arrMAD(arr);
+  return arr.map(function(v){return mad>0?0.6745*(v-med)/mad:0;});
+}
+
+/* ═══════════════════════════════════
+   SECTION 1 — Z-SCORE GAUGE
+═══════════════════════════════════ */
+function redrawZGauge(){
+  var mu=parseFloat(C('z-mean').value);
+  var sigma=parseFloat(C('z-std').value);
+  var x=parseFloat(C('z-val').value);
+  C('z-mean-val').textContent=mu;
+  C('z-std-val').textContent=sigma;
+  C('z-val-val').textContent=x.toFixed(1);
+
+  var z=sigma>0?(x-mu)/sigma:0;
+  var absZ=Math.abs(z);
+
+  var col=absZ<2?'#3ecf8e':absZ<3?'#fb8c40':'#f06060';
+  var verdict=absZ<2?'Normal ✓':absZ<2.5?'Borderline':absZ<3?'Suspect ⚠':'Outlier ✕';
+  C('z-gauge-fill').style.width=Math.min(100,absZ/4*100)+'%';
+  C('z-gauge-fill').style.background=col;
+  C('z-gauge-label').textContent=absZ.toFixed(2);
+  C('z-gauge-label').style.color=col;
+  C('z-verdict').textContent=verdict;
+  C('z-verdict').style.color=col;
+
+  var cv=C('zgauge-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:55,r:30,t:30,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var zMin=-5,zMax=5,steps=200;
+  var toX=function(z){return pad.l+(z-zMin)/(zMax-zMin)*(W-pad.l-pad.r);};
+  var yScale=H-pad.t-pad.b;
+
+  // Shade outlier zones (fixed at |z|>3 for reference)
+  var refK=3;
+  ctx.fillStyle='rgba(240,96,96,0.1)';
+  ctx.fillRect(pad.l,pad.t,toX(-refK)-pad.l,yScale);
+  ctx.fillRect(toX(refK),pad.t,W-pad.r-toX(refK),yScale);
+
+  // Normal curve
+  var maxPDF=normalPDF(0);
+  function drawCurve(fillColor,lo,hi){
+    ctx.beginPath();
+    var started=false;
+    for(var i=0;i<=steps;i++){
+      var zv=zMin+i*(zMax-zMin)/steps;
+      if(zv<lo||zv>hi) continue;
+      var px=toX(zv),py=H-pad.b-normalPDF(zv)/maxPDF*yScale*0.85;
+      if(!started){ctx.moveTo(px,H-pad.b);ctx.lineTo(px,py);started=true;}
+      else ctx.lineTo(px,py);
+    }
+    if(started){ctx.lineTo(toX(Math.min(hi,zMax)),H-pad.b);ctx.closePath();ctx.fillStyle=fillColor;ctx.fill();}
+  }
+  drawCurve('rgba(139,92,246,0.3)',-5,-refK);
+  drawCurve('rgba(139,92,246,0.3)',refK,5);
+  drawCurve('rgba(139,92,246,0.12)',-refK,refK);
+
+  ctx.beginPath();
+  for(var i=0;i<=steps;i++){
+    var zv=zMin+i*(zMax-zMin)/steps;
+    var px=toX(zv),py=H-pad.b-normalPDF(zv)/maxPDF*yScale*0.85;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle='#8b5cf6';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Sigma tick marks
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  for(var s=-4;s<=4;s++){
+    var px=toX(s);
+    ctx.beginPath();ctx.moveTo(px,pad.t);ctx.lineTo(px,H-pad.b);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';
+    ctx.fillText(s===0?'μ':(s>0?'+'+s+'σ':s+'σ'),px,H-pad.b+15);
+  }
+
+  // Current value marker
+  var xz=sigma>0?(x-mu)/sigma:0;
+  var xzClamped=Math.max(zMin,Math.min(zMax,xz));
+  var xpx=toX(xzClamped);
+  var ypx=H-pad.b-normalPDF(xzClamped)/maxPDF*yScale*0.85;
+
+  // Vertical drop line
+  ctx.beginPath();ctx.moveTo(xpx,H-pad.b);ctx.lineTo(xpx,ypx);
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+
+  // Point on curve
+  ctx.beginPath();ctx.arc(xpx,ypx,7,0,Math.PI*2);
+  ctx.fillStyle=col+'40';ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+
+  // Z label
+  ctx.fillStyle=col;ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+  ctx.fillText('z = '+(xz>=0?'+':'')+xz.toFixed(2),xpx,ypx-14);
+
+  // x label on axis
+  ctx.fillStyle=col;ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('x='+x.toFixed(1),xpx,H-pad.b+28);
+
+  // Bracket showing distance from mean
+  var mupx=toX(0);
+  ctx.beginPath();ctx.moveTo(mupx,H-pad.b-8);ctx.lineTo(xpx,H-pad.b-8);
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+  ctx.beginPath();ctx.arc(mupx,H-pad.b-8,3,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════
+   SECTION 2 — NORMAL CURVE ZONES
+═══════════════════════════════════ */
+function redrawNormalCurve(){
+  var k=parseFloat(C('norm-k').value);
+  var tail=C('norm-tail').value;
+  C('norm-k-val').textContent=k.toFixed(1);
+
+  var flaggedPct;
+  if(tail==='two') flaggedPct=(1-normalCDF(k)+normalCDF(-k))*100;
+  else if(tail==='upper') flaggedPct=(1-normalCDF(k))*100;
+  else flaggedPct=normalCDF(-k)*100;
+
+  C('norm-flagged').textContent=flaggedPct.toFixed(3)+'%';
+  C('norm-safe').textContent=(100-flaggedPct).toFixed(3)+'%';
+  C('norm-boundary').textContent=tail==='two'?('±'+k.toFixed(1)+'σ'):tail==='upper'?('>'+k.toFixed(1)+'σ'):('<-'+k.toFixed(1)+'σ');
+  var per1000=Math.round(flaggedPct*10);
+  C('norm-in100').textContent=per1000+' in 1000';
+
+  var cv=C('normal-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:30,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var zMin=-4.5,zMax=4.5,steps=300;
+  var toX=function(z){return pad.l+(z-zMin)/(zMax-zMin)*(W-pad.l-pad.r);};
+  var maxPDF=normalPDF(0);
+  var yScale=H-pad.t-pad.b;
+
+  function fillZone(lo,hi,col){
+    ctx.beginPath();
+    var first=true;
+    for(var i=0;i<=steps;i++){
+      var zv=zMin+i*(zMax-zMin)/steps;
+      if(zv<lo||zv>hi) continue;
+      var px=toX(zv),py=H-pad.b-normalPDF(zv)/maxPDF*yScale*0.85;
+      if(first){ctx.moveTo(px,H-pad.b);ctx.lineTo(px,py);first=false;}
+      else ctx.lineTo(px,py);
+    }
+    if(!first){ctx.lineTo(toX(Math.min(hi,zMax)),H-pad.b);ctx.closePath();ctx.fillStyle=col;ctx.fill();}
+  }
+
+  // Normal area
+  fillZone(zMin,zMax,'rgba(139,92,246,0.15)');
+
+  // Flagged zones
+  if(tail==='two'||tail==='lower') fillZone(zMin,-k,'rgba(240,96,96,0.45)');
+  if(tail==='two'||tail==='upper') fillZone(k,zMax,'rgba(240,96,96,0.45)');
+
+  // Sigma bands
+  var bands=[[1,'rgba(62,207,142,0.2)'],[2,'rgba(251,140,64,0.15)'],[3,'rgba(240,96,96,0.1)']];
+  bands.forEach(function(b){
+    ctx.beginPath();ctx.moveTo(toX(-b[0]),H-pad.b);ctx.lineTo(toX(-b[0]),pad.t);ctx.strokeStyle=b[1].replace('0.','0.6');ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(toX(b[0]),H-pad.b);ctx.lineTo(toX(b[0]),pad.t);ctx.stroke();
+  });
+
+  // Threshold lines
+  if(tail==='two'||tail==='lower'){
+    var lx=toX(-k);
+    ctx.beginPath();ctx.moveTo(lx,pad.t);ctx.lineTo(lx,H-pad.b);
+    ctx.strokeStyle='#f06060';ctx.lineWidth=2.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f06060';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('-'+k.toFixed(1)+'σ',lx,pad.t+12);
+  }
+  if(tail==='two'||tail==='upper'){
+    var rx=toX(k);
+    ctx.beginPath();ctx.moveTo(rx,pad.t);ctx.lineTo(rx,H-pad.b);
+    ctx.strokeStyle='#f06060';ctx.lineWidth=2.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f06060';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('+'+k.toFixed(1)+'σ',rx,pad.t+12);
+  }
+
+  // Main curve
+  ctx.beginPath();
+  for(var i=0;i<=steps;i++){
+    var zv=zMin+i*(zMax-zMin)/steps;
+    var px=toX(zv),py=H-pad.b-normalPDF(zv)/maxPDF*yScale*0.85;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle='#8b5cf6';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Axis labels
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  for(var s=-4;s<=4;s++){
+    var px=toX(s);
+    ctx.beginPath();ctx.moveTo(px,H-pad.b);ctx.lineTo(px,H-pad.b+4);ctx.strokeStyle=tc();ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';
+    ctx.fillText(s===0?'0':(s>0?'+'+s:s),px,H-pad.b+15);
+  }
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Z-score',W/2,H-4);
+  ctx.textAlign='start';
+
+  // 68-95-99.7 labels
+  var labels=[[1,'68%','#3ecf8e'],[2,'95%','#fb8c40'],[3,'99.7%','#f06060']];
+  labels.forEach(function(l){
+    ctx.fillStyle=l[2];ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+    ctx.fillText(l[1],toX(0),H-pad.b-normalPDF(0)/maxPDF*yScale*0.85-l[0]*20+15);
+  });
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════
+   SECTION 3 — LIVE DEMO
+═══════════════════════════════════ */
+var demoPts=[];
+var DATASETS={
+  salary:[28,32,35,38,40,42,44,45,47,48,49,50,51,52,53,55,57,60,62,65,68,72,75,78,82,88,95,102,350,420],
+  sensor:[10.1,10.3,9.8,10.2,10.0,9.9,10.1,10.4,10.2,9.7,10.3,10.1,9.8,10.0,10.2,10.5,9.6,10.1,10.3,10.0,10.2,9.9,25.8,0.3,10.1,10.2,9.9],
+  exam:[45,52,55,58,60,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,80,82,85,88,92,95,12,99]
+};
+
+function loadDataset(name){
+  C('demo-dataset').value=name;
+  if(name==='custom'){demoPts=[];}
+  else{demoPts=DATASETS[name]?[...DATASETS[name]]:[];}
+  redrawDemo();
+}
+
+function resetDemo(){demoPts=[];redrawDemo();}
+
+function redrawDemo(){
+  var k=parseFloat(C('demo-k').value);
+  C('demo-k-val').textContent=k.toFixed(1);
+
+  var cv=C('demo-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:30,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  if(!demoPts.length){
+    ctx.fillStyle=tc();ctx.font='14px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Click to add data points, or choose a dataset above',W/2,H/2);
+    ctx.textAlign='start';
+    C('demo-n').textContent=0;C('demo-mean').textContent='—';C('demo-std').textContent='—';
+    C('demo-outliers').textContent=0;C('demo-borderline').textContent=0;
+    C('zscore-table-body').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px;">No data yet</td></tr>';
+    return;
+  }
+
+  var mu=arrMean(demoPts),sigma=arrStd(demoPts);
+  var zs=zscores(demoPts);
+  var outliers=zs.filter(function(z){return Math.abs(z)>k;}).length;
+  var borderline=zs.filter(function(z){return Math.abs(z)>k-0.5&&Math.abs(z)<=k;}).length;
+
+  C('demo-n').textContent=demoPts.length;
+  C('demo-mean').textContent=mu.toFixed(1);
+  C('demo-std').textContent=sigma.toFixed(2);
+  C('demo-outliers').textContent=outliers;
+  C('demo-borderline').textContent=borderline;
+
+  // Canvas drawing — dot plot
+  var xMin=Math.min.apply(null,demoPts)-sigma, xMax=Math.max.apply(null,demoPts)+sigma;
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var ptY=H/2;
+
+  // Shaded normal region
+  var loLine=mu-k*sigma, hiLine=mu+k*sigma;
+  ctx.fillStyle='rgba(139,92,246,0.06)';
+  ctx.fillRect(toX(Math.max(xMin,loLine)),pad.t,toX(Math.min(xMax,hiLine))-toX(Math.max(xMin,loLine)),H-pad.t-pad.b);
+
+  // Boundary lines
+  [[loLine,'rgba(240,96,96,0.7)'],[hiLine,'rgba(240,96,96,0.7)']].forEach(function(pair){
+    if(pair[0]<xMin||pair[0]>xMax) return;
+    ctx.beginPath();ctx.moveTo(toX(pair[0]),pad.t);ctx.lineTo(toX(pair[0]),H-pad.b);
+    ctx.strokeStyle=pair[1];ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+  });
+
+  // Mean line
+  ctx.beginPath();ctx.moveTo(toX(mu),pad.t);ctx.lineTo(toX(mu),H-pad.b);
+  ctx.strokeStyle='rgba(139,92,246,0.6)';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='rgba(139,92,246,0.8)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('μ='+mu.toFixed(1),toX(mu),pad.t+12);ctx.textAlign='start';
+
+  // Axis
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+
+  // Points
+  demoPts.forEach(function(v,i){
+    var z=zs[i],absZ=Math.abs(z);
+    var isOut=absZ>k,isBorder=absZ>k-0.5&&absZ<=k;
+    var col=isOut?'#f06060':isBorder?'#fb8c40':'#8b5cf6';
+    var jitter=(i%9-4)*5;
+    ctx.beginPath();ctx.arc(toX(v),ptY+jitter,isOut?7:5,0,Math.PI*2);
+    ctx.fillStyle=col+'40';ctx.fill();
+    ctx.strokeStyle=col;ctx.lineWidth=isOut?2:1.5;ctx.stroke();
+    if(isOut){
+      ctx.fillStyle=col;ctx.font='bold 10px mono';ctx.textAlign='center';
+      ctx.fillText('z='+z.toFixed(1),toX(v),ptY+jitter-12);ctx.textAlign='start';
+    }
+  });
+
+  // Axis values
+  var step=(xMax-xMin)/6;
+  for(var t=xMin;t<=xMax+0.01;t+=step){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(t.toFixed(0),toX(t),H-pad.b+14);
+  }
+  ctx.textAlign='start';
+
+  // Build Z-score table (top 10 by |z|)
+  var sorted=demoPts.map(function(v,i){return{v:v,z:zs[i]};}).sort(function(a,b){return Math.abs(b.z)-Math.abs(a.z);}).slice(0,12);
+  var tbody='';
+  sorted.forEach(function(row,i){
+    var absZ=Math.abs(row.z),isOut=absZ>k,isBorder=absZ>k-0.5&&absZ<=k;
+    var rowCls=isOut?'row-outlier':isBorder?'row-borderline':'row-normal';
+    var zCls=isOut?'z-extreme':isBorder?'z-borderline':'z-normal';
+    var status=isOut?'<span style="color:#f06060;font-weight:700;">Outlier ✕</span>':isBorder?'<span style="color:#fb8c40;">Borderline ⚠</span>':'<span style="color:#3ecf8e;">Normal ✓</span>';
+    tbody+='<tr class="'+rowCls+'"><td>'+(i+1)+'</td><td>'+row.v.toFixed(2)+'</td><td class="'+zCls+'">'+(row.z>=0?'+':'')+row.z.toFixed(3)+'</td><td class="'+zCls+'">'+absZ.toFixed(3)+'</td><td>'+status+'</td></tr>';
+  });
+  C('zscore-table-body').innerHTML=tbody;
+}
+
+var demoCanvas=C('demo-canvas');
+demoCanvas.addEventListener('click',function(e){
+  if(C('demo-dataset').value!=='custom') return;
+  var r=demoCanvas.getBoundingClientRect();
+  var px=(e.clientX-r.left)/r.width;
+  // Map x to data value range 0-200
+  var val=px*200;
+  demoPts.push(parseFloat(val.toFixed(1)));
+  redrawDemo();
+});
+
+/* ═══════════════════════════════════
+   SECTION 4 — MODIFIED Z-SCORE
+═══════════════════════════════════ */
+var modData=[];
+function genModData(){
+  modData=[];
+  for(var i=0;i<80;i++){
+    var u1=Math.random()+1e-10,u2=Math.random();
+    modData.push(50+10*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)));
+  }
+}
+
+function redrawModified(){
+  var nOut=parseInt(C('mod-nout').value);
+  var sev=parseFloat(C('mod-sev').value);
+  var k=parseFloat(C('mod-k').value);
+  C('mod-nout-val').textContent=nOut;
+  C('mod-sev-val').textContent=sev+'σ';
+  C('mod-k-val').textContent=k.toFixed(1);
+
+  var data=[...modData];
+  var trueSigma=10;
+  for(var i=0;i<nOut;i++) data.push(50+(i%2===0?1:-1)*sev*trueSigma);
+
+  var zs=zscores(data);
+  var mzs=modZscores(data);
+  var stdFound=data.filter(function(v,i){return Math.abs(zs[i])>k;}).length;
+  var madFound=data.filter(function(v,i){return Math.abs(mzs[i])>k;}).length;
+  var masked=nOut-stdFound;
+
+  C('mod-std-found').textContent=stdFound;
+  C('mod-mad-found').textContent=madFound;
+  C('mod-masked').textContent=Math.max(0,masked)+' missed';
+  C('mod-masked').style.color=masked>0?'#f06060':'#3ecf8e';
+  var mu0=arrMean(modData),mu1=arrMean(data);
+  C('mod-mean-shift').textContent=(mu1-mu0>=0?'+':'')+((mu1-mu0)).toFixed(1);
+
+  var cv=C('modified-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:20,b:45};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  // Two rows: top = standard Z, bottom = modified Z
+  var rowH=(H-pad.t-pad.b)/2-8;
+  var allV=data;
+  var xMin=Math.min.apply(null,allV)-5, xMax=Math.max.apply(null,allV)+5;
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+
+  var mu=arrMean(data),sigma=arrStd(data);
+  var med=arrMedian(data),mad=arrMAD(data);
+  var stdLo=mu-k*sigma, stdHi=mu+k*sigma;
+  var madLo=med-k*mad/0.6745, madHi=med+k*mad/0.6745;
+
+  function drawRow(oy,label,color,lo,hi,zArr){
+    var midY=oy+rowH/2;
+    ctx.fillStyle=tc();ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+    ctx.fillText(label,pad.l,oy+10);ctx.textAlign='start';
+
+    // Boundary
+    ctx.fillStyle='rgba(240,96,96,0.07)';
+    ctx.fillRect(pad.l,oy+12,toX(Math.max(xMin,lo))-pad.l,rowH-12);
+    ctx.fillRect(toX(Math.min(xMax,hi)),oy+12,W-pad.r-toX(Math.min(xMax,hi)),rowH-12);
+
+    [lo,hi].forEach(function(v){
+      if(v<xMin||v>xMax) return;
+      ctx.beginPath();ctx.moveTo(toX(v),oy+12);ctx.lineTo(toX(v),oy+rowH);
+      ctx.strokeStyle='rgba(240,96,96,0.8)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+    });
+
+    data.forEach(function(v,i){
+      var absZ=Math.abs(zArr[i]);
+      var isOut=absZ>k;
+      var col=isOut?'#f06060':color;
+      var jitter=(i%7-3)*3;
+      ctx.beginPath();ctx.arc(toX(v),midY+jitter,isOut?6:4,0,Math.PI*2);
+      ctx.fillStyle=col+'30';ctx.fill();
+      ctx.strokeStyle=col;ctx.lineWidth=isOut?2:1;ctx.stroke();
+    });
+  }
+
+  drawRow(pad.t,'Standard Z-score  (μ='+mu.toFixed(1)+', σ='+sigma.toFixed(1)+'  →  bounds: ['+stdLo.toFixed(0)+', '+stdHi.toFixed(0)+'])','#63b3ed',stdLo,stdHi,zs);
+  drawRow(pad.t+rowH+16,'Modified Z-score  (median='+med.toFixed(1)+', MAD='+mad.toFixed(1)+'  →  bounds: ['+madLo.toFixed(0)+', '+madHi.toFixed(0)+'])','#8b5cf6',madLo,madHi,mzs);
+
+  // Axis
+  for(var t=Math.ceil(xMin/20)*20;t<=xMax;t+=20){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(t,toX(t),H-pad.b+14);
+  }
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════
+   SECTION 5 — HP TUNING
+═══════════════════════════════════ */
+var hpMethod='standard';
+var sweepData=null;
+
+function setMethod(m){
+  hpMethod=m;
+  C('hp-method-val').textContent=m;
+  ['std','mod'].forEach(function(k){C('m-'+k).classList.toggle('active',k===m||(k==='mod'&&m==='modified')||(k==='std'&&m==='standard'));});
+  onHPChange();
+}
+
+function simulateDetection(k,sev,cont,method){
+  var n=200;
+  var clean=[];
+  for(var i=0;i<n;i++){
+    var u1=Math.random()+1e-10,u2=Math.random();
+    clean.push(50+10*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)));
+  }
+  var nOut=Math.round(n*cont/100);
+  var outlierIdx=[];
+  while(outlierIdx.length<nOut){var idx=Math.floor(Math.random()*n);if(!outlierIdx.includes(idx))outlierIdx.push(idx);}
+  var data=[...clean];
+  outlierIdx.forEach(function(i){data[i]+=((Math.random()>0.5?1:-1)*sev*10);});
+
+  var scores=method==='standard'?zscores(data):modZscores(data);
+  var flagged=data.map(function(v,i){return Math.abs(scores[i])>k;});
+  var tp=outlierIdx.filter(function(i){return flagged[i];}).length;
+  var fp=flagged.filter(function(f,i){return f&&!outlierIdx.includes(i);}).length;
+  var fn=outlierIdx.filter(function(i){return !flagged[i];}).length;
+  var precision=tp+fp>0?tp/(tp+fp):0;
+  var recall=nOut>0?tp/nOut:0;
+  var f1=precision+recall>0?2*precision*recall/(precision+recall):0;
+
+  // Model R² improvement
+  var cleanData=data.filter(function(v,i){return!flagged[i];});
+  var baseStd=arrStd(data),cleanStd=arrStd(cleanData);
+  var r2Improvement=Math.max(0,Math.min(1,(baseStd-cleanStd)/baseStd));
+
+  return{precision:precision,recall:recall,f1:f1,r2:0.6+r2Improvement*0.35};
+}
+
+function onHPChange(){
+  var k=parseFloat(C('hp-k').value);
+  var sev=parseFloat(C('hp-sev').value);
+  var cont=parseInt(C('hp-cont').value);
+  C('hp-k-val').textContent=k.toFixed(1);
+  C('hp-sev-val').textContent=sev+'σ';
+  C('hp-cont-val').textContent=cont+'%';
+
+  var res=simulateDetection(k,sev,cont,hpMethod);
+  C('ac-precision').textContent=(res.precision*100).toFixed(0)+'%';
+  C('ac-recall').textContent=(res.recall*100).toFixed(0)+'%';
+  C('ac-f1').textContent=(res.f1*100).toFixed(0)+'%';
+  C('ac-model').textContent=res.r2.toFixed(2);
+  C('ac-precision-bar').style.width=(res.precision*100)+'%';
+  C('ac-recall-bar').style.width=(res.recall*100)+'%';
+  C('ac-f1-bar').style.width=(res.f1*100)+'%';
+  C('ac-model-bar').style.width=(res.r2*100)+'%';
+
+  var precCol=res.precision>0.8?'#3ecf8e':res.precision>0.5?'#fb8c40':'#f06060';
+  var recCol=res.recall>0.8?'#3ecf8e':res.recall>0.5?'#fb8c40':'#f06060';
+  C('ac-precision').style.color=precCol;
+  C('ac-recall').style.color=recCol;
+}
+
+async function runThreshSweep(){
+  C('sweep-status').textContent='Running...';
+  sweepData=[];
+  var sev=parseFloat(C('hp-sev').value);
+  var cont=parseInt(C('hp-cont').value);
+  for(var ki=10;ki<=40;ki++){
+    var k=ki/10;
+    var res=simulateDetection(k,sev,cont,hpMethod);
+    sweepData.push({k:k,precision:res.precision,recall:res.recall,f1:res.f1});
+    drawSweepCanvas();
+    await delay(60);
+  }
+  var best=sweepData.reduce(function(m,d){return d.f1>m.f1?d:m;},sweepData[0]);
+  C('sweep-status').textContent='Best k = '+best.k.toFixed(1)+' (F1='+( best.f1*100).toFixed(0)+'%)';
+}
+
+function drawSweepCanvas(){
+  if(!sweepData||!sweepData.length) return;
+  var cv=C('sweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:14,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var toX=function(k){return pad.l+(k-1)/3*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-v*(H-pad.t-pad.b);};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.25,.5,.75,1].forEach(function(v){
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+  });
+  [1,1.5,2,2.5,3,3.5,4].forEach(function(k){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(k.toFixed(1),toX(k),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Threshold k',W/2,H-2);
+
+  var lines=[{key:'precision',col:'#8b5cf6',label:'Precision'},{key:'recall',col:'#3ecf8e',label:'Recall'},{key:'f1',col:'#fb8c40',label:'F1'}];
+  lines.forEach(function(line){
+    ctx.beginPath();
+    sweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.k),toY(d[line.key])):ctx.lineTo(toX(d.k),toY(d[line.key]));});
+    ctx.strokeStyle=line.col;ctx.lineWidth=2.5;ctx.stroke();
+    if(sweepData.length>1){
+      sweepData.forEach(function(d){ctx.beginPath();ctx.arc(toX(d.k),toY(d[line.key]),3,0,Math.PI*2);ctx.fillStyle=line.col;ctx.fill();});
+    }
+  });
+
+  // Best F1 marker
+  var best=sweepData.reduce(function(m,d){return d.f1>m.f1?d:m;},sweepData[0]);
+  ctx.beginPath();ctx.arc(toX(best.k),toY(best.f1),8,0,Math.PI*2);
+  ctx.fillStyle='#fb8c40';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#fb8c40';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('k='+best.k.toFixed(1),toX(best.k),toY(best.f1)-12);
+
+  // Legend
+  var lx=pad.l+10;
+  lines.forEach(function(l,i){
+    ctx.strokeStyle=l.col;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(lx+i*80,pad.t+8);ctx.lineTo(lx+i*80+20,pad.t+8);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(l.label,lx+i*80+24,pad.t+12);
+  });
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════
+   SECTION 6 — COMPARISON CANVAS
+═══════════════════════════════════ */
+function genCmpData(){
+  var pct=parseInt(C('cmp-pct').value)/100;
+  var shape=C('cmp-shape').value;
+  var n=100;
+  var data=[];
+  for(var i=0;i<n;i++){
+    var u1=Math.random()+1e-10,u2=Math.random();
+    var z=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+    if(shape==='normal') data.push(50+12*z);
+    else if(shape==='skewed') data.push(20+Math.pow(Math.random(),0.35)*80);
+    else data.push(i<50?30+8*z:70+8*z);
+  }
+  var nOut=Math.round(n*pct);
+  var outIdx=[];
+  while(outIdx.length<nOut){var idx=Math.floor(Math.random()*n);if(!outIdx.includes(idx))outIdx.push(idx);}
+  outIdx.forEach(function(i){data[i]+=(Math.random()>0.5?1:-1)*(35+Math.random()*20);});
+  return{data:data,outIdx:outIdx};
+}
+
+function redrawComparison(){
+  C('cmp-pct-val').textContent=C('cmp-pct').value+'%';
+  var d=genCmpData();
+  var data=d.data,trueOutliers=d.outIdx;
+
+  var zs=zscores(data);
+  var q1=data.slice().sort(function(a,b){return a-b;});
+  var Q1=q1[Math.floor(q1.length*0.25)],Q3=q1[Math.floor(q1.length*0.75)],IQR=Q3-Q1;
+  var iqrLo=Q1-1.5*IQR, iqrHi=Q3+1.5*IQR;
+
+  var zFlag=data.map(function(v,i){return Math.abs(zs[i])>3;});
+  var iqrFlag=data.map(function(v){return v<iqrLo||v>iqrHi;});
+
+  function f1Score(flagged,truth){
+    var tp=truth.filter(function(i){return flagged[i];}).length;
+    var fp=flagged.filter(function(f,i){return f&&!truth.includes(i);}).length;
+    var fn=truth.filter(function(i){return !flagged[i];}).length;
+    var p=tp+fp>0?tp/(tp+fp):0,r=truth.length>0?tp/truth.length:0;
+    return{f1:p+r>0?2*p*r/(p+r):0,found:flagged.filter(Boolean).length};
+  }
+  var zF=f1Score(zFlag,trueOutliers);
+  var iqrF=f1Score(iqrFlag,trueOutliers);
+
+  var cv=C('cmp-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  // Two panels
+  var panW=W/2-5;
+  var xMin=Math.min.apply(null,data)-5,xMax=Math.max.apply(null,data)+5;
+  var toX=function(v,ox){return ox+10+(v-xMin)/(xMax-xMin)*(panW-20);};
+
+  function drawPanel(ox,title,col,flagArr,f1val,found){
+    ctx.fillStyle=tc();ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(title,ox+panW/2,15);
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.strokeRect(ox+10,22,panW-20,H-50);
+    data.forEach(function(v,i){
+      var isOut=flagArr[i],isTrue=trueOutliers.includes(i);
+      var col_=isOut&&isTrue?'#3ecf8e':isOut&&!isTrue?'#f06060':isTrue&&!isOut?'#fb8c40':col;
+      var jitter=(i%9-4)*4;
+      ctx.beginPath();ctx.arc(toX(v,ox),H/2+jitter,isOut?7:4,0,Math.PI*2);
+      ctx.fillStyle=col_+'40';ctx.fill();
+      ctx.strokeStyle=col_;ctx.lineWidth=isOut?2:1;ctx.stroke();
+    });
+    ctx.fillStyle=col;ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('F1='+( f1val*100).toFixed(0)+'%  found='+found+'/'+trueOutliers.length,ox+panW/2,H-28);
+    if(ox<W/2) ctx.fillStyle=gc(),ctx.fillRect(ox+panW,20,1,H-40);
+  }
+  drawPanel(0,'Z-score (k=3)','#8b5cf6',zFlag,zF.f1,zF.found);
+  drawPanel(W/2+5,'IQR method (1.5×IQR)','#3ecf8e',iqrFlag,iqrF.f1,iqrF.found);
+
+  // Legend
+  var legItems=[['#3ecf8e','True positive'],['#f06060','False positive'],['#fb8c40','Missed (FN)'],['#8b5cf6','True negative']];
+  var lx=10;
+  legItems.forEach(function(l){
+    ctx.beginPath();ctx.arc(lx+6,H-10,5,0,Math.PI*2);ctx.fillStyle=l[0];ctx.fill();
+    ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText(l[1],lx+14,H-6);
+    lx+=95;
+  });
+  ctx.textAlign='start';
+
+  C('cmp-stats').innerHTML=
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#8b5cf6;font-size:14px;">'+(zF.f1*100).toFixed(0)+'%</span><span class="stat-pill-lbl">Z-score F1</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#3ecf8e;font-size:14px;">'+(iqrF.f1*100).toFixed(0)+'%</span><span class="stat-pill-lbl">IQR F1</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:#f06060;">'+trueOutliers.length+'</span><span class="stat-pill-lbl">True outliers</span></div>'+
+    '<div class="stat-pill"><span class="stat-pill-val" style="color:var(--text-2);">'+data.length+'</span><span class="stat-pill-lbl">Total points</span></div>';
+}
+
+/* ═══════════════════════════════════
+   LIVE EDITOR
+═══════════════════════════════════ */
+var SNIPPETS=[
+{file:'zscore_basics.py',label:'Z-score basics',code:`import numpy as np
+import pandas as pd
+
+# ── Create dataset with outliers ───────────────────
+np.random.seed(42)
+salaries = np.random.normal(60000, 12000, 200)
+salaries = np.append(salaries, [350000, 420000, 500000, -5000])
+
+s = pd.Series(salaries, name='Salary')
+
+# ── Compute Z-scores ───────────────────────────────
+mu    = s.mean()
+sigma = s.std()
+z     = (s - mu) / sigma
+
+# OR: use scipy
+from scipy import stats as scipy_stats
+z2 = scipy_stats.zscore(salaries, ddof=0)   # population std
+z3 = scipy_stats.zscore(salaries, ddof=1)   # sample std (default in pandas)
+
+print(f"Mean:  {mu:,.0f}")
+print(f"Std:   {sigma:,.0f}")
+print()
+
+# ── Flag outliers at different thresholds ──────────
+for k in [2.0, 2.5, 3.0, 3.5]:
+    mask = np.abs(z) > k
+    print(f"k={k}  →  {mask.sum():3d} outliers flagged  ({mask.mean()*100:.2f}%)")
+
+print()
+
+# ── Inspect the outliers ───────────────────────────
+threshold = 3.0
+outlier_df = pd.DataFrame({'value': s, 'z_score': z})[np.abs(z) > threshold]
+outlier_df = outlier_df.sort_values('z_score', key=abs, ascending=False)
+print("Top outliers:")
+print(outlier_df.to_string())
+
+# ── After detecting — decide what to do ───────────
+print()
+print("Options after detection:")
+s_dropped = s[np.abs(z) <= threshold]          # drop outliers
+s_capped   = s.clip(mu - threshold*sigma,       # winsorize
+                    mu + threshold*sigma)
+
+print(f"Original  n={len(s):3d}  mean={s.mean():,.0f}  std={s.std():,.0f}")
+print(f"Dropped   n={len(s_dropped):3d}  mean={s_dropped.mean():,.0f}  std={s_dropped.std():,.0f}")
+print(f"Capped    n={len(s_capped):3d}  mean={s_capped.mean():,.0f}  std={s_capped.std():,.0f}")
+`},
+{file:'modified_zscore.py',label:'Modified Z-score',code:`import numpy as np
+import pandas as pd
+
+def modified_zscore(x):
+    """
+    Iglewicz & Hoaglin (1993) Modified Z-score.
+    Uses median and MAD instead of mean and std.
+    Robust to the masking problem.
+    """
+    x = np.asarray(x, dtype=float)
+    med = np.median(x)
+    mad = np.median(np.abs(x - med))
+    # 0.6745 = Φ⁻¹(0.75) — makes MAD consistent estimator of sigma
+    return 0.6745 * (x - med) / (mad + 1e-10)
+
+np.random.seed(0)
+# Scenario: 5 outliers that mask each other with standard Z
+clean = np.random.normal(50, 10, 100)
+outliers = np.array([130, 140, 150, 145, 135])  # 5 extreme outliers
+data = np.concatenate([clean, outliers])
+
+z_std = (data - data.mean()) / data.std()
+z_mod = modified_zscore(data)
+
+print("── Standard Z-score (affected by outliers) ──")
+print(f"Mean={data.mean():.1f}  Std={data.std():.1f}")
+for i, v in enumerate(outliers):
+    idx = len(clean) + i
+    print(f"  Outlier {v}: z_std = {z_std[idx]:.2f}  {'FLAGGED' if abs(z_std[idx])>3 else 'NOT flagged (masked!)'}")
+
+print()
+print("── Modified Z-score (median + MAD — robust) ──")
+print(f"Median={np.median(data):.1f}  MAD={np.median(np.abs(data-np.median(data))):.1f}")
+for i, v in enumerate(outliers):
+    idx = len(clean) + i
+    print(f"  Outlier {v}: z_mod = {z_mod[idx]:.2f}  {'FLAGGED ✓' if abs(z_mod[idx])>3 else 'missed'}")
+
+print()
+print("── Summary ──")
+k = 3.0
+std_flags  = (np.abs(z_std) > k).sum()
+mod_flags  = (np.abs(z_mod) > k).sum()
+print(f"Standard Z:  {std_flags} flagged  (missed {5-min(5,std_flags)} real outliers)")
+print(f"Modified Z:  {mod_flags} flagged  (recommended for contaminated data)")
+`},
+{file:'zscore_pipeline.py',label:'sklearn Pipeline',code:`import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import fetch_california_housing
+
+class ZScoreOutlierRemover(BaseEstimator, TransformerMixin):
+    """
+    Fits Z-score boundaries on training data.
+    Removes rows where any feature exceeds the threshold.
+    Use ONLY on X — never on y directly.
+    """
+    def __init__(self, threshold=3.0, method='standard'):
+        self.threshold = threshold
+        self.method = method
+
+    def fit(self, X, y=None):
+        X = np.array(X, dtype=float)
+        if self.method == 'standard':
+            self.mean_  = X.mean(axis=0)
+            self.scale_ = X.std(axis=0) + 1e-10
+        else:  # modified
+            self.mean_  = np.median(X, axis=0)
+            mad = np.median(np.abs(X - self.mean_), axis=0)
+            self.scale_ = mad / 0.6745 + 1e-10
+        return self
+
+    def transform(self, X, y=None):
+        X = np.array(X, dtype=float)
+        z = np.abs((X - self.mean_) / self.scale_)
+        mask = (z <= self.threshold).all(axis=1)
+        return X[mask]
+
+    def fit_transform(self, X, y=None):
+        return self.fit(X).transform(X)
+
+# Note: ZScoreOutlierRemover changes the number of rows,
+# so it can't go inside a standard sklearn Pipeline with an estimator
+# (pipelines don't support changing n_samples in transform after fit).
+# Instead: remove outliers from training set only, then use Pipeline for the rest.
+
+data = fetch_california_housing()
+X, y = data.data, data.target
+rng = np.random.default_rng(42)
+X_dirty = X.copy()
+idx = rng.choice(len(X), int(0.05*len(X)), replace=False)
+X_dirty[idx] *= rng.uniform(5, 20, (len(idx), X.shape[1]))
+
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X_dirty, y, test_size=0.2, random_state=42)
+
+for k in [2.0, 2.5, 3.0, 3.5, 4.0, None]:
+    if k is None:
+        X_clean, y_clean = X_tr, y_tr
+    else:
+        remover = ZScoreOutlierRemover(threshold=k)
+        remover.fit(X_tr)
+        mask = (np.abs((X_tr - remover.mean_) / remover.scale_) <= k).all(axis=1)
+        X_clean, y_clean = X_tr[mask], y_tr[mask]
+
+    pipe = Pipeline([('sc', StandardScaler()), ('ridge', Ridge())])
+    pipe.fit(X_clean, y_clean)
+    test_r2 = pipe.score(X_te, y_te)
+    kept = len(X_clean)
+    print(f"k={str(k):<5} kept={kept:4d}/{len(X_tr)}  test_R²={test_r2:.4f}")
+`},
+{file:'mahalanobis.py',label:'Mahalanobis (multivariate)',code:`import numpy as np
+import pandas as pd
+from scipy.spatial.distance import mahalanobis
+from scipy.stats import chi2
+
+# ── Why per-column Z-score misses multivariate outliers ──
+np.random.seed(42)
+n = 100
+height = np.random.normal(175, 10, n)   # cm
+weight = np.random.normal(75, 12, n)    # kg
+# This person is not an outlier in either dimension alone...
+# but the combination is impossible (height 195cm, weight 45kg)
+outlier_height = np.array([195])
+outlier_weight = np.array([45])
+
+X = np.column_stack([height, weight])
+X_with_out = np.vstack([X, np.column_stack([outlier_height, outlier_weight])])
+
+# Per-column Z-score
+z_h = (X_with_out[:,0] - X_with_out[:,0].mean()) / X_with_out[:,0].std()
+z_w = (X_with_out[:,1] - X_with_out[:,1].mean()) / X_with_out[:,1].std()
+print(f"Outlier row: height_z={z_h[-1]:.2f}, weight_z={z_w[-1]:.2f}")
+print(f"Per-column Z-score flags it: {abs(z_h[-1])>3 or abs(z_w[-1])>3}")
+
+# ── Mahalanobis distance — detects joint outliers ────────
+mu = X.mean(axis=0)
+cov = np.cov(X.T)
+cov_inv = np.linalg.inv(cov)
+
+def mah_dist(x, mean, cov_inv):
+    diff = x - mean
+    return np.sqrt(diff @ cov_inv @ diff)
+
+dists = np.array([mah_dist(row, mu, cov_inv) for row in X_with_out])
+
+# Under multivariate normality, D² ~ chi²(p), p = n_features
+p = 2
+chi2_critical = chi2.ppf(0.999, df=p)  # 99.9% threshold
+print(f"\\nMahalanobis distance of outlier: {dists[-1]:.2f}")
+print(f"Chi² critical value (α=0.001):  {chi2_critical:.2f}")
+print(f"Detected by Mahalanobis: {dists[-1] > chi2_critical}")
+
+# ── Summary table ─────────────────────────────────────────
+print()
+print("Top 5 by Mahalanobis distance:")
+top_idx = np.argsort(dists)[::-1][:5]
+for i in top_idx:
+    flag = "OUTLIER" if dists[i] > chi2_critical else "normal"
+    print(f"  row {i:3d}: D={dists[i]:.2f}  [{flag}]  "
+          f"h={X_with_out[i,0]:.0f}cm  w={X_with_out[i,1]:.0f}kg")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn','scipy']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ig){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ═══ INIT ═══ */
+window.addEventListener('load',function(){
+  redrawZGauge();
+  redrawNormalCurve();
+  loadDataset('salary');
+  genModData();redrawModified();
+  onHPChange();
+  redrawComparison();
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount) return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    redrawZGauge();redrawNormalCurve();redrawDemo();redrawModified();drawSweepCanvas();redrawComparison();
+    if(cmEditor) cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

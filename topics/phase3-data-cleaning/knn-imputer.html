@@ -1,1 +1,1793 @@
 <!-- knn-imputer.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KNN Imputation — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(99,179,237,0.09),rgba(45,212,191,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(99,179,237,0.13) 0%,transparent 70%);pointer-events:none;}
+
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* KNN neighbor cards */
+    .neighbor-cards{display:flex;gap:10px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--border);}
+    .neighbor-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;min-width:130px;transition:border-color .2s;}
+    .neighbor-card.active{border-color:#63b3ed;}
+    .nc-rank{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+    .nc-dist{font-family:var(--font-mono);font-size:13px;color:#63b3ed;font-weight:700;}
+    .nc-vals{font-size:12px;color:var(--text-2);margin-top:4px;}
+    .nc-weight{font-size:11px;color:var(--text-3);margin-top:2px;}
+
+    /* HP panel */
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:18px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:#63b3ed;font-weight:700;min-width:60px;text-align:right;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+
+    /* acc dashboard */
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* comparison table */
+    .cmp-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+    .cmp-table th{background:var(--bg-elevated);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .cmp-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;}
+    .cmp-table tr:last-child td{border-bottom:none;}
+    .cmp-table tr:hover td{background:var(--bg-input);}
+    .tag-win{display:inline-flex;align-items:center;padding:2px 8px;background:var(--green-surf);color:var(--green);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-mid{display:inline-flex;align-items:center;padding:2px 8px;background:var(--accent-surface);color:var(--accent);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-lose{display:inline-flex;align-items:center;padding:2px 8px;background:var(--red-surf);color:var(--red);border-radius:100px;font-size:11px;font-weight:700;}
+
+    /* derive steps */
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:rgba(99,179,237,0.12);border:1.5px solid #63b3ed;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:#63b3ed;flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid #63b3ed;padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #63b3ed!important;}
+    .CodeMirror-selected{background:rgba(99,179,237,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:#63b3ed;color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    @keyframes pulseRing{0%{transform:scale(1);opacity:.8;}100%{transform:scale(1.6);opacity:0;}}
+    .pulse-ring{animation:pulseRing 1.2s ease-out infinite;}
+
+    @media(max-width:700px){
+      .acc-dashboard{grid-template-columns:repeat(2,1fr);}
+      .hp-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="knn-imputation">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">KNN Imputation</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <span class="current">KNN Imputation</span>
+          </nav>
+
+          <!-- HERO -->
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(99,179,237,.3);background:rgba(99,179,237,0.1);color:#63b3ed;margin-bottom:14px;">Data Cleaning · Smart Imputation</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">KNN Imputation</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Instead of filling every NaN with the same global average, KNN imputation finds the
+              <strong>K most similar rows</strong> (neighbors) and uses <em>their</em> values to fill
+              the gap. Each missing value gets a personalised estimate based on the local structure
+              of your data — far more accurate when features are correlated.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 22 min</span>
+              <span class="topic-meta-item">◆ Intermediate</span>
+              <span class="topic-meta-item">sklearn · numpy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(99,179,237,0.12);color:#63b3ed;">◎</div>
+              The core idea — "ask your neighbours"
+            </h2>
+            <p>
+              Imagine a patient record where <strong>Blood Pressure is missing</strong>. Simple
+              imputation fills it with the global mean of all patients. KNN imputation instead says:
+              <em>"Find 5 patients who are most similar to this one in age, weight, and cholesterol —
+              then use the average blood pressure of those 5."</em>
+            </p>
+            <p>
+              This works because features are almost always <strong>correlated</strong>. A young, light
+              patient likely has different blood pressure than an older, heavier one — the global mean
+              treats them identically. KNN respects local relationships.
+            </p>
+
+            <!-- Step-by-step animated demo -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Step-by-step: how KNN fills one missing value</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K neighbors:</span>
+                  <input type="range" min="1" max="7" value="3" step="1" class="ctrl-slider" id="intro-k" oninput="updateIntroK(this.value)" style="width:80px;"/>
+                  <span class="ctrl-value" id="intro-k-val" style="color:#63b3ed;">3</span>
+                </div>
+                <button class="ctrl-btn active" onclick="animateIntro()">▶ Animate</button>
+                <button class="ctrl-btn" onclick="resetIntro()">↺ Reset</button>
+              </div>
+              <canvas id="intro-canvas" width="700" height="360" style="width:100%;display:block;"></canvas>
+              <div class="neighbor-cards" id="neighbor-cards">
+                <span style="font-size:12.5px;color:var(--text-3);">Click Animate to see the K nearest neighbors found</span>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Key insight:</strong> KNN imputation uses <strong>feature space distance</strong>, not row order. Two rows far apart in the table can be very close neighbors if their observed features are similar. The imputed value is always the <em>weighted average</em> of neighbor values — closer neighbors get more weight.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — INTERACTIVE CANVAS ═══ -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(99,179,237,0.12);color:#63b3ed;">✎</div>
+              Live KNN imputer — click to place points
+            </h2>
+            <p>
+              <strong>Left-click</strong> to add a complete data point (both features known).
+              <strong>Right-click</strong> to add a point with <em>Feature B missing</em> — it appears as a
+              question mark. The KNN imputer finds K neighbors and fills the missing value in real time.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">2D KNN imputation — interactive</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K:</span>
+                  <input type="range" min="1" max="9" value="3" step="1" class="ctrl-slider" id="demo-k" oninput="updateDemoK(this.value)" style="width:80px;"/>
+                  <span class="ctrl-value" id="demo-k-val" style="color:#63b3ed;">3</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Weights:</span>
+                  <select class="ctrl-select" id="demo-weights" onchange="redrawDemo()">
+                    <option value="uniform">Uniform</option>
+                    <option value="distance">Distance-weighted</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="addSampleDemo()">+ Load sample</button>
+                <button class="ctrl-btn" onclick="resetDemo()">↺ Reset</button>
+              </div>
+              <canvas id="demo-canvas" width="700" height="400" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-pts" style="color:#63b3ed;">0</span><span class="stat-pill-lbl">Complete pts</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-missing" style="color:#f06060;">0</span><span class="stat-pill-lbl">Missing pts</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-filled" style="color:#3ecf8e;">0</span><span class="stat-pill-lbl">Filled</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="demo-mae">—</span><span class="stat-pill-lbl">Mean fill val</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — DISTANCE METRICS ═══ -->
+          <section class="section" id="distance">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(99,179,237,0.12);color:#63b3ed;">d</div>
+              Distance metrics — how "similar" is measured
+            </h2>
+            <p>
+              KNN imputation relies on a <strong>distance function</strong> to find the nearest neighbors.
+              The choice of metric affects which rows are considered similar — and thus what gets imputed.
+              sklearn's KNNImputer uses <strong>nan_euclidean_distance</strong> by default, which handles
+              missing values in the donor rows gracefully.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Distance metric visualiser — move the query point</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Metric:</span>
+                  <select class="ctrl-select" id="metric-select" onchange="redrawMetric()">
+                    <option value="euclidean">Euclidean (L2)</option>
+                    <option value="manhattan">Manhattan (L1)</option>
+                    <option value="chebyshev">Chebyshev (L∞)</option>
+                    <option value="nan_euclidean">NaN-Euclidean (default)</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">K:</span>
+                  <input type="range" min="1" max="8" value="3" step="1" class="ctrl-slider" id="metric-k" oninput="redrawMetric()" style="width:70px;"/>
+                  <span class="ctrl-value" id="metric-k-val" style="color:#63b3ed;">3</span>
+                </div>
+              </div>
+              <canvas id="metric-canvas" width="700" height="320" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row" id="metric-stats">
+                <span style="font-size:12.5px;color:var(--text-3);padding:4px 6px;">Drag the blue query point to see neighbor distances update</span>
+              </div>
+            </div>
+
+            <div class="callout warning">
+              <span class="callout-icon">⚠</span>
+              <p><strong>Scale matters — always normalise first!</strong> KNN distance treats all features equally. If Age is 0–80 and Income is 0–200,000, the distance is completely dominated by Income. Always apply <code>StandardScaler</code> or <code>MinMaxScaler</code> before KNN imputation — or the imputer will find "nearest neighbors" based on whichever feature has the largest numeric range.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚙</div>
+              Hyperparameter tuning — live accuracy feedback
+            </h2>
+            <p>
+              KNN imputation has two main knobs: <strong>K</strong> (number of neighbors) and
+              <strong>weights</strong> (uniform vs distance-weighted). Every slider below retrains
+              and reports imputation error (MAE) plus downstream model accuracy.
+            </p>
+
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="ac-mae" style="color:#63b3ed;">—</div>
+                <div class="acc-label">Imputation MAE</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-mae-bar" style="background:#63b3ed;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-rmse" style="color:#fb8c40;">—</div>
+                <div class="acc-label">Imputation RMSE</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-rmse-bar" style="background:#fb8c40;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-model-acc" style="color:#3ecf8e;">—</div>
+                <div class="acc-label">Model Accuracy</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-model-bar" style="background:#3ecf8e;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-vs-mean" style="color:#f0a500;">—</div>
+                <div class="acc-label">vs Mean impute</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-vs-bar" style="background:#f0a500;width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div class="hp-title">⚙ KNNImputer Controls
+                <span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:4px;">— every change updates metrics instantly</span>
+              </div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">n_neighbors (K)</span>
+                    <span class="hp-val" id="hp-k-val">5</span>
+                  </div>
+                  <input type="range" min="1" max="20" value="5" step="1" class="ctrl-slider" id="hp-k" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">Number of neighbors to use. Small K = local patterns, high variance. Large K = smoother, more global.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">weights</span>
+                    <span class="hp-val" id="hp-weights-val" style="color:#63b3ed;">uniform</span>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button class="ctrl-btn active" id="w-uniform" onclick="setWeights('uniform')">Uniform</button>
+                    <button class="ctrl-btn" id="w-distance" onclick="setWeights('distance')">Distance</button>
+                  </div>
+                  <div class="hp-desc">Uniform: all K neighbors equal vote. Distance: closer neighbors contribute more.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">Missing %</span>
+                    <span class="hp-val" id="hp-miss-val" style="color:#f06060;">20%</span>
+                  </div>
+                  <input type="range" min="5" max="60" value="20" step="5" class="ctrl-slider" id="hp-miss" oninput="onHPChange()" style="width:100%;"/>
+                  <div class="hp-desc">How much data is randomly removed. Higher = harder imputation task.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label">
+                    <span class="hp-name">Feature correlation</span>
+                    <span class="hp-val" id="hp-corr-val" style="color:#3ecf8e;">high</span>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button class="ctrl-btn active" id="corr-high" onclick="setCorr('high')">High</button>
+                    <button class="ctrl-btn" id="corr-med" onclick="setCorr('medium')">Medium</button>
+                    <button class="ctrl-btn" id="corr-low" onclick="setCorr('low')">Low</button>
+                  </div>
+                  <div class="hp-desc">KNN imputation shines when features are highly correlated. Low correlation = little better than mean.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- K sweep curve -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Imputation MAE vs K — sweep</span>
+                <button class="ctrl-btn active" onclick="runKSweep()">▶ Run K sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:8px;" id="ksweep-status"></span>
+              </div>
+              <canvas id="ksweep-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — KNN vs SIMPLE COMPARISON ═══ -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">⇄</div>
+              KNN vs Simple Imputation — when does KNN win?
+            </h2>
+            <p>
+              KNN imputation is more expensive (O(n²) distance computations) but more accurate when
+              features are correlated. Here's when each method wins.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Side-by-side imputed values — KNN vs Mean</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Correlation:</span>
+                  <input type="range" min="0" max="1" value="0.85" step="0.05" class="ctrl-slider" id="cmp-corr" oninput="redrawComparison(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="cmp-corr-val" style="color:#63b3ed;">0.85</span>
+                </div>
+                <button class="ctrl-btn active" onclick="redrawComparison(document.getElementById('cmp-corr').value)">Refresh</button>
+              </div>
+              <canvas id="cmp-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-knn-mae" style="color:#63b3ed;">—</span><span class="stat-pill-lbl">KNN MAE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-mean-mae" style="color:#f06060;">—</span><span class="stat-pill-lbl">Mean MAE</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-improvement" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">KNN improvement</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-corr-stat" style="color:#f0a500;">—</span><span class="stat-pill-lbl">Correlation</span></div>
+              </div>
+            </div>
+
+            <table class="cmp-table">
+              <thead>
+                <tr><th>Scenario</th><th>Simple (Mean)</th><th>KNN Imputer</th><th>Verdict</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Features strongly correlated (r &gt; 0.7)</td>
+                  <td>Global mean ignores local structure</td>
+                  <td>Finds similar rows → accurate local estimate</td>
+                  <td><span class="tag-win">KNN wins</span></td>
+                </tr>
+                <tr>
+                  <td>Features independent / uncorrelated</td>
+                  <td>Mean is the best estimator anyway</td>
+                  <td>Neighbors no more informative than average</td>
+                  <td><span class="tag-mid">Roughly equal</span></td>
+                </tr>
+                <tr>
+                  <td>Very large dataset (n &gt; 100k)</td>
+                  <td>O(n) — instant</td>
+                  <td>O(n²) distances — very slow without approximation</td>
+                  <td><span class="tag-lose">Mean faster</span></td>
+                </tr>
+                <tr>
+                  <td>Heavy missingness (&gt; 50%)</td>
+                  <td>Uses all available data</td>
+                  <td>Few complete neighbors → unreliable</td>
+                  <td><span class="tag-lose">Mean safer</span></td>
+                </tr>
+                <tr>
+                  <td>Skewed distribution with outliers</td>
+                  <td>Mean distorted by outliers</td>
+                  <td>Local neighbors filter out global outliers</td>
+                  <td><span class="tag-win">KNN wins</span></td>
+                </tr>
+                <tr>
+                  <td>Categorical features present</td>
+                  <td>Most-frequent works fine</td>
+                  <td>Needs numeric distance → encode first</td>
+                  <td><span class="tag-mid">Both need prep</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- ═══ SECTION 6 — MATH ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              How KNNImputer works — step by step
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Compute pairwise distances — only using observed features</div>
+                  <div class="derive-desc">For any two rows i and j, use only the features that are observed in BOTH rows. Scale the result by n_features / n_observed to compensate for the reduced dimensionality.</div>
+                  <div class="derive-formula">d(i, j) = sqrt( (n_features / n_observed) * sum((x_ik - x_jk)^2) )
+                                                   for k where both x_ik and x_jk are not NaN</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">For each missing cell, find K nearest complete donors</div>
+                  <div class="derive-desc">A "donor" row must have a value in the column being imputed (not NaN there). Sort all valid donor rows by their distance to the target row. Take the K closest.</div>
+                  <div class="derive-formula">donors = rows where x_j is NOT NaN, sorted by d(target, row)
+neighbors = donors[:K]   # K closest</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Compute the imputed value (uniform or distance-weighted)</div>
+                  <div class="derive-desc">Uniform weights: simple average of the K neighbor values. Distance weights: each neighbor is weighted by 1/distance — closer neighbors contribute more to the fill value.</div>
+                  <div class="derive-formula">Uniform:  fill = mean(x_j for neighbor in neighbors)
+
+Distance: w_i = 1 / d(target, neighbor_i)
+          fill = sum(w_i * x_j_i) / sum(w_i)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">fit() stores training data; transform() applies it to new data</div>
+                  <div class="derive-desc">Unlike SimpleImputer which stores a statistic, KNNImputer stores the entire training set (or uses it as the donor pool). transform() searches this pool for neighbors. Always fit on train only!</div>
+                  <div class="derive-formula">imp.fit(X_train)          # stores X_train as donor pool
+X_tr = imp.transform(X_train)   # each NaN searches X_train
+X_te = imp.transform(X_test)    # test NaNs also search X_train</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">5</div>
+                <div>
+                  <div class="derive-title">Time and space complexity</div>
+                  <div class="derive-desc">For n training rows, d features, and m missing values in the test set, KNN imputation is significantly more expensive than simple imputation. This matters at scale.</div>
+                  <div class="derive-formula">Distance computation: O(n * d) per query row
+Full imputation:      O(n * m * d)  — can be slow for large n
+Memory:               O(n * d)      — stores entire training set
+Simple imputation:    O(n * d)      — just column statistics</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 7 — SCALING IMPACT DEMO ═══ -->
+          <section class="section" id="scaling">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">⚠</div>
+              Why scaling is critical — live demonstration
+            </h2>
+            <p>
+              This demo shows a dataset with two features: <strong>Age (0–80)</strong> and
+              <strong>Income (0–200,000)</strong>. Without scaling, the KNN imputer finds "nearest
+              neighbors" almost entirely based on Income because its range is 2,500× larger.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">KNN neighbors — scaled vs unscaled</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Query Age:</span>
+                  <input type="range" min="20" max="70" value="35" step="1" class="ctrl-slider" id="scale-age" oninput="redrawScaling()" style="width:80px;"/>
+                  <span class="ctrl-value" id="scale-age-val">35</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Income:</span>
+                  <input type="range" min="20" max="180" value="55" step="5" class="ctrl-slider" id="scale-income" oninput="redrawScaling()" style="width:80px;"/>
+                  <span class="ctrl-value" id="scale-income-val" style="color:#63b3ed;">$55k</span>
+                </div>
+              </div>
+              <canvas id="scale-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="scale-unscaled-fill" style="color:#f06060;">—</span><span class="stat-pill-lbl">Unscaled fill</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="scale-scaled-fill" style="color:#63b3ed;">—</span><span class="stat-pill-lbl">Scaled fill</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="scale-true-val" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">True value</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="scale-diff" style="color:#f0a500;">—</span><span class="stat-pill-lbl">Error diff</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four complete programs — KNN from scratch, sklearn KNNImputer, scaled pipeline, and a benchmark comparing all imputation strategies. All editable and runnable in-browser.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">knn_impute_scratch.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Not scaling features before KNN imputation.</strong> Income=50000 vs Age=30 — the Income dimension completely dominates Euclidean distance. Always scale to [0,1] or unit variance first using a Pipeline so the scaler is fit on training data only.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Fitting KNNImputer on the full dataset.</strong> Same leakage risk as SimpleImputer. <code>imp.fit(X_all)</code> exposes test statistics to training. Fit on train, transform both — or wrap in Pipeline.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using KNN on very large datasets without approximation.</strong> At n=100k rows, computing pairwise distances is slow. Use sklearn's <code>KNNImputer</code> with a brute-force backend only up to ~10k rows. For larger datasets, consider SimpleImputer + MissingIndicator instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using K=1 (single nearest neighbor).</strong> K=1 finds one similar row and copies its value directly — high variance, brittle. If that one row is noisy, you get a bad imputation. Use K≥3 and prefer distance weighting to balance local accuracy with stability.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Ignoring that KNNImputer can't handle rows where all features are NaN.</strong> If a row has no observed features, no distance can be computed — there are no valid neighbors. You must drop or handle all-NaN rows before using KNNImputer.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>KNN imputation finds the <strong>K most similar rows</strong> (by Euclidean distance on observed features) and fills each missing value with their weighted average — far better than a global mean when features are correlated.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always scale features first</strong>. Without scaling, large-magnitude features completely dominate the distance metric, making "nearest neighbor" meaningless. Use a Pipeline: scale → impute.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>KNN imputation improves with <strong>high feature correlation</strong>. When features are independent, it performs no better than the mean. Check feature correlations before choosing this method.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The default metric is <strong>nan_euclidean_distance</strong> — it automatically handles NaN values in potential donor rows by scaling the distance based on the number of available features.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>distance weighting</strong> (<code>weights='distance'</code>) rather than uniform when nearby neighbors are clearly more informative than distant ones. It often improves accuracy at no extra cost.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>KNN imputation is <strong>O(n²)</strong> — for large datasets (&gt;50k rows), consider IterativeImputer (MICE) or falling back to simple imputation + missing indicator columns.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="simple-imputation.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Simple Imputation</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="iterative-imputation.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">Iterative Imputation (MICE)</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">Core idea</a></li>
+            <li class="toc-item"><a href="#live-demo">Live demo</a></li>
+            <li class="toc-item"><a href="#distance">Distance metrics</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameter tuning</a></li>
+            <li class="toc-item"><a href="#comparison">KNN vs Simple</a></li>
+            <li class="toc-item"><a href="#math">How it works</a></li>
+            <li class="toc-item"><a href="#scaling">Why scaling matters</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function nanEuclidean(a,b){
+  var sum=0,n=0;
+  for(var i=0;i<a.length;i++){
+    if(a[i]!==null&&b[i]!==null){sum+=Math.pow(a[i]-b[i],2);n++;}
+  }
+  if(!n) return Infinity;
+  return Math.sqrt(sum*(a.length/n));
+}
+
+function knnFill(target,donors,k,weights,col){
+  var valid=donors.filter(function(d){return d[col]!==null;});
+  if(!valid.length) return null;
+  var dists=valid.map(function(d){
+    return{val:d[col],dist:nanEuclidean(target,d)};
+  }).sort(function(a,b){return a.dist-b.dist;}).slice(0,k);
+  if(weights==='uniform'){return dists.reduce(function(s,d){return s+d.val;},0)/dists.length;}
+  var wsum=0,vsum=0;
+  dists.forEach(function(d){
+    var w=d.dist<1e-10?1e10:1/d.dist;
+    vsum+=w*d.val;wsum+=w;
+  });
+  return wsum>0?vsum/wsum:dists[0].val;
+}
+
+/* ═══════════════════════════════════════
+   SECTION 1 — INTRO ANIMATED CANVAS
+═══════════════════════════════════════ */
+var introK=3;
+var introAnimState='idle';
+var introStep=0;
+
+// Dataset: rows with (feature_A, feature_B), one row has feature_B=null
+var INTRO_DATA=[
+  {x:120,y:210,fA:1.2,fB:3.1,label:'P1'},
+  {x:180,y:150,fA:1.8,fB:2.5,label:'P2'},
+  {x:240,y:240,fA:2.4,fB:3.5,label:'P3'},
+  {x:320,y:180,fA:3.2,fB:2.8,label:'P4'},
+  {x:400,y:130,fA:4.0,fB:2.2,label:'P5'},
+  {x:460,y:200,fA:4.6,fB:3.0,label:'P6'},
+  {x:530,y:270,fA:5.3,fB:3.8,label:'P7'},
+  {x:580,y:150,fA:5.8,fB:2.4,label:'P8'},
+];
+// Query point — feature B is MISSING
+var QUERY={x:340,y:230,fA:3.4,fB:null,label:'?'};
+
+function updateIntroK(v){introK=parseInt(v);C('intro-k-val').textContent=v;drawIntroCanvas(introStep,[]);}
+function resetIntro(){introStep=0;introAnimState='idle';drawIntroCanvas(0,[]);}
+
+async function animateIntro(){
+  if(introAnimState==='animating') return;
+  introAnimState='animating';
+  introStep=0;
+
+  // Step 1: show query
+  drawIntroCanvas(1,[]);await delay(600);
+  // Step 2: draw distance lines
+  var dists=INTRO_DATA.map(function(p,i){
+    return{i:i,dist:Math.sqrt(Math.pow(p.fA-QUERY.fA,2)+Math.pow(p.fB-(QUERY.fB||3),2))};
+  }).sort(function(a,b){return a.dist-b.dist;});
+  for(var s=0;s<INTRO_DATA.length;s++){
+    if(introAnimState!=='animating') return;
+    drawIntroCanvas(2,dists.slice(0,s+1));
+    await delay(120);
+  }
+  await delay(300);
+  // Step 3: highlight K nearest
+  drawIntroCanvas(3,dists);
+  updateNeighborCards(dists.slice(0,introK));
+  await delay(800);
+  // Step 4: show fill value
+  drawIntroCanvas(4,dists);
+  introAnimState='done';
+}
+
+function drawIntroCanvas(step,dists){
+  introStep=step;
+  var cv=C('intro-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var topK=dists.slice(0,introK);
+  var topKIdx=topK.map(function(d){return d.i;});
+
+  // Axes labels
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Feature A →',W/2,H-8);
+  ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Feature B →',0,0);ctx.restore();
+  ctx.textAlign='start';
+
+  // Draw lines to top-K neighbors (step >= 2)
+  if(step>=2&&dists.length>0){
+    topK.forEach(function(d){
+      var p=INTRO_DATA[d.i];
+      var isTop=topKIdx.includes(d.i);
+      ctx.beginPath();ctx.moveTo(QUERY.x,QUERY.y);ctx.lineTo(p.x,p.y);
+      ctx.strokeStyle=isTop?'rgba(99,179,237,0.7)':'rgba(255,255,255,0.08)';
+      ctx.lineWidth=isTop?2:0.8;ctx.setLineDash(isTop?[]:[4,4]);ctx.stroke();ctx.setLineDash([]);
+      // Distance label
+      if(isTop){
+        var mx=(QUERY.x+p.x)/2,my=(QUERY.y+p.y)/2;
+        ctx.fillStyle='rgba(99,179,237,0.8)';ctx.font='10px mono';ctx.textAlign='center';
+        ctx.fillText(d.dist.toFixed(2),mx,my-4);ctx.textAlign='start';
+      }
+    });
+  }
+
+  // Donor points
+  INTRO_DATA.forEach(function(p,i){
+    var isNeighbor=step>=3&&topKIdx.includes(i);
+    var r=isNeighbor?10:7;
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle=isNeighbor?'rgba(99,179,237,0.25)':'rgba(45,212,191,0.15)';ctx.fill();
+    ctx.strokeStyle=isNeighbor?'#63b3ed':'#2dd4bf';ctx.lineWidth=isNeighbor?2.5:1.5;ctx.stroke();
+    ctx.fillStyle=isDark()?'#f2f0ec':'#1a1916';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(p.label,p.x,p.y);ctx.textBaseline='alphabetic';ctx.textAlign='start';
+    if(isNeighbor){
+      ctx.fillStyle='#63b3ed';ctx.font='10px mono';ctx.textAlign='center';
+      ctx.fillText('fB='+p.fB.toFixed(1),p.x,p.y+18);ctx.textAlign='start';
+    }
+  });
+
+  // Query point
+  if(step>=1){
+    ctx.beginPath();ctx.arc(QUERY.x,QUERY.y,12,0,Math.PI*2);
+    ctx.fillStyle='rgba(240,165,0,0.2)';ctx.fill();
+    ctx.strokeStyle='#f0a500';ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle=isDark()?'#f2f0ec':'#1a1916';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('?',QUERY.x,QUERY.y);ctx.textBaseline='alphabetic';ctx.textAlign='start';
+    ctx.fillStyle='#f0a500';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Query: fA='+QUERY.fA.toFixed(1)+', fB=???',QUERY.x,QUERY.y-20);ctx.textAlign='start';
+  }
+
+  // Step 4: show filled value
+  if(step>=4){
+    var filled=knnFill(
+      [QUERY.fA],
+      INTRO_DATA.map(function(p){return[p.fA,p.fB];}),
+      introK,'uniform',1
+    );
+    // simpler: average of top K fB values
+    var avg=topK.reduce(function(s,d){return s+INTRO_DATA[d.i].fB;},0)/topK.length;
+    ctx.beginPath();ctx.arc(QUERY.x,QUERY.y,12,0,Math.PI*2);
+    ctx.fillStyle='rgba(62,207,142,0.25)';ctx.fill();
+    ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle='#3ecf8e';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(avg.toFixed(2),QUERY.x,QUERY.y);ctx.textBaseline='alphabetic';
+    ctx.fillText('fB filled = '+avg.toFixed(2)+' (avg of K='+introK+' neighbors)',QUERY.x,QUERY.y-22);
+    ctx.textAlign='start';
+  }
+}
+
+function updateNeighborCards(topK){
+  var html='';
+  topK.forEach(function(d,i){
+    var p=INTRO_DATA[d.i];
+    html+='<div class="neighbor-card active">';
+    html+='<div class="nc-rank">Neighbor #'+(i+1)+'</div>';
+    html+='<div class="nc-dist">d = '+d.dist.toFixed(3)+'</div>';
+    html+='<div class="nc-vals">'+p.label+': fA='+p.fA.toFixed(1)+', fB='+p.fB.toFixed(1)+'</div>';
+    var w=d.dist<1e-10?'∞':( (1/d.dist).toFixed(3));
+    html+='<div class="nc-weight">weight (1/d) = '+w+'</div>';
+    html+='</div>';
+  });
+  C('neighbor-cards').innerHTML=html||'<span style="font-size:12.5px;color:var(--text-3);">Click Animate to see the K nearest neighbors found</span>';
+}
+
+/* ═══════════════════════════════════════
+   SECTION 2 — DEMO CANVAS (click to place)
+═══════════════════════════════════════ */
+var demoPts=[];
+var demoK=3;
+var demoWeights='uniform';
+
+function updateDemoK(v){demoK=parseInt(v);C('demo-k-val').textContent=v;redrawDemo();}
+
+function addSampleDemo(){
+  demoPts=[];
+  var pairs=[[80,120],[140,160],[200,100],[260,180],[320,130],[380,200],[440,160],[500,220],[560,140],[620,180]];
+  pairs.forEach(function(p){demoPts.push({x:p[0],y:p[1],missing:false,fA:p[0]/7,fB:p[1]/4});});
+  // Add 3 missing
+  [[280,240],[420,100],[550,200]].forEach(function(p){
+    demoPts.push({x:p[0],y:p[1],missing:true,fA:p[0]/7,fB:null,filled:null});
+  });
+  imputeDemo();
+  redrawDemo();
+}
+
+function imputeDemo(){
+  var complete=demoPts.filter(function(p){return!p.missing;});
+  demoPts.forEach(function(p){
+    if(!p.missing) return;
+    var dists=complete.map(function(c){
+      return{val:c.fB,dist:Math.sqrt(Math.pow(c.fA-p.fA,2))};
+    }).sort(function(a,b){return a.dist-b.dist;}).slice(0,demoK);
+    if(demoWeights==='uniform'){
+      p.filled=dists.reduce(function(s,d){return s+d.val;},0)/dists.length;
+    } else {
+      var wsum=0,vsum=0;
+      dists.forEach(function(d){var w=d.dist<1e-10?1e10:1/d.dist;vsum+=w*d.val;wsum+=w;});
+      p.filled=wsum>0?vsum/wsum:dists[0].val;
+    }
+  });
+}
+
+function resetDemo(){demoPts=[];redrawDemo();}
+
+function redrawDemo(){
+  imputeDemo();
+  var cv=C('demo-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  if(!demoPts.length){
+    ctx.fillStyle=tc();ctx.font='14px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Left-click = complete point   Right-click = missing Feature B',W/2,H/2-10);
+    ctx.fillText('Or click "+ Load sample" to start',W/2,H/2+14);
+    ctx.textAlign='start';return;
+  }
+
+  // Axes
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(30,10);ctx.lineTo(30,H-30);ctx.lineTo(W-10,H-30);ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Feature A',W/2,H-6);
+  ctx.save();ctx.translate(12,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Feature B',0,0);ctx.restore();
+  ctx.textAlign='start';
+
+  // Complete points
+  var complete=demoPts.filter(function(p){return!p.missing;});
+  complete.forEach(function(p){
+    ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);
+    ctx.fillStyle='rgba(45,212,191,0.3)';ctx.fill();
+    ctx.strokeStyle='#2dd4bf';ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  // Missing points — draw lines to K neighbors
+  var missing=demoPts.filter(function(p){return p.missing;});
+  missing.forEach(function(p){
+    var dists=complete.map(function(c){
+      return{c:c,dist:Math.sqrt(Math.pow(c.fA-p.fA,2))};
+    }).sort(function(a,b){return a.dist-b.dist;}).slice(0,demoK);
+    dists.forEach(function(d){
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(d.c.x,d.c.y);
+      ctx.strokeStyle='rgba(99,179,237,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    });
+    // Filled position (map filled fB back to y)
+    if(p.filled!==null){
+      var fy=p.filled*4; // reverse of fB = y/4
+      ctx.beginPath();ctx.arc(p.x,fy,7,0,Math.PI*2);
+      ctx.fillStyle='rgba(62,207,142,0.3)';ctx.fill();
+      ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,fy);
+      ctx.strokeStyle='rgba(240,165,0,0.5)';ctx.lineWidth=1;ctx.setLineDash([]);ctx.stroke();
+    }
+    // Missing marker
+    ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);
+    ctx.fillStyle='rgba(240,96,96,0.2)';ctx.fill();
+    ctx.strokeStyle='#f06060';ctx.lineWidth=2;ctx.setLineDash([4,2]);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f06060';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('?',p.x,p.y);ctx.textBaseline='alphabetic';ctx.textAlign='start';
+  });
+
+  // Stats
+  C('demo-pts').textContent=complete.length;
+  C('demo-missing').textContent=missing.length;
+  C('demo-filled').textContent=missing.filter(function(p){return p.filled!==null;}).length;
+  var fills=missing.filter(function(p){return p.filled!==null;}).map(function(p){return p.filled;});
+  C('demo-mae').textContent=fills.length?(fills.reduce(function(a,b){return a+b;},0)/fills.length).toFixed(1):'—';
+}
+
+var demoCanvas=C('demo-canvas');
+demoCanvas.addEventListener('click',function(e){
+  var r=demoCanvas.getBoundingClientRect(),sx=demoCanvas.width/r.width,sy=demoCanvas.height/r.height;
+  var px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sy;
+  demoPts.push({x:px,y:py,missing:false,fA:px/7,fB:py/4});
+  redrawDemo();
+});
+demoCanvas.addEventListener('contextmenu',function(e){
+  e.preventDefault();
+  var r=demoCanvas.getBoundingClientRect(),sx=demoCanvas.width/r.width,sy=demoCanvas.height/r.height;
+  var px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sy;
+  demoPts.push({x:px,y:py,missing:true,fA:px/7,fB:null,filled:null});
+  redrawDemo();
+});
+
+/* ═══════════════════════════════════════
+   SECTION 3 — DISTANCE METRIC VISUALISER
+═══════════════════════════════════════ */
+var metricPts=[];
+var metricQuery={x:350,y:160};
+var metricDragging=false;
+
+function genMetricPts(){
+  metricPts=[];
+  var rng=function(){return Math.random();};
+  for(var i=0;i<25;i++){
+    metricPts.push({x:60+rng()*580,y:30+rng()*240});
+  }
+}
+
+function metricDist(a,b,metric){
+  var dx=Math.abs(a.x-b.x),dy=Math.abs(a.y-b.y);
+  if(metric==='euclidean'||metric==='nan_euclidean') return Math.sqrt(dx*dx+dy*dy);
+  if(metric==='manhattan') return dx+dy;
+  if(metric==='chebyshev') return Math.max(dx,dy);
+  return Math.sqrt(dx*dx+dy*dy);
+}
+
+function redrawMetric(){
+  var metric=C('metric-select').value;
+  var k=parseInt(C('metric-k').value);
+  C('metric-k-val').textContent=k;
+
+  var cv=C('metric-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var dists=metricPts.map(function(p){
+    return{p:p,dist:metricDist(metricQuery,p,metric)};
+  }).sort(function(a,b){return a.dist-b.dist;});
+  var topK=dists.slice(0,k);
+  var topKPts=topK.map(function(d){return d.p;});
+  var maxDist=dists[dists.length-1].dist||1;
+
+  // Draw radius circle/diamond for top-K
+  var kthDist=topK.length?topK[topK.length-1].dist:0;
+  ctx.beginPath();
+  if(metric==='euclidean'||metric==='nan_euclidean'){
+    ctx.arc(metricQuery.x,metricQuery.y,kthDist,0,Math.PI*2);
+  } else if(metric==='manhattan'){
+    ctx.moveTo(metricQuery.x,metricQuery.y-kthDist);
+    ctx.lineTo(metricQuery.x+kthDist,metricQuery.y);
+    ctx.lineTo(metricQuery.x,metricQuery.y+kthDist);
+    ctx.lineTo(metricQuery.x-kthDist,metricQuery.y);
+    ctx.closePath();
+  } else if(metric==='chebyshev'){
+    ctx.rect(metricQuery.x-kthDist,metricQuery.y-kthDist,kthDist*2,kthDist*2);
+  }
+  ctx.strokeStyle='rgba(99,179,237,0.3)';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(99,179,237,0.06)';ctx.fill();
+
+  // Lines to top-K
+  topK.forEach(function(d){
+    ctx.beginPath();ctx.moveTo(metricQuery.x,metricQuery.y);ctx.lineTo(d.p.x,d.p.y);
+    ctx.strokeStyle='rgba(99,179,237,0.5)';ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  // All points
+  dists.forEach(function(d){
+    var isTop=topKPts.includes(d.p);
+    ctx.beginPath();ctx.arc(d.p.x,d.p.y,isTop?9:6,0,Math.PI*2);
+    ctx.fillStyle=isTop?'rgba(99,179,237,0.3)':'rgba(45,212,191,0.15)';ctx.fill();
+    ctx.strokeStyle=isTop?'#63b3ed':'rgba(45,212,191,0.5)';ctx.lineWidth=isTop?2:1;ctx.stroke();
+    if(isTop){
+      ctx.fillStyle='#63b3ed';ctx.font='10px mono';ctx.textAlign='center';
+      ctx.fillText(d.dist.toFixed(0),d.p.x,d.p.y-12);ctx.textAlign='start';
+    }
+  });
+
+  // Query point
+  ctx.beginPath();ctx.arc(metricQuery.x,metricQuery.y,10,0,Math.PI*2);
+  ctx.fillStyle='rgba(240,165,0,0.3)';ctx.fill();
+  ctx.strokeStyle='#f0a500';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.fillStyle=isDark()?'#f2f0ec':'#1a1916';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('Q',metricQuery.x,metricQuery.y);ctx.textBaseline='alphabetic';ctx.textAlign='start';
+
+  // Stats
+  var statsHtml='';
+  topK.forEach(function(d,i){
+    statsHtml+='<div class="stat-pill"><span class="stat-pill-val" style="font-size:14px;color:#63b3ed;">'+d.dist.toFixed(1)+'</span><span class="stat-pill-lbl">Neighbor #'+(i+1)+'</span></div>';
+  });
+  C('metric-stats').innerHTML=statsHtml;
+}
+
+var mCv=C('metric-canvas');
+mCv.addEventListener('mousedown',function(e){
+  var r=mCv.getBoundingClientRect(),sx=mCv.width/r.width,sy=mCv.height/r.height;
+  var px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sy;
+  if(Math.sqrt(Math.pow(px-metricQuery.x,2)+Math.pow(py-metricQuery.y,2))<20){metricDragging=true;}
+});
+mCv.addEventListener('mousemove',function(e){
+  if(!metricDragging) return;
+  var r=mCv.getBoundingClientRect(),sx=mCv.width/r.width,sy=mCv.height/r.height;
+  metricQuery.x=(e.clientX-r.left)*sx;metricQuery.y=(e.clientY-r.top)*sy;
+  redrawMetric();
+});
+mCv.addEventListener('mouseup',function(){metricDragging=false;});
+mCv.addEventListener('mouseleave',function(){metricDragging=false;});
+
+/* ═══════════════════════════════════════
+   SECTION 4 — HYPERPARAMETER TUNING
+═══════════════════════════════════════ */
+var hpWeights='uniform';
+var hpCorr='high';
+var ksweepData=null;
+var hpSynthData=null;
+
+function genSynthData(corrStr){
+  var corr=corrStr==='high'?0.9:corrStr==='medium'?0.5:0.1;
+  var n=80;
+  hpSynthData={train:[],test:[]};
+  for(var i=0;i<n;i++){
+    var x=Math.random()*10;
+    var noise=(Math.random()-0.5)*2*(1-corr)*5;
+    var y=corr*x+noise+(1-corr)*(Math.random()*10);
+    hpSynthData.train.push({x:x,y:y});
+  }
+  for(var i=0;i<20;i++){
+    var x=Math.random()*10;
+    var noise=(Math.random()-0.5)*2*(1-corr)*5;
+    var y=corr*x+noise+(1-corr)*(Math.random()*10);
+    hpSynthData.test.push({x:x,y:y});
+  }
+}
+
+function setWeights(w){
+  hpWeights=w;
+  C('hp-weights-val').textContent=w;
+  ['uniform','distance'].forEach(function(k){C('w-'+k).classList.toggle('active',k===w);});
+  onHPChange();
+}
+
+function setCorr(c){
+  hpCorr=c;
+  C('hp-corr-val').textContent=c;
+  ['high','med','low'].forEach(function(k){C('corr-'+k).classList.toggle('active',k===c||(k==='med'&&c==='medium'));});
+  genSynthData(c);
+  onHPChange();
+}
+
+function computeKNNMAE(k,weights,missPct,data){
+  var train=data.train;
+  var test=data.test;
+  var rng=Math.random;
+  var errors=[];
+  test.forEach(function(pt){
+    if(rng()>missPct/100) return;
+    var dists=train.map(function(t){return{val:t.y,dist:Math.abs(t.x-pt.x)};}).sort(function(a,b){return a.dist-b.dist;}).slice(0,k);
+    var filled;
+    if(weights==='uniform'){filled=dists.reduce(function(s,d){return s+d.val;},0)/dists.length;}
+    else{var ws=0,vs=0;dists.forEach(function(d){var w=d.dist<1e-10?1e10:1/d.dist;vs+=w*d.val;ws+=w;});filled=ws>0?vs/ws:dists[0].val;}
+    errors.push(Math.abs(filled-pt.y));
+  });
+  return errors.length?errors.reduce(function(a,b){return a+b;},0)/errors.length:0;
+}
+
+function onHPChange(){
+  var k=parseInt(C('hp-k').value);
+  var miss=parseInt(C('hp-miss').value);
+  C('hp-k-val').textContent=k;
+  C('hp-miss-val').textContent=miss+'%';
+  if(!hpSynthData) genSynthData(hpCorr);
+
+  var mae=computeKNNMAE(k,hpWeights,miss,hpSynthData);
+  var rmse=mae*1.3;
+  var modelAcc=Math.max(0.5,Math.min(0.99,0.95-miss/100*0.4-(hpCorr==='low'?0.1:0)+(k>1&&k<10?0.03:0)));
+  var meanMAE=computeKNNMAE(1,'uniform',miss,{train:hpSynthData.train.map(function(p){return{x:0,y:p.y};}),test:hpSynthData.test});
+  var improvement=meanMAE>0?((meanMAE-mae)/meanMAE*100):0;
+
+  C('ac-mae').textContent=mae.toFixed(2);
+  C('ac-mae-bar').style.width=Math.min(100,mae*20)+'%';
+  C('ac-rmse').textContent=rmse.toFixed(2);
+  C('ac-rmse-bar').style.width=Math.min(100,rmse*15)+'%';
+  C('ac-model-acc').textContent=(modelAcc*100).toFixed(0)+'%';
+  C('ac-model-bar').style.width=(modelAcc*100)+'%';
+  var impSign=improvement>=0?'+':'';
+  C('ac-vs-mean').textContent=impSign+improvement.toFixed(0)+'%';
+  C('ac-vs-bar').style.width=Math.min(100,Math.abs(improvement))+'%';
+  C('ac-vs-mean').style.color=improvement>=0?'#3ecf8e':'#f06060';
+}
+
+async function runKSweep(){
+  if(!hpSynthData) genSynthData(hpCorr);
+  C('ksweep-status').textContent='Running...';
+  ksweepData=[];
+  var miss=parseInt(C('hp-miss').value);
+  for(var k=1;k<=20;k++){
+    var mae=computeKNNMAE(k,hpWeights,miss,hpSynthData);
+    var maeD=computeKNNMAE(k,'distance',miss,hpSynthData);
+    ksweepData.push({k:k,uniform:mae,distance:maeD});
+    drawKSweepCanvas();
+    await delay(60);
+  }
+  var best=ksweepData.reduce(function(m,d){return d.uniform<m.uniform?d:m;},ksweepData[0]);
+  C('ksweep-status').textContent='Best K = '+best.k+' (MAE='+best.uniform.toFixed(2)+')';
+}
+
+function drawKSweepCanvas(){
+  if(!ksweepData||!ksweepData.length) return;
+  var cv=C('ksweep-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:14,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var maxMAE=Math.max.apply(null,ksweepData.map(function(d){return Math.max(d.uniform,d.distance);}));
+  var toX=function(k){return pad.l+(k-1)/19*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-v/maxMAE*(H-pad.t-pad.b);};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,.25,.5,.75,1].forEach(function(f){
+    var v=f*maxMAE;
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-4,toY(v)+4);
+  });
+  for(var k=1;k<=20;k++){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(k,toX(k),H-pad.b+14);
+  }
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('K (n_neighbors)',W/2,H-2);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.save();ctx.translate(12,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Imputation MAE',0,0);ctx.restore();
+
+  // Uniform line
+  ctx.beginPath();
+  ksweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.k),toY(d.uniform)):ctx.lineTo(toX(d.k),toY(d.uniform));});
+  ctx.strokeStyle='#63b3ed';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Distance line
+  ctx.beginPath();
+  ksweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.k),toY(d.distance)):ctx.lineTo(toX(d.k),toY(d.distance));});
+  ctx.strokeStyle='#f0a500';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+
+  // Dots
+  ksweepData.forEach(function(d){
+    ctx.beginPath();ctx.arc(toX(d.k),toY(d.uniform),4,0,Math.PI*2);ctx.fillStyle='#63b3ed';ctx.fill();
+    ctx.beginPath();ctx.arc(toX(d.k),toY(d.distance),4,0,Math.PI*2);ctx.fillStyle='#f0a500';ctx.fill();
+  });
+
+  // Best K marker
+  var best=ksweepData.reduce(function(m,d){return d.uniform<m.uniform?d:m;},ksweepData[0]);
+  ctx.beginPath();ctx.arc(toX(best.k),toY(best.uniform),8,0,Math.PI*2);
+  ctx.fillStyle='#3ecf8e';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#3ecf8e';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Best K='+best.k,toX(best.k),toY(best.uniform)-12);
+
+  // Legend
+  ctx.strokeStyle='#63b3ed';ctx.lineWidth=2.5;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(pad.l,pad.t+8);ctx.lineTo(pad.l+20,pad.t+8);ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Uniform',pad.l+24,pad.t+12);
+  ctx.strokeStyle='#f0a500';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.beginPath();ctx.moveTo(pad.l+80,pad.t+8);ctx.lineTo(pad.l+100,pad.t+8);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillText('Distance-weighted',pad.l+104,pad.t+12);
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════════
+   SECTION 5 — COMPARISON CANVAS
+═══════════════════════════════════════ */
+function redrawComparison(corrVal){
+  var corr=parseFloat(corrVal);
+  C('cmp-corr-val').textContent=corr.toFixed(2);
+  C('cmp-corr-stat').textContent=corr.toFixed(2);
+
+  var cv=C('cmp-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:40,r:20,t:30,b:50};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  // Generate correlated data
+  var N=30;
+  var pts=[];
+  for(var i=0;i<N;i++){
+    var x=Math.random()*8+1;
+    var noise=(Math.random()-0.5)*2*(1-corr)*4;
+    var y=corr*x+noise+(1-corr)*Math.random()*8;
+    pts.push({x:x,y:y});
+  }
+
+  var xMean=pts.reduce(function(s,p){return s+p.x;},0)/pts.length;
+  var yMean=pts.reduce(function(s,p){return s+p.y;},0)/pts.length;
+
+  // Pick 8 as "missing Y"
+  var missingIdx=[3,7,12,18,22,27];
+  var knnFills=[],meanFills=[],trueVals=[];
+
+  missingIdx.forEach(function(mi){
+    var pt=pts[mi];
+    var donors=pts.filter(function(p,i){return!missingIdx.includes(i);});
+    var dists=donors.map(function(d){return{val:d.y,dist:Math.abs(d.x-pt.x)};}).sort(function(a,b){return a.dist-b.dist;}).slice(0,3);
+    var knn=dists.reduce(function(s,d){return s+d.val;},0)/dists.length;
+    knnFills.push(knn);
+    meanFills.push(yMean);
+    trueVals.push(pt.y);
+  });
+
+  var knnMAE=knnFills.reduce(function(s,v,i){return s+Math.abs(v-trueVals[i]);},0)/knnFills.length;
+  var meanMAE=meanFills.reduce(function(s,v,i){return s+Math.abs(v-trueVals[i]);},0)/meanFills.length;
+  var imp=(meanMAE-knnMAE)/meanMAE*100;
+
+  C('cmp-knn-mae').textContent=knnMAE.toFixed(2);
+  C('cmp-mean-mae').textContent=meanMAE.toFixed(2);
+  C('cmp-improvement').textContent=(imp>=0?'+':'')+imp.toFixed(0)+'%';
+  C('cmp-improvement').style.color=imp>=0?'#3ecf8e':'#f06060';
+
+  // toCanvas
+  var xMin=0,xMax=10,yMin=0,yMax=10;
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-(v-yMin)/(yMax-yMin)*(H-pad.t-pad.b);};
+
+  // Grid
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0,2,4,6,8,10].forEach(function(v){
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(toX(v),pad.t);ctx.lineTo(toX(v),H-pad.b);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='9px mono';ctx.textAlign='right';ctx.fillText(v,pad.l-3,toY(v)+3);
+    ctx.textAlign='center';ctx.fillText(v,toX(v),H-pad.b+12);ctx.textAlign='start';
+  });
+
+  // Mean line
+  ctx.beginPath();ctx.moveTo(pad.l,toY(yMean));ctx.lineTo(W-pad.r,toY(yMean));
+  ctx.strokeStyle='rgba(240,96,96,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(240,96,96,0.7)';ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('Mean fill = '+yMean.toFixed(2),pad.l+4,toY(yMean)-5);ctx.textAlign='start';
+
+  // Regression line (correlated guide)
+  ctx.beginPath();ctx.moveTo(toX(1),toY(corr*1));ctx.lineTo(toX(9),toY(corr*9));
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.stroke();
+
+  // Complete points
+  pts.forEach(function(p,i){
+    if(missingIdx.includes(i)) return;
+    ctx.beginPath();ctx.arc(toX(p.x),toY(p.y),5,0,Math.PI*2);
+    ctx.fillStyle='rgba(45,212,191,0.5)';ctx.fill();
+    ctx.strokeStyle='#2dd4bf';ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Missing points + imputed values
+  missingIdx.forEach(function(mi,i){
+    var pt=pts[mi];
+    var knn=knnFills[i],mnf=meanFills[i],true_=trueVals[i];
+    var tx=toX(pt.x);
+
+    // True (hidden) position
+    ctx.beginPath();ctx.arc(tx,toY(true_),6,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([2,2]);ctx.stroke();ctx.setLineDash([]);
+
+    // Mean fill
+    ctx.beginPath();ctx.arc(tx,toY(mnf),5,0,Math.PI*2);
+    ctx.fillStyle='rgba(240,96,96,0.3)';ctx.fill();
+    ctx.strokeStyle='#f06060';ctx.lineWidth=2;ctx.stroke();
+
+    // KNN fill
+    ctx.beginPath();ctx.arc(tx,toY(knn),5,0,Math.PI*2);
+    ctx.fillStyle='rgba(99,179,237,0.3)';ctx.fill();
+    ctx.strokeStyle='#63b3ed';ctx.lineWidth=2;ctx.stroke();
+
+    // Error lines
+    ctx.beginPath();ctx.moveTo(tx+2,toY(true_));ctx.lineTo(tx+2,toY(knn));
+    ctx.strokeStyle='rgba(99,179,237,0.6)';ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(tx-2,toY(true_));ctx.lineTo(tx-2,toY(mnf));
+    ctx.strokeStyle='rgba(240,96,96,0.6)';ctx.lineWidth=2;ctx.stroke();
+  });
+
+  // Legend
+  var lx=pad.l+10,ly=pad.t+4;
+  [[' True (hidden)','rgba(255,255,255,0.4)'],[' KNN fill','#63b3ed'],[' Mean fill','#f06060']].forEach(function(leg,i){
+    ctx.beginPath();ctx.arc(lx+i*120,ly+5,5,0,Math.PI*2);ctx.fillStyle=leg[1];ctx.fill();ctx.strokeStyle=leg[1];ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(leg[0],lx+i*120+8,ly+9);
+  });
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════════
+   SECTION 7 — SCALING DEMO
+═══════════════════════════════════════ */
+var SCALE_PTS=[];
+function genScalePts(){
+  SCALE_PTS=[];
+  var ages=[22,31,45,55,28,62,38,50,33,47];
+  var incomes=[28,45,72,95,35,88,55,78,40,65];
+  var bloodPressures=[115,128,142,155,118,148,132,145,120,138];
+  ages.forEach(function(a,i){
+    SCALE_PTS.push({age:a,income:incomes[i],bp:bloodPressures[i]});
+  });
+}
+
+function redrawScaling(){
+  var qAge=parseInt(C('scale-age').value);
+  var qIncome=parseInt(C('scale-income').value);
+  C('scale-age-val').textContent=qAge;
+  C('scale-income-val').textContent='$'+qIncome+'k';
+
+  // True BP (linear model as ground truth)
+  var trueBP=100+qAge*0.5+qIncome*0.1;
+
+  // Unscaled: find K=3 nearest by raw distance
+  var k=3;
+  var unscaledDists=SCALE_PTS.map(function(p){
+    return{bp:p.bp,dist:Math.sqrt(Math.pow(p.age-qAge,2)+Math.pow(p.income*1000-qIncome*1000,2))};
+  }).sort(function(a,b){return a.dist-b.dist;}).slice(0,k);
+  var unscaledFill=unscaledDists.reduce(function(s,d){return s+d.bp;},0)/k;
+
+  // Scaled: normalise age to [0,1] and income to [0,1] first
+  var ageMin=20,ageMax=65,incMin=25,incMax=100;
+  var normAge=function(a){return(a-ageMin)/(ageMax-ageMin);};
+  var normInc=function(i){return(i-incMin)/(incMax-incMin);};
+  var qAgeN=normAge(qAge),qIncN=normInc(qIncome);
+  var scaledDists=SCALE_PTS.map(function(p){
+    return{bp:p.bp,dist:Math.sqrt(Math.pow(normAge(p.age)-qAgeN,2)+Math.pow(normInc(p.income)-qIncN,2))};
+  }).sort(function(a,b){return a.dist-b.dist;}).slice(0,k);
+  var scaledFill=scaledDists.reduce(function(s,d){return s+d.bp;},0)/k;
+
+  C('scale-unscaled-fill').textContent=unscaledFill.toFixed(0);
+  C('scale-scaled-fill').textContent=scaledFill.toFixed(0);
+  C('scale-true-val').textContent=trueBP.toFixed(0);
+
+  var errUnscaled=Math.abs(unscaledFill-trueBP);
+  var errScaled=Math.abs(scaledFill-trueBP);
+  var diff=errUnscaled-errScaled;
+  C('scale-diff').textContent=(diff>=0?'-':'+')+(Math.abs(diff)).toFixed(0)+' err';
+  C('scale-diff').style.color=diff>=0?'#3ecf8e':'#f06060';
+
+  var cv=C('scale-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  // Two panels: left=unscaled, right=scaled
+  var panelW=W/2-10;
+
+  function drawPanel(ox,pts,title,kPts,fill,isScaled){
+    ctx.fillStyle=tc();ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(title,ox+panelW/2,18);
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+    ctx.strokeRect(ox+10,28,panelW-20,H-50);
+
+    var aMin=18,aMax=68,iMin=20,iMax=105;
+    var toX=function(a){return ox+10+(a-aMin)/(aMax-aMin)*(panelW-20);};
+    var toY=function(i){return 28+(iMax-i)/(iMax-iMin)*(H-50);};
+
+    pts.forEach(function(p){
+      var isK=kPts.some(function(k){return k.bp===p.bp;});
+      ctx.beginPath();ctx.arc(toX(p.age),toY(p.income),isK?9:6,0,Math.PI*2);
+      ctx.fillStyle=isK?'rgba(99,179,237,0.3)':'rgba(45,212,191,0.2)';ctx.fill();
+      ctx.strokeStyle=isK?'#63b3ed':'rgba(45,212,191,0.6)';ctx.lineWidth=isK?2:1;ctx.stroke();
+      if(isK){
+        ctx.fillStyle='#63b3ed';ctx.font='9px mono';ctx.textAlign='center';
+        ctx.fillText('BP='+p.bp,toX(p.age),toY(p.income)-12);
+      }
+    });
+
+    // Query
+    ctx.beginPath();ctx.arc(toX(qAge),toY(qIncome),10,0,Math.PI*2);
+    ctx.fillStyle='rgba(240,165,0,0.25)';ctx.fill();
+    ctx.strokeStyle='#f0a500';ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle=isDark()?'#f2f0ec':'#1a1916';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('?',toX(qAge),toY(qIncome));ctx.textBaseline='alphabetic';
+
+    // Lines to K
+    kPts.forEach(function(k){
+      var kpt=pts.find(function(p){return p.bp===k.bp;});
+      if(!kpt) return;
+      ctx.beginPath();ctx.moveTo(toX(qAge),toY(qIncome));ctx.lineTo(toX(kpt.age),toY(kpt.income));
+      ctx.strokeStyle='rgba(99,179,237,0.5)';ctx.lineWidth=1.2;ctx.setLineDash([3,2]);ctx.stroke();ctx.setLineDash([]);
+    });
+
+    // Axis labels
+    ctx.fillStyle=tc();ctx.font='9px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Age →',ox+panelW/2,H-8);
+    ctx.save();ctx.translate(ox+2,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Income (k$)',0,0);ctx.restore();
+
+    // Fill badge
+    var fillColor=isScaled?'#63b3ed':'#f06060';
+    ctx.fillStyle=fillColor;ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Fill = '+fill.toFixed(0),ox+panelW/2,H-28);
+    ctx.textAlign='start';
+  }
+
+  drawPanel(0,SCALE_PTS,
+    'Unscaled (Income dominates)',
+    unscaledDists,unscaledFill,false);
+  drawPanel(W/2+10,SCALE_PTS,
+    'Scaled (Age + Income balanced)',
+    scaledDists,scaledFill,true);
+}
+
+/* ═══════════════════════════════════════
+   LIVE EDITOR
+═══════════════════════════════════════ */
+var SNIPPETS=[
+{file:'knn_impute_scratch.py',label:'KNN from scratch',code:`import numpy as np
+from collections import defaultdict
+
+class KNNImputer:
+    """
+    KNN Imputer from scratch.
+    Uses nan_euclidean_distance — handles NaN in donor rows.
+    """
+    def __init__(self, n_neighbors=5, weights='uniform'):
+        self.n_neighbors = n_neighbors
+        self.weights = weights
+
+    def _nan_euclidean(self, a, b):
+        """Distance between two rows, using only observed features in both."""
+        mask = ~(np.isnan(a) | np.isnan(b))
+        n_obs = mask.sum()
+        if n_obs == 0:
+            return np.inf
+        n_features = len(a)
+        diff = a[mask] - b[mask]
+        return np.sqrt((n_features / n_obs) * np.dot(diff, diff))
+
+    def fit(self, X):
+        """Store training data as the donor pool."""
+        self.X_train_ = np.array(X, dtype=float)
+        return self
+
+    def transform(self, X):
+        X = np.array(X, dtype=float)
+        result = X.copy()
+
+        for i, row in enumerate(X):
+            missing_cols = np.where(np.isnan(row))[0]
+            if len(missing_cols) == 0:
+                continue  # no missing values in this row
+
+            for col in missing_cols:
+                # Find donors: training rows that have a value in this column
+                donors = [(j, self.X_train_[j])
+                          for j in range(len(self.X_train_))
+                          if not np.isnan(self.X_train_[j, col])]
+
+                if not donors:
+                    continue
+
+                # Compute distances
+                dists = [(j, self._nan_euclidean(row, donor))
+                         for j, donor in donors]
+                dists.sort(key=lambda x: x[1])
+                k_nearest = dists[:self.n_neighbors]
+
+                # Compute weighted average
+                if self.weights == 'uniform':
+                    fill = np.mean([self.X_train_[j, col]
+                                    for j, _ in k_nearest])
+                else:  # distance-weighted
+                    weights_vals = []
+                    values = []
+                    for j, d in k_nearest:
+                        w = 1e10 if d < 1e-10 else 1.0 / d
+                        weights_vals.append(w)
+                        values.append(self.X_train_[j, col])
+                    fill = np.dot(weights_vals, values) / sum(weights_vals)
+
+                result[i, col] = fill
+
+        return result
+
+    def fit_transform(self, X):
+        return self.fit(X).transform(X)
+
+# ── Test on synthetic correlated data ──────────────
+np.random.seed(42)
+n = 100
+feature_a = np.random.uniform(0, 10, n)
+feature_b = 0.8 * feature_a + np.random.normal(0, 1, n)   # correlated!
+feature_c = np.random.uniform(0, 10, n)                    # independent
+
+X = np.column_stack([feature_a, feature_b, feature_c])
+X_with_nan = X.copy()
+mask = np.random.random(X.shape) < 0.20
+X_with_nan[mask] = np.nan
+
+from sklearn.model_selection import train_test_split
+X_tr, X_te = train_test_split(X_with_nan, test_size=0.2, random_state=42)
+X_true_te = X[X_with_nan.shape[0]-len(X_te):]  # approx
+
+imp = KNNImputer(n_neighbors=5, weights='uniform')
+imp.fit(X_tr)
+X_filled = imp.transform(X_te)
+
+mask_te = np.isnan(X_te)
+if mask_te.sum() > 0:
+    mae = np.mean(np.abs(X_filled[mask_te] - X[len(X_tr):][mask_te]))
+    print(f"Imputation MAE (uniform, K=5): {mae:.4f}")
+
+# Compare K values
+print("\\nK vs MAE:")
+for k in [1, 3, 5, 7, 10]:
+    imp_k = KNNImputer(n_neighbors=k)
+    imp_k.fit(X_tr)
+    X_f = imp_k.transform(X_te)
+    if mask_te.sum() > 0:
+        mae_k = np.mean(np.abs(X_f[mask_te] - X[len(X_tr):][mask_te]))
+        print(f"  K={k:<3}  MAE={mae_k:.4f}")
+`},
+{file:'knn_sklearn.py',label:'sklearn KNNImputer',code:`from sklearn.impute import KNNImputer
+from sklearn.datasets import load_diabetes
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# ── Load and inject missing values ──────────────────
+data = load_diabetes()
+X, y = data.data.copy(), data.target
+rng = np.random.default_rng(42)
+X[rng.random(X.shape) < 0.20] = np.nan
+
+print(f"Total missing: {np.isnan(X).sum()} / {X.size} ({np.isnan(X).mean():.1%})")
+print(f"Missing per feature: {np.isnan(X).sum(axis=0)}")
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# ── Try different K values and weights ──────────────
+from sklearn.metrics import mean_absolute_error
+X_train_true = data.data[:len(X_train)]
+X_test_true  = data.data[len(X_train):]
+
+print("\\n K   weights     Train MAE   Test MAE")
+print("-" * 44)
+for k in [1, 3, 5, 7, 10, 15]:
+    for w in ['uniform', 'distance']:
+        imp = KNNImputer(n_neighbors=k, weights=w)
+        imp.fit(X_train)
+        X_tr_f = imp.transform(X_train)
+        X_te_f = imp.transform(X_test)
+
+        tr_mask = np.isnan(X_train)
+        te_mask = np.isnan(X_test)
+        if tr_mask.sum() and te_mask.sum():
+            tr_mae = mean_absolute_error(
+                X_train_true[tr_mask], X_tr_f[tr_mask])
+            te_mae = mean_absolute_error(
+                X_test_true[te_mask], X_te_f[te_mask])
+            print(f" {k:<3}  {w:<10}  {tr_mae:>9.4f}  {te_mae:>8.4f}")
+`},
+{file:'knn_pipeline.py',label:'Scaled Pipeline',code:`from sklearn.impute import KNNImputer, SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.datasets import load_breast_cancer
+import numpy as np
+
+data = load_breast_cancer()
+X, y = data.data.copy(), data.target
+rng = np.random.default_rng(0)
+X[rng.random(X.shape) < 0.20] = np.nan
+
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+
+# CRITICAL: Scale THEN impute — KNN needs normalised distances
+# Pipeline order matters here:
+# 1. StandardScaler: normalise range so no feature dominates
+# 2. KNNImputer: now distances are meaningful
+# 3. Classifier: trained on clean, scaled data
+
+pipe_knn = Pipeline([
+    ('scale',  StandardScaler()),
+    ('impute', KNNImputer(n_neighbors=5, weights='distance')),
+    ('clf',    GradientBoostingClassifier(random_state=42)),
+])
+pipe_mean = Pipeline([
+    ('impute', SimpleImputer(strategy='mean')),
+    ('scale',  StandardScaler()),
+    ('clf',    GradientBoostingClassifier(random_state=42)),
+])
+
+for name, pipe in [('KNN impute (scaled)', pipe_knn),
+                   ('Mean impute', pipe_mean)]:
+    cv = cross_val_score(pipe, X_tr, y_tr, cv=5, scoring='accuracy')
+    pipe.fit(X_tr, y_tr)
+    te_acc = pipe.score(X_te, y_te)
+    print(f"{name:<25} CV={cv.mean():.4f}±{cv.std():.4f}  Test={te_acc:.4f}")
+
+print("\\nNote: KNN imputer is inside Pipeline → no data leakage")
+print("The scaler stats are also learned on train only — fully safe")
+`},
+{file:'knn_benchmark.py',label:'Full benchmark',code:`from sklearn.impute import KNNImputer, SimpleImputer
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_wine
+import numpy as np
+
+data = load_wine()
+X, y = data.data.copy(), data.target
+
+print(f"Dataset: Wine ({X.shape[0]} rows, {X.shape[1]} features, 3 classes)")
+
+results = []
+for miss_pct in [0.10, 0.20, 0.35]:
+    rng = np.random.default_rng(42)
+    X_m = X.copy()
+    X_m[rng.random(X.shape) < miss_pct] = np.nan
+
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X_m, y, test_size=0.2, stratify=y, random_state=42)
+
+    strategies = {
+        'Mean':          Pipeline([('imp', SimpleImputer()),
+                                   ('sc', StandardScaler()),
+                                   ('clf', RandomForestClassifier(n_estimators=50, random_state=42))]),
+        'Median':        Pipeline([('imp', SimpleImputer(strategy='median')),
+                                   ('sc', StandardScaler()),
+                                   ('clf', RandomForestClassifier(n_estimators=50, random_state=42))]),
+        'KNN-5 unif':    Pipeline([('sc', StandardScaler()),
+                                   ('imp', KNNImputer(n_neighbors=5)),
+                                   ('clf', RandomForestClassifier(n_estimators=50, random_state=42))]),
+        'KNN-5 dist':    Pipeline([('sc', StandardScaler()),
+                                   ('imp', KNNImputer(n_neighbors=5, weights='distance')),
+                                   ('clf', RandomForestClassifier(n_estimators=50, random_state=42))]),
+        'Iterative':     Pipeline([('imp', IterativeImputer(random_state=42, max_iter=10)),
+                                   ('sc', StandardScaler()),
+                                   ('clf', RandomForestClassifier(n_estimators=50, random_state=42))]),
+    }
+
+    row = [f"{miss_pct:.0%}"]
+    for name, pipe in strategies.items():
+        pipe.fit(X_tr, y_tr)
+        row.append(f"{pipe.score(X_te, y_te):.2%}")
+
+    results.append(row)
+
+header = f"{'miss':>5} | " + " | ".join(f"{s:>10}" for s in strategies.keys())
+print("\\n" + header)
+print("-" * len(header))
+for row in results:
+    print(f"{row[0]:>5} | " + " | ".join(f"{v:>10}" for v in row[1:]))
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ignored){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ═══ INIT ═══ */
+window.addEventListener('load',function(){
+  drawIntroCanvas(0,[]);
+  redrawDemo();
+  genMetricPts();redrawMetric();
+  genSynthData('high');onHPChange();
+  redrawComparison(0.85);
+  genScalePts();redrawScaling();
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawIntroCanvas(introStep,[]);redrawMetric();redrawComparison(parseFloat(C('cmp-corr').value));redrawScaling();drawKSweepCanvas();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

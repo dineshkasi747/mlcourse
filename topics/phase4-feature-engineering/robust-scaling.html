@@ -1,1 +1,937 @@
 <!-- robust-scaling.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Robust Scaling — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(167,139,250,0.1),rgba(75,150,255,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(167,139,250,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .formula-block{background:var(--bg-card);border:1px solid var(--border-md);border-left:5px solid var(--purple);border-radius:0 var(--r-lg) var(--r-lg) 0;padding:18px 22px;margin-bottom:20px;}
+    .formula-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:10px;}
+    .formula-math{font-family:var(--font-mono);font-size:15px;color:var(--text-1);line-height:2;margin-bottom:8px;}
+    .formula-explain{font-size:13px;color:var(--text-2);line-height:1.6;}
+    .step-card{display:flex;gap:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:10px;}
+    .step-num{width:36px;height:36px;border-radius:50%;background:var(--purple-surf);border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--purple);flex-shrink:0;}
+    .step-body{flex:1;}
+    .step-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .step-desc{font-size:13.5px;color:var(--text-2);line-height:1.6;}
+    .step-code{font-family:var(--font-mono);font-size:12px;background:var(--bg-input);border-left:3px solid var(--purple);padding:8px 12px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin-top:8px;line-height:1.7;color:var(--text-1);}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--purple);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:640px){.three-col{grid-template-columns:1fr!important;}}
+  </style>
+</head>
+<body data-topic-id="robust-scaling">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Robust Scaling</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Feature Engineering</a><span class="sep">/</span>
+            <span class="current">Robust Scaling</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-4" style="border-color:rgba(167,139,250,.25);margin-bottom:14px;">Phase 4 &middot; Feature Engineering</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Robust Scaling</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">When your data has outliers, StandardScaler and MinMaxScaler both get thrown off. Robust Scaling uses the <strong>median</strong> and <strong>IQR</strong> instead — statistics that outliers cannot distort. It ignores the extremes and focuses on the middle 50% of your data.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">14 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">sklearn &middot; pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- THE BIG IDEA: OUTLIER PROBLEM VISUAL -->
+          <section class="section" id="big-idea">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">!</div>
+              The problem — one millionaire breaks everything
+            </h2>
+            <p>Imagine 10 salaries: 9 people earn $30k–$80k, and one CEO earns $2,000,000. Watch what each scaler does with this data.</p>
+
+            <!-- The salary dot visual -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;">
+              <div style="padding:14px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);">10 salaries — 9 normal, 1 extreme CEO</div>
+              <canvas id="intro-canvas" width="700" height="200" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;" class="three-col">
+              <!-- StandardScaler result -->
+              <div style="background:var(--bg-card);border:2px solid rgba(240,96,96,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">StandardScaler</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.7;margin-bottom:8px;">Uses <strong>mean</strong> and <strong>std</strong>. The CEO's $2M pulls the mean up and inflates std. Everyone else gets compressed into a tiny range.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);">
+                  Normal staff: −0.4 to +0.1<br>
+                  CEO: <span style="color:var(--red);">+8.6 🚀</span><br>
+                  <span style="color:var(--red);">Mean shifted. Std blown up.</span>
+                </div>
+              </div>
+              <!-- MinMaxScaler result -->
+              <div style="background:var(--bg-card);border:2px solid rgba(240,96,96,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">MinMaxScaler</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.7;margin-bottom:8px;">Maps min→0, max→1. The CEO becomes 1.0 and everyone else gets squeezed into [0.0, 0.025] — just 2.5% of the full range!</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);">
+                  Normal staff: 0.01 to 0.025<br>
+                  CEO: <span style="color:var(--red);">1.000 🚀</span><br>
+                  <span style="color:var(--red);">Everyone compressed to a dot.</span>
+                </div>
+              </div>
+              <!-- RobustScaler result -->
+              <div style="background:var(--bg-card);border:2px solid rgba(167,139,250,0.5);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--purple);margin-bottom:6px;">RobustScaler ✓</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.7;margin-bottom:8px;">Uses <strong>median</strong> and <strong>IQR</strong>. Outliers don't affect these. Normal staff get well-spread values. CEO is just a distant outlier.</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);">
+                  Normal staff: <span style="color:var(--purple);">−1.3 to +1.5</span><br>
+                  CEO: 38.5 (far away)<br>
+                  <span style="color:var(--purple);">Normal data well-spread! ✓</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- HOW IT WORKS: MEDIAN & IQR -->
+          <section class="section" id="how-it-works">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">Q</div>
+              How it works — median and IQR explained visually
+            </h2>
+            <p>Instead of mean and std (which outliers distort), Robust Scaling uses <strong>median</strong> (the middle value) and <strong>IQR</strong> (the middle 50% spread). These are "robust" — outliers cannot change them.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title">Median vs Mean — and IQR vs Std — with outlier</span>
+                <button class="ctrl-btn active" id="outlier-toggle-btn" onclick="toggleOutlier()">Toggle outlier ON/OFF</button>
+              </div>
+              <canvas id="iqr-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="iq-mean" style="color:var(--red);">-</span><span class="stat-pill-lbl">Mean (shifts!)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="iq-median" style="color:var(--purple);">-</span><span class="stat-pill-lbl">Median (stable)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="iq-std" style="color:var(--red);">-</span><span class="stat-pill-lbl">Std (inflates!)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="iq-iqr" style="color:var(--purple);">-</span><span class="stat-pill-lbl">IQR (stable)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="iq-outlier" style="font-size:12px;color:var(--red);">-</span><span class="stat-pill-lbl">Outlier present</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>IQR = Interquartile Range = Q3 − Q1.</strong> It measures the spread of the middle 50% of your data. If salaries run from $30k (Q1) to $70k (Q3), IQR = $40k. An outlier CEO at $2M doesn't change Q1 or Q3 at all — the IQR stays $40k.</p>
+            </div>
+          </section>
+
+          <!-- FORMULA -->
+          <section class="section" id="formula">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">f</div>
+              The formula
+            </h2>
+            <div class="formula-block">
+              <div class="formula-name">Robust Scaling formula</div>
+              <div class="formula-math">x_scaled = (x − median) ÷ IQR</div>
+              <div class="formula-explain">
+                <strong>x</strong> = original value &nbsp;|&nbsp;
+                <strong>median</strong> = middle value (50th percentile) &nbsp;|&nbsp;
+                <strong>IQR</strong> = Q3 − Q1 (75th percentile − 25th percentile)<br><br>
+                <strong>Compare with Standardization:</strong> z = (x − <em>mean</em>) ÷ <em>std</em><br>
+                The only difference: swap mean→median and std→IQR. But this small change makes it immune to outliers.
+              </div>
+            </div>
+
+            <!-- Worked example -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;">
+              <div style="padding:12px 20px;background:var(--bg-input);border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--purple);">Worked example — incomes with one outlier</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+                <div style="padding:14px;border-right:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Income ($k)</div>
+                  <div style="font-family:var(--font-mono);font-size:13px;color:var(--text-1);line-height:2.2;">30<br>40<br>45<br>50 ← median<br>55<br>65<br>80<br><span style="color:var(--red);">2000 ← outlier</span></div>
+                </div>
+                <div style="padding:14px;border-right:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Key stats</div>
+                  <div style="font-size:12.5px;color:var(--text-2);line-height:2.2;">
+                    Median = <span style="color:var(--purple);font-weight:700;">50k</span><br>
+                    Q1 = 38.75k<br>
+                    Q3 = 61.25k<br>
+                    IQR = <span style="color:var(--purple);font-weight:700;">22.5k</span><br>
+                    <br>
+                    Mean = <span style="color:var(--red);">295.6k</span><br>
+                    Std = <span style="color:var(--red);">658k</span>
+                  </div>
+                </div>
+                <div style="padding:14px;border-right:1px solid var(--border);">
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Robust: (x−50)÷22.5</div>
+                  <div style="font-family:var(--font-mono);font-size:13px;color:var(--text-1);line-height:2.2;"><span style="color:var(--purple);">−0.89</span><br><span style="color:var(--purple);">−0.44</span><br><span style="color:var(--purple);">−0.22</span><br><span style="color:var(--purple);">0.00</span><br><span style="color:var(--purple);">+0.22</span><br><span style="color:var(--purple);">+0.67</span><br><span style="color:var(--purple);">+1.33</span><br><span style="color:var(--red);">+86.7</span></div>
+                </div>
+                <div style="padding:14px;">
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Std: (x−295.6)÷658</div>
+                  <div style="font-family:var(--font-mono);font-size:13px;color:var(--red);line-height:2.2;">−0.40<br>−0.39<br>−0.38<br>−0.37<br>−0.37<br>−0.35<br>−0.33<br>+2.59</div>
+                </div>
+              </div>
+              <div style="padding:10px 20px;background:var(--bg-input);border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);">
+                <strong style="color:var(--purple);">Robust:</strong> Normal values span −0.89 to +1.33 — well spread ✓ &nbsp;|&nbsp;
+                <strong style="color:var(--red);">Standard:</strong> Normal values all crammed into −0.40 to −0.33 — useless ✗
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE INTERACTIVE DEMO -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">⚡</div>
+              Live demo — drag the outlier slider
+            </h2>
+            <p>Drag the <strong>Outlier magnitude</strong> slider from 1× to 50×. Watch how StandardScaler and MinMaxScaler collapse while RobustScaler stays stable.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Three scalers — outlier stress test</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outlier magnitude:</span>
+                  <input type="range" min="1" max="50" value="5" class="ctrl-slider" id="outlier-mag" style="width:130px;" oninput="updateOutlierDemo(this.value)"/>
+                  <span class="ctrl-value" id="outlier-mag-val" style="color:var(--red);">5×</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="demo-ds" onchange="updateOutlierDemo(document.getElementById('outlier-mag').value)">
+                    <option value="salaries">Salaries</option>
+                    <option value="ages">Ages</option>
+                    <option value="scores">Scores</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="demo-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="dm-std-spread" style="color:var(--blue);">-</span><span class="stat-pill-lbl">Std spread (normal)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dm-mm-spread" style="color:var(--green);">-</span><span class="stat-pill-lbl">MM spread (normal)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dm-rob-spread" style="color:var(--purple);">-</span><span class="stat-pill-lbl">Robust spread (normal)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dm-winner" style="font-size:12px;color:var(--purple);">-</span><span class="stat-pill-lbl">Best scaler</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- WHEN TO USE -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">?</div>
+              When to use each scaler — decision guide
+            </h2>
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title">Quick decision guide — which scaler to pick?</span>
+              </div>
+              <canvas id="guide-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" class="three-col">
+              <div style="background:var(--bg-card);border:2px solid rgba(62,207,142,0.3);border-radius:var(--r-lg);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px;">MinMaxScaler</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.7;">
+                  ✓ No outliers<br>✓ Neural networks<br>✓ Image pixels (0–255)<br>✓ Need values in [0,1]<br>✗ Sensitive to outliers
+                </div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(75,150,255,0.3);border-radius:var(--r-lg);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px;">StandardScaler</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.7;">
+                  ✓ Roughly normal data<br>✓ Linear/Logistic Regression<br>✓ SVM, PCA, KNN<br>✓ Few or no outliers<br>⚠ Moderate outlier sensitivity
+                </div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(167,139,250,0.5);border-radius:var(--r-lg);padding:14px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--purple);margin-bottom:8px;">RobustScaler ★</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.7;">
+                  ✓ <strong>Has outliers</strong> (use this!)<br>✓ Skewed distributions<br>✓ Financial / income data<br>✓ Any real-world messy data<br>✓ Keeps outliers in data
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- CODE -->
+          <section class="section" id="how-to-code">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">{}</div>
+              How to code it
+            </h2>
+            <div class="step-card">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Import and use — same pattern as all scalers</div>
+                <div class="step-desc">RobustScaler has the exact same API as StandardScaler and MinMaxScaler. Swap one for another with one line change.</div>
+                <div class="step-code">from sklearn.preprocessing import RobustScaler
+scaler = RobustScaler()
+# By default uses Q1 (25th) and Q3 (75th) percentile = IQR
+# Can customise: RobustScaler(quantile_range=(10.0, 90.0))</div>
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Split first, fit on training only</div>
+                <div class="step-code">X_train_scaled = scaler.fit_transform(X_train)  # learns median & IQR
+X_test_scaled  = scaler.transform(X_test)        # uses training stats</div>
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">In a Pipeline (best practice)</div>
+                <div class="step-code">from sklearn.pipeline import Pipeline
+from sklearn.linear_model import HuberRegressor  # also outlier-robust
+pipe = Pipeline([
+    ('scaler', RobustScaler()),
+    ('model',  HuberRegressor())   # pair with robust model too!
+])</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">robust_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using StandardScaler on data with outliers.</strong> If your feature has salary data with a few CEOs, StandardScaler inflates std and compresses all normal values. Switch to RobustScaler.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Thinking RobustScaler removes outliers.</strong> It doesn't. Outliers are still in the scaled data — they just become very large numbers (like +86) instead of dominating the scale. You still need to investigate whether to keep or remove them.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using RobustScaler when data has no outliers.</strong> For clean, normally distributed data, StandardScaler is better — it uses all information equally rather than only the middle 50%.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Forgetting to pair with outlier-robust models.</strong> RobustScaler helps but if your model (like Linear Regression) is sensitive to outliers in y, also consider Huber Regression or RANSAC.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Remember these 5 things</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Formula:</strong> (x − median) ÷ IQR — uses median and IQR instead of mean and std</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>When to use:</strong> any time your data has outliers — income, prices, counts, real-world messy data</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Why it works:</strong> median and IQR are not affected by extreme values — outliers can't distort them</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Does NOT remove outliers:</strong> they still appear in scaled data, just as large numbers like +86</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Default IQR:</strong> uses Q1 (25th) to Q3 (75th) percentile. Can widen with quantile_range=(10,90) for very messy data</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="minmax-scaling.html"><span class="pn-dir">Previous</span><span class="pn-title">Min-Max Scaling</span></a>
+            <a class="pn-card next" id="next-card" href="normalization.html"><span class="pn-dir">Next</span><span class="pn-title">Normalization</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#big-idea">The problem</a></li>
+            <li class="toc-item"><a href="#how-it-works">Median &amp; IQR</a></li>
+            <li class="toc-item"><a href="#formula">The formula</a></li>
+            <li class="toc-item"><a href="#live-demo">Outlier stress test</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use</a></li>
+            <li class="toc-item"><a href="#how-to-code">Code steps</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgCard(){return isDark()?'#1e1e26':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+
+function normalRand(mu,sigma){
+  var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return(mu||0)+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+function median(arr){var s=arr.slice().sort(function(a,b){return a-b;});var m=s.length;return m%2?s[(m-1)/2]:(s[m/2-1]+s[m/2])/2;}
+function percentile(arr,p){var s=arr.slice().sort(function(a,b){return a-b;});var i=(p/100)*(s.length-1);var lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}
+function mean(arr){return arr.reduce(function(a,b){return a+b;},0)/arr.length;}
+function std(arr){var m=mean(arr);return Math.sqrt(arr.reduce(function(s,v){return s+(v-m)**2;},0)/arr.length)||1;}
+
+function robustScale(arr){var med=median(arr),q1=percentile(arr,25),q3=percentile(arr,75),iqr=(q3-q1)||1;return arr.map(function(v){return(v-med)/iqr;});}
+function standardScale(arr){var m=mean(arr),s=std(arr);return arr.map(function(v){return(v-m)/s;});}
+function minmaxScale(arr){var mn=Math.min.apply(null,arr),mx=Math.max.apply(null,arr),r=(mx-mn)||1;return arr.map(function(v){return(v-mn)/r;});}
+
+/* ══════════════════════════════
+   INTRO CANVAS
+══════════════════════════════ */
+var IC=C('intro-canvas'),IX=IC.getContext('2d');
+
+function drawIntro(){
+  var salaries=[30,38,42,48,52,58,65,72,80,2000]; // in $k, last is CEO
+  var W=IC.width,H=IC.height;
+  IX.clearRect(0,0,W,H);IX.fillStyle=bg();IX.fillRect(0,0,W,H);
+
+  var pad={l:80,r:20,t:25,b:30};
+  var iW=W-pad.l-pad.r;
+
+  // Draw all 3 scalings as dot tracks
+  var scalers=[
+    {label:'StandardScaler',vals:standardScale(salaries),col:'#4b96ff'},
+    {label:'MinMaxScaler',  vals:minmaxScale(salaries),  col:'#3ecf8e'},
+    {label:'RobustScaler',  vals:robustScale(salaries),  col:'#a78bfa'},
+  ];
+  var trackH=(H-pad.t-pad.b)/3;
+
+  scalers.forEach(function(sc,si){
+    var y=pad.t+si*trackH+trackH/2;
+    var mn2=Math.min.apply(null,sc.vals),mx2=Math.max.apply(null,sc.vals);
+    var range=mx2-mn2||1;
+
+    // Track background
+    IX.fillStyle=isDark()?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)';
+    IX.fillRect(pad.l,y-14,iW,28);
+
+    // Scaler label
+    IX.fillStyle=sc.col;IX.font='bold 11px sans-serif';IX.textAlign='right';
+    IX.fillText(sc.label,pad.l-5,y+4);
+
+    // Dots
+    sc.vals.forEach(function(v,i){
+      var isCEO=i===9;
+      // Clamp display to avoid going off canvas
+      var xPos=pad.l+Math.min(0.98,(v-mn2)/range)*iW;
+      IX.beginPath();IX.arc(xPos,y,isCEO?9:5,0,Math.PI*2);
+      IX.fillStyle=isCEO?'rgba(240,96,96,0.9)':sc.col+'bb';IX.fill();
+      IX.strokeStyle=isCEO?'var(--red)':sc.col;IX.lineWidth=1.5;IX.stroke();
+    });
+
+    // Show spread of normal values (first 9)
+    var normalVals=sc.vals.slice(0,9);
+    var nmn=Math.min.apply(null,normalVals),nmx=Math.max.apply(null,normalVals);
+    var nx1=pad.l+(nmn-mn2)/range*iW,nx2=pad.l+(nmx-mn2)/range*iW;
+    IX.fillStyle=sc.col+'20';IX.fillRect(Math.min(nx1,nx2),y-14,Math.abs(nx2-nx1)||2,28);
+
+    // Spread label
+    var spreadPct=Math.abs(nx2-nx1)/iW*100;
+    IX.fillStyle=spreadPct<10?'var(--red)':'var(--green)';
+    IX.font='bold 9px sans-serif';IX.textAlign='center';
+    var labelX=(nx1+nx2)/2;
+    if(spreadPct<5) labelX=pad.l+iW*0.15;
+    IX.fillText(spreadPct.toFixed(0)+'% spread',labelX,y-18);
+  });
+
+  // CEO marker
+  IX.fillStyle='rgba(240,96,96,0.7)';IX.font='bold 10px sans-serif';IX.textAlign='right';
+  IX.fillText('CEO ($2M) →',W-pad.r,pad.t+14);
+}
+
+/* ══════════════════════════════
+   IQR VISUAL CANVAS
+══════════════════════════════ */
+var QC=C('iqr-canvas'),QX=QC.getContext('2d');
+var showOutlier=true;
+
+function toggleOutlier(){
+  showOutlier=!showOutlier;
+  C('outlier-toggle-btn').textContent='Outlier '+(showOutlier?'ON':'OFF');
+  C('outlier-toggle-btn').style.color=showOutlier?'var(--red)':'var(--green)';
+  drawIQR();
+}
+
+function drawIQR(){
+  var baseVals=[30,38,42,48,52,58,65,72,80];
+  var vals=showOutlier?baseVals.concat([2000]):baseVals;
+
+  var med=median(vals),mn=mean(vals),s=std(vals);
+  var q1=percentile(vals,25),q3=percentile(vals,75),iqr=q3-q1;
+
+  C('iq-mean').textContent=mn.toFixed(0)+'k';
+  C('iq-median').textContent=med.toFixed(0)+'k';
+  C('iq-std').textContent=s.toFixed(0)+'k';
+  C('iq-iqr').textContent=iqr.toFixed(0)+'k';
+  C('iq-outlier').textContent=showOutlier?'YES (CEO $2M)':'NO';
+  C('iq-mean').style.color=showOutlier?'var(--red)':'var(--green)';
+  C('iq-std').style.color=showOutlier?'var(--red)':'var(--green)';
+
+  var W=QC.width,H=QC.height,pad={l:60,r:40,t:40,b:50};
+  QX.clearRect(0,0,W,H);QX.fillStyle=bg();QX.fillRect(0,0,W,H);
+
+  var dispMax=showOutlier?200:100; // clip display for readability
+  var iW=W-pad.l-pad.r;
+  var xC=function(v){return pad.l+Math.min(1,(v/dispMax))*iW;};
+  var midY=H/2;
+
+  // IQR box
+  var q1x=xC(q1),q3x=xC(q3),medx=xC(med),meanx=xC(Math.min(mn,dispMax));
+  QX.fillStyle='rgba(167,139,250,0.15)';QX.fillRect(q1x,midY-20,q3x-q1x,40);
+  QX.strokeStyle='var(--purple)';QX.lineWidth=2;QX.strokeRect(q1x,midY-20,q3x-q1x,40);
+
+  // Whiskers
+  var whisLo=xC(Math.max(0,q1-1.5*iqr)),whisHi=xC(Math.min(dispMax,q3+1.5*iqr));
+  QX.beginPath();QX.strokeStyle='rgba(167,139,250,0.6)';QX.lineWidth=1.5;
+  QX.moveTo(whisLo,midY);QX.lineTo(q1x,midY);QX.stroke();
+  QX.beginPath();QX.moveTo(q3x,midY);QX.lineTo(whisHi,midY);QX.stroke();
+
+  // Grid
+  QX.strokeStyle=gc();QX.lineWidth=0.5;
+  [0,50,100].forEach(function(v){
+    var x=xC(v);
+    QX.beginPath();QX.moveTo(x,pad.t);QX.lineTo(x,H-pad.b);QX.stroke();
+    QX.fillStyle=tc();QX.font='9px monospace';QX.textAlign='center';QX.fillText(v+'k',x,H-pad.b+14);
+  });
+  if(showOutlier){QX.fillStyle=tc();QX.font='9px monospace';QX.textAlign='right';QX.fillText('→2000k',W-pad.r,H-pad.b+14);}
+
+  // Data dots
+  vals.forEach(function(v){
+    var isCEO=v>500;
+    var x=isCEO?W-pad.r+20:xC(v);
+    if(x>W-pad.r+30)return;
+    QX.beginPath();QX.arc(Math.min(x,W-pad.r+15),midY,isCEO?8:5,0,Math.PI*2);
+    QX.fillStyle=isCEO?'rgba(240,96,96,0.85)':'rgba(167,139,250,0.8)';QX.fill();
+    QX.strokeStyle=isCEO?'var(--red)':'var(--purple)';QX.lineWidth=1.5;QX.stroke();
+    if(isCEO){QX.fillStyle='var(--red)';QX.font='bold 10px sans-serif';QX.textAlign='left';QX.fillText('CEO $2M',W-pad.r-60,midY+20);}
+  });
+
+  // Median line
+  QX.beginPath();QX.strokeStyle='var(--purple)';QX.lineWidth=3;
+  QX.moveTo(medx,midY-20);QX.lineTo(medx,midY+20);QX.stroke();
+  QX.fillStyle='var(--purple)';QX.font='bold 11px sans-serif';QX.textAlign='center';
+  QX.fillText('median='+med.toFixed(0)+'k',medx,midY-26);
+
+  // Mean dot
+  QX.beginPath();QX.arc(meanx,midY,6,0,Math.PI*2);
+  QX.fillStyle='rgba(240,96,96,0.8)';QX.fill();
+  QX.strokeStyle='var(--red)';QX.lineWidth=2;QX.stroke();
+  QX.fillStyle='var(--red)';QX.font='bold 11px sans-serif';QX.textAlign='center';
+  QX.fillText('mean='+mn.toFixed(0)+'k',Math.min(meanx,W-100),midY+28);
+
+  // IQR label
+  QX.fillStyle='var(--purple)';QX.font='bold 10px sans-serif';QX.textAlign='center';
+  QX.fillText('← IQR = '+iqr.toFixed(0)+'k →',(q1x+q3x)/2,midY+32);
+  QX.fillStyle=tc();QX.font='9px sans-serif';QX.fillText('(middle 50% of data)',(q1x+q3x)/2,midY+44);
+
+  // Legend
+  QX.fillStyle='var(--purple)';QX.fillRect(pad.l,pad.t-20,12,10);
+  QX.fillStyle=tc();QX.font='10px sans-serif';QX.textAlign='left';QX.fillText('IQR box (Q1 to Q3)',pad.l+16,pad.t-12);
+  QX.beginPath();QX.arc(pad.l+150,pad.t-15,5,0,Math.PI*2);QX.fillStyle='rgba(167,139,250,0.8)';QX.fill();
+  QX.fillStyle=tc();QX.fillText('Data point',pad.l+160,pad.t-12);
+  if(showOutlier){
+    QX.beginPath();QX.arc(pad.l+250,pad.t-15,6,0,Math.PI*2);QX.fillStyle='rgba(240,96,96,0.85)';QX.fill();
+    QX.fillStyle=tc();QX.fillText('Outlier',pad.l+260,pad.t-12);
+  }
+}
+
+/* ══════════════════════════════
+   OUTLIER STRESS TEST CANVAS
+══════════════════════════════ */
+var DC=C('demo-canvas'),DX=DC.getContext('2d');
+
+var DEMO_DATA={
+  salaries:function(){return Array.from({length:15},function(){return 30+Math.random()*50;});},
+  ages:    function(){return Array.from({length:15},function(){return 20+Math.random()*40;});},
+  scores:  function(){return Array.from({length:15},function(){return 50+Math.random()*40;}); }
+};
+var baseData=null;
+
+function updateOutlierDemo(mag){
+  mag=parseInt(mag);C('outlier-mag-val').textContent=mag+'×';
+  if(!baseData) baseData=DEMO_DATA[C('demo-ds').value]();
+  var max=Math.max.apply(null,baseData);
+  var withOut=baseData.concat([max*mag]);
+
+  var std2=standardScale(withOut),mm=minmaxScale(withOut),rob=robustScale(withOut);
+  var normalStd=std2.slice(0,-1),normalMM=mm.slice(0,-1),normalRob=rob.slice(0,-1);
+
+  var spread=function(arr){return Math.max.apply(null,arr)-Math.min.apply(null,arr);};
+  var sS=spread(normalStd),sM=spread(normalMM),sR=spread(normalRob);
+
+  C('dm-std-spread').textContent=sS.toFixed(2);C('dm-std-spread').style.color=sS<0.5?'var(--red)':'var(--blue)';
+  C('dm-mm-spread').textContent=sM.toFixed(2);C('dm-mm-spread').style.color=sM<0.05?'var(--red)':'var(--green)';
+  C('dm-rob-spread').textContent=sR.toFixed(2);C('dm-rob-spread').style.color='var(--purple)';
+  C('dm-winner').textContent=sR>sS&&sR>sM?'RobustScaler':sS>sM?'StandardScaler':'MinMaxScaler';
+
+  drawDemo([std2,mm,rob],['StandardScaler','MinMaxScaler','RobustScaler'],['#4b96ff','#3ecf8e','#a78bfa'],withOut.length-1);
+}
+
+function drawDemo(scaledSets,labels,colors,outlierIdx){
+  var W=DC.width,H=DC.height,pad={l:120,r:20,t:30,b:30};
+  DX.clearRect(0,0,W,H);DX.fillStyle=bg();DX.fillRect(0,0,W,H);
+  var n=scaledSets.length,trackH=(H-pad.t-pad.b)/n;
+
+  scaledSets.forEach(function(sc,si){
+    var y=pad.t+si*trackH+trackH/2;
+    var iW=W-pad.l-pad.r;
+    var mn=Math.min.apply(null,sc),mx=Math.max.apply(null,sc),range=mx-mn||1;
+    var normalVals=sc.filter(function(_,i){return i!==outlierIdx;});
+    var nmn=Math.min.apply(null,normalVals),nmx=Math.max.apply(null,normalVals);
+
+    // Track
+    DX.fillStyle=isDark()?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)';
+    DX.fillRect(pad.l,y-16,iW,32);
+
+    // Normal range highlight
+    var nx1=pad.l+(nmn-mn)/range*iW,nx2=pad.l+(nmx-mn)/range*iW;
+    DX.fillStyle=colors[si]+'18';DX.fillRect(Math.min(nx1,nx2),y-16,Math.abs(nx2-nx1)||2,32);
+    // Bracket lines
+    DX.strokeStyle=colors[si];DX.lineWidth=1.5;
+    DX.beginPath();DX.moveTo(Math.min(nx1,nx2),y-12);DX.lineTo(Math.min(nx1,nx2),y+12);DX.stroke();
+    DX.beginPath();DX.moveTo(Math.max(nx1,nx2),y-12);DX.lineTo(Math.max(nx1,nx2),y+12);DX.stroke();
+
+    // Dots
+    sc.forEach(function(v,i){
+      var isOut=i===outlierIdx;
+      var x=pad.l+(v-mn)/range*iW;
+      x=Math.max(pad.l,Math.min(W-pad.r,x));
+      DX.beginPath();DX.arc(x,y,isOut?8:4,0,Math.PI*2);
+      DX.fillStyle=isOut?'rgba(240,96,96,0.85)':colors[si]+'bb';DX.fill();
+      if(isOut){DX.strokeStyle='var(--red)';DX.lineWidth=2;DX.stroke();}
+    });
+
+    // Label
+    DX.fillStyle=colors[si];DX.font='bold 11px sans-serif';DX.textAlign='right';DX.fillText(labels[si],pad.l-6,y+4);
+
+    // Spread annotation
+    var spreadPct=Math.abs(nx2-nx1)/iW*100;
+    DX.fillStyle=spreadPct<5?'var(--red)':spreadPct<20?'var(--accent)':'var(--green)';
+    DX.font='bold 9px sans-serif';DX.textAlign='center';
+    DX.fillText(spreadPct.toFixed(0)+'% spread for normal values',(nx1+nx2)/2,y-20);
+  });
+
+  // Legend
+  DX.beginPath();DX.arc(pad.l+20,H-10,6,0,Math.PI*2);DX.fillStyle='rgba(240,96,96,0.85)';DX.fill();
+  DX.fillStyle=tc();DX.font='10px sans-serif';DX.textAlign='left';DX.fillText('= outlier',pad.l+30,H-7);
+}
+
+/* ══════════════════════════════
+   DECISION GUIDE CANVAS
+══════════════════════════════ */
+var GC=C('guide-canvas'),GX=GC.getContext('2d');
+
+function drawGuide(){
+  var W=GC.width,H=GC.height;
+  GX.clearRect(0,0,W,H);GX.fillStyle=bg();GX.fillRect(0,0,W,H);
+
+  var entries=[
+    {q:'Does your data have outliers?',yes:'RobustScaler',no:'next1',yCol:'#a78bfa',nCol:tc()},
+  ];
+
+  // Simple flowchart
+  var nodes=[
+    {x:W/2,y:35,text:'Has outliers?',w:160,h:34,col:'#a78bfa',type:'diamond'},
+    {x:W*0.2,y:120,text:'MinMaxScaler',w:150,h:34,col:'#3ecf8e',type:'rect'},
+    {x:W*0.5,y:120,text:'StandardScaler',w:160,h:34,col:'#4b96ff',type:'rect'},
+    {x:W*0.8,y:120,text:'RobustScaler ★',w:160,h:34,col:'#a78bfa',type:'rect'},
+    {x:W*0.2,y:170,text:'Neural net / [0,1] needed',w:160,h:28,col:'#3ecf8e',type:'label'},
+    {x:W*0.5,y:170,text:'Linear, SVM, PCA, KNN',w:160,h:28,col:'#4b96ff',type:'label'},
+    {x:W*0.8,y:170,text:'Any data with outliers',w:160,h:28,col:'#a78bfa',type:'label'},
+  ];
+
+  // Draw question box
+  var q=nodes[0];
+  GX.fillStyle=q.col+'22';GX.fillRect(q.x-q.w/2,q.y-q.h/2,q.w,q.h);
+  GX.strokeStyle=q.col;GX.lineWidth=2;GX.strokeRect(q.x-q.w/2,q.y-q.h/2,q.w,q.h);
+  GX.fillStyle=q.col;GX.font='bold 12px sans-serif';GX.textAlign='center';GX.fillText(q.text,q.x,q.y+4);
+
+  // Arrow labels
+  GX.fillStyle=tc();GX.font='bold 10px sans-serif';
+  GX.fillText('No outliers',W*0.35,82);
+  GX.fillText('Has outliers',W*0.7,82);
+  GX.fillText('Neural net',W*0.2,98);
+
+  // Arrows
+  [[W/2,52,W*0.2,103],[W/2,52,W*0.5,103],[W/2,52,W*0.8,103]].forEach(function(a){
+    GX.beginPath();GX.strokeStyle=gc();GX.lineWidth=1.5;
+    GX.moveTo(a[0],a[1]);GX.lineTo(a[2],a[3]);GX.stroke();
+  });
+
+  // Result boxes
+  for(var i=1;i<=3;i++){
+    var n2=nodes[i];
+    GX.fillStyle=n2.col+'22';GX.fillRect(n2.x-n2.w/2,n2.y-n2.h/2,n2.w,n2.h);
+    GX.strokeStyle=n2.col;GX.lineWidth=2;GX.strokeRect(n2.x-n2.w/2,n2.y-n2.h/2,n2.w,n2.h);
+    GX.fillStyle=n2.col;GX.font='bold 12px sans-serif';GX.textAlign='center';GX.fillText(n2.text,n2.x,n2.y+4);
+  }
+
+  // Sub-labels
+  for(var i=4;i<=6;i++){
+    var n3=nodes[i];
+    GX.fillStyle=tc();GX.font='10px sans-serif';GX.textAlign='center';GX.fillText(n3.text,n3.x,n3.y+4);
+  }
+
+  // Second level: StandardScaler sub-split
+  GX.fillStyle='#4b96ff';GX.font='10px sans-serif';GX.textAlign='center';
+  GX.fillText('(if roughly normal)',W*0.5,190);
+  GX.fillStyle=tc();GX.font='10px sans-serif';
+  GX.fillText('Use MinMaxScaler if',W*0.2,190);GX.fillText('need [0,1] output',W*0.2,202);
+}
+
+/* ══════════════════════════════
+   LIVE EDITOR
+══════════════════════════════ */
+var SNIPPETS=[
+{file:'robust_basics.py',label:'Basics',code:`import numpy as np
+import pandas as pd
+from sklearn.preprocessing import RobustScaler, StandardScaler, MinMaxScaler
+
+# Salary data with one extreme outlier (CEO)
+salaries = np.array([30, 38, 42, 48, 52, 58, 65, 72, 80, 2000], dtype=float)
+
+print("Original salaries ($k):", salaries)
+print()
+
+scalers = {
+    'StandardScaler': StandardScaler(),
+    'MinMaxScaler':   MinMaxScaler(),
+    'RobustScaler':   RobustScaler(),
+}
+
+for name, sc in scalers.items():
+    scaled = sc.fit_transform(salaries.reshape(-1, 1)).flatten()
+    normal = scaled[:-1]  # all except CEO
+    print(f"{name}:")
+    print(f"  Normal staff range: {normal.min():.3f} to {normal.max():.3f}")
+    print(f"  Normal staff spread: {normal.max()-normal.min():.3f}")
+    print(f"  CEO value: {scaled[-1]:.3f}")
+    print()`},
+{file:'robust_vs_standard.py',label:'Head-to-head',code:`import numpy as np
+from sklearn.preprocessing import RobustScaler, StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import Pipeline
+
+np.random.seed(42)
+n = 200
+
+# Create dataset with outliers
+X = np.random.normal(50, 15, (n, 3))
+y = X[:, 0] * 2 + X[:, 1] * 0.5 + np.random.normal(0, 5, n)
+
+# Add 10% outliers
+outlier_idx = np.random.choice(n, int(n*0.1), replace=False)
+X[outlier_idx] *= 8  # extreme values
+
+model = LinearRegression()
+cv_results = {}
+
+for name, scaler in [
+    ('No scaling',      None),
+    ('StandardScaler',  StandardScaler()),
+    ('RobustScaler',    RobustScaler()),
+]:
+    if scaler:
+        pipe = Pipeline([('s', scaler), ('m', model)])
+    else:
+        pipe = model
+    scores = cross_val_score(pipe, X, y, cv=5, scoring='r2')
+    cv_results[name] = scores
+    print(f"{name:20}: R2 = {scores.mean():.4f} +/- {scores.std():.4f}")
+
+print()
+print("RobustScaler should outperform StandardScaler when outliers are present")`},
+{file:'robust_quantile.py',label:'Custom quantile',code:`import numpy as np
+from sklearn.preprocessing import RobustScaler
+
+data = np.array([10., 20., 25., 30., 35., 40., 45., 50., 500., 1000.]).reshape(-1,1)
+
+print("Data:", data.flatten())
+print()
+
+# Default: uses Q1 (25th) to Q3 (75th) percentile
+rs_default = RobustScaler()  # quantile_range=(25.0, 75.0)
+print("Default IQR (Q1-Q3):")
+print(" ", rs_default.fit_transform(data).flatten().round(3))
+print(f"  Center (median): {rs_default.center_[0]:.1f}")
+print(f"  Scale (IQR):     {rs_default.scale_[0]:.1f}")
+print()
+
+# Wider range: more resistant to many outliers
+rs_wide = RobustScaler(quantile_range=(10.0, 90.0))
+print("Wide range (Q10-Q90):")
+print(" ", rs_wide.fit_transform(data).flatten().round(3))
+print(f"  Center: {rs_wide.center_[0]:.1f}")
+print(f"  Scale:  {rs_wide.scale_[0]:.1f}")
+print()
+
+print("Use wider range when data has many outliers (>10% of data)")`},
+{file:'robust_pipeline.py',label:'Full pipeline',code:`import numpy as np
+import pandas as pd
+from sklearn.preprocessing import RobustScaler
+from sklearn.linear_model import HuberRegressor, LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, train_test_split
+
+np.random.seed(42)
+n = 300
+# Financial data: lots of outliers
+df = pd.DataFrame({
+    'revenue'   : np.random.lognormal(4, 1, n),   # right-skewed
+    'employees' : np.random.lognormal(3, 0.8, n),
+    'profit_pct': np.random.normal(0.1, 0.3, n),
+})
+# Add some extreme outliers
+df.loc[:10, 'revenue'] *= 50
+y = df['revenue'] * 0.15 + np.random.normal(0, 1, n)
+
+X = df[['employees', 'profit_pct']].values
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Compare: Standard Linear vs Robust approach
+pipes = {
+    'LinearReg + StandardScaler': Pipeline([('s', __import__('sklearn.preprocessing', fromlist=['StandardScaler']).StandardScaler()), ('m', LinearRegression())]),
+    'HuberReg + RobustScaler':    Pipeline([('s', RobustScaler()), ('m', HuberRegressor())]),
+}
+
+for name, pipe in pipes.items():
+    scores = cross_val_score(pipe, X_train, y_train, cv=5, scoring='r2')
+    pipe.fit(X_train, y_train)
+    test_r2 = pipe.score(X_test, y_test)
+    print(f"{name}:")
+    print(f"  CV R2 = {scores.mean():.4f}  Test R2 = {test_r2:.4f}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  drawIntro();drawIQR();
+  updateOutlierDemo(5);
+  drawGuide();
+  initEditor();
+  new MutationObserver(function(){
+    drawIntro();drawIQR();
+    updateOutlierDemo(document.getElementById('outlier-mag').value);
+    drawGuide();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

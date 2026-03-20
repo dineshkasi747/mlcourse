@@ -1,1 +1,902 @@
 <!-- log-transform.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Log Transform — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(62,207,142,0.1),rgba(240,165,0,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(62,207,142,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .formula-block{background:var(--bg-card);border:1px solid var(--border-md);border-left:5px solid var(--green);border-radius:0 var(--r-lg) var(--r-lg) 0;padding:18px 22px;margin-bottom:20px;}
+    .formula-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:10px;}
+    .formula-math{font-family:var(--font-mono);font-size:15px;color:var(--text-1);line-height:2;margin-bottom:8px;}
+    .formula-explain{font-size:13px;color:var(--text-2);line-height:1.6;}
+    .step-card{display:flex;gap:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:10px;}
+    .step-num{width:36px;height:36px;border-radius:50%;background:var(--green-surf);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--green);flex-shrink:0;}
+    .step-body{flex:1;}
+    .step-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .step-desc{font-size:13.5px;color:var(--text-2);line-height:1.6;}
+    .step-code{font-family:var(--font-mono);font-size:12px;background:var(--bg-input);border-left:3px solid var(--green);padding:8px 12px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin-top:8px;line-height:1.7;color:var(--text-1);}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--green);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+  </style>
+</head>
+<body data-topic-id="log-transform">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Log Transform</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Feature Engineering</a><span class="sep">/</span>
+            <span class="current">Log Transform</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-4" style="border-color:rgba(62,207,142,.25);margin-bottom:14px;">Phase 4 &middot; Feature Engineering</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Log Transform</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Income, house prices, and city populations all follow the same pattern — a huge pile of small values and a long tail of rare large values. The log transform compresses that long tail, making these right-skewed distributions bell-shaped and easier for models to learn from.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">16 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">numpy &middot; pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- THE BIG IDEA -->
+          <section class="section" id="big-idea">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">ln</div>
+              The idea — squishing the long tail
+            </h2>
+            <p>Imagine house prices in a city: most sell for $200k–$600k, but a handful of mansions sell for $5M–$20M. The model keeps seeing huge salary numbers and struggles. The log transform <strong>squishes</strong> big numbers down while barely touching small ones — creating a more balanced distribution.</p>
+
+            <!-- Big intuitive visual: the squishing demonstration -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;margin-bottom:20px;">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:18px;">Log compresses large numbers more than small ones</div>
+              <div id="squish-rows"></div>
+              <div style="margin-top:14px;font-size:12.5px;color:var(--text-3);">
+                <strong style="color:var(--green);">Key insight:</strong> Going from $1 to $10 (10× bigger) adds the same log amount as going from $10,000 to $100,000 (also 10× bigger). Log measures <em>multiplication factors</em>, not absolute differences.
+              </div>
+            </div>
+          </section>
+
+          <!-- INTERACTIVE DEMO: BEFORE/AFTER -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">~</div>
+              Live before &amp; after — watch skew disappear
+            </h2>
+            <p>Select a real-world dataset and watch the log transform convert a right-skewed histogram into an approximately normal one. The <strong>skewness number</strong> shows how much the shape improves.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Distribution before &amp; after log transform</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="log-dataset" onchange="loadLogDataset(this.value)">
+                    <option value="income">Income ($)</option>
+                    <option value="house">House prices ($)</option>
+                    <option value="population">City populations</option>
+                    <option value="websessions">Web sessions/day</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Transform:</span>
+                  <select class="ctrl-select" id="log-type" onchange="loadLogDataset(document.getElementById('log-dataset').value)">
+                    <option value="log">log(x) — natural log</option>
+                    <option value="log1p">log(1+x) — safe for zeros</option>
+                    <option value="log10">log10(x) — base 10</option>
+                    <option value="sqrt">sqrt(x) — mild transform</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="log-canvas" width="700" height="360" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="log-skew-before" style="color:var(--red);">-</span><span class="stat-pill-lbl">Skew before</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="log-skew-after" style="color:var(--green);">-</span><span class="stat-pill-lbl">Skew after</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="log-skew-pct" style="color:var(--teal);">-</span><span class="stat-pill-lbl">Improvement</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="log-shape" style="font-size:12px;">-</span><span class="stat-pill-lbl">Shape after</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="log-n">-</span><span class="stat-pill-lbl">n samples</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LOG CURVE: THE MATH VISUALISED -->
+          <section class="section" id="log-curve">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">f</div>
+              The log curve — why it compresses big numbers more
+            </h2>
+            <p>Drag the input slider to understand exactly what log does. Notice how each step up on the x-axis gives a <em>smaller and smaller</em> step on the y-axis — that's the compression effect.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">log(x) function — hover/drag to explore</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">x value:</span>
+                  <input type="range" min="1" max="1000" value="10" class="ctrl-slider" id="log-x-slider" style="width:130px;" oninput="updateLogCurve(this.value)"/>
+                  <span class="ctrl-value" id="log-x-val" style="color:var(--blue);">10</span>
+                </div>
+              </div>
+              <canvas id="curve-canvas" width="700" height="280" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="lc-x" style="color:var(--blue);">10</span><span class="stat-pill-lbl">x (original)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lc-ln" style="color:var(--green);">2.30</span><span class="stat-pill-lbl">ln(x)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lc-log10">1.00</span><span class="stat-pill-lbl">log10(x)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lc-sqrt">3.16</span><span class="stat-pill-lbl">sqrt(x)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="lc-note" style="font-size:12px;color:var(--text-3);">-</span><span class="stat-pill-lbl">Interpretation</span></div>
+              </div>
+            </div>
+
+            <!-- Intuition table -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;">
+              <div style="padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue);">How log compresses — intuition table</div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                  <thead><tr style="background:var(--bg-card);">
+                    <th style="padding:10px 14px;border-bottom:2px solid var(--border-md);color:var(--text-3);font-size:11px;font-weight:700;text-transform:uppercase;text-align:left;">Original x</th>
+                    <th style="padding:10px 14px;border-bottom:2px solid var(--border-md);color:var(--text-3);font-size:11px;font-weight:700;text-transform:uppercase;text-align:left;">Multiply by</th>
+                    <th style="padding:10px 14px;border-bottom:2px solid var(--border-md);color:var(--green);font-size:11px;font-weight:700;text-transform:uppercase;text-align:left;">ln(x)</th>
+                    <th style="padding:10px 14px;border-bottom:2px solid var(--border-md);color:var(--text-3);font-size:11px;font-weight:700;text-transform:uppercase;text-align:left;">log adds</th>
+                    <th style="padding:10px 14px;border-bottom:2px solid var(--border-md);color:var(--text-3);font-size:11px;font-weight:700;text-transform:uppercase;text-align:left;">Real-world example</th>
+                  </tr></thead>
+                  <tbody id="log-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- WHEN TO USE -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">?</div>
+              When to use it — and when NOT to
+            </h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+              <div style="background:var(--bg-card);border:2px solid rgba(62,207,142,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;">✓ Use log transform when</div>
+                <div style="font-size:13px;color:var(--text-2);line-height:1.8;">
+                  ✓ Skewness &gt; 1 or &lt; -1 (highly skewed)<br>
+                  ✓ <strong>Income, salary, house prices</strong><br>
+                  ✓ <strong>Population, page views, counts</strong><br>
+                  ✓ Values span multiple orders of magnitude<br>
+                  ✓ Linear regression or models that assume normality<br>
+                  ✓ Feature or target variable is right-skewed
+                </div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(240,96,96,0.3);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px;">✗ Do NOT use log when</div>
+                <div style="font-size:13px;color:var(--text-2);line-height:1.8;">
+                  ✗ Data has <strong>zeros</strong> — log(0) = −∞ (use log1p instead)<br>
+                  ✗ Data has <strong>negative values</strong> — log of negative is undefined<br>
+                  ✗ Data is already normally distributed<br>
+                  ✗ Tree-based models (RF, XGBoost) — don't need it<br>
+                  ✗ You need to interpret coefficients in original scale<br>
+                  ✗ Data is left-skewed (try square or cube instead)
+                </div>
+              </div>
+            </div>
+
+            <!-- Skewness check visual -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title">Skewness guide — when does log transform help?</span>
+              </div>
+              <canvas id="skew-guide-canvas" width="700" height="160" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- HANDLING ZEROS AND NEGATIVES -->
+          <section class="section" id="zeros-negatives">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">0</div>
+              Handling zeros and negatives
+            </h2>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+              <div style="background:var(--bg-card);border:2px solid rgba(62,207,142,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px;">log1p — for zeros</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);margin-bottom:8px;">log1p(x) = log(1 + x)</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.6;">Adds 1 before taking log. log1p(0) = log(1) = 0. Safe for count data like "number of purchases" which can be 0.</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(240,165,0,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;">shift + log — negatives</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);margin-bottom:8px;">log(x − min + 1)</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.6;">Shift all values up so minimum becomes 1, then log. Works when data has negatives (like temperature in Celsius).</div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(75,150,255,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px;">signed log — both sides</div>
+                <div style="font-family:var(--font-mono);font-size:12px;background:var(--bg-input);padding:8px;border-radius:var(--r-sm);margin-bottom:8px;">sign(x) · log(|x| + 1)</div>
+                <div style="font-size:12px;color:var(--text-2);line-height:1.6;">For data that can be positive or negative (profits/losses). Preserves sign while compressing magnitude.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- CODE STEPS -->
+          <section class="section" id="how-to-code">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">{}</div>
+              How to code it
+            </h2>
+            <div class="step-card">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Check skewness first — only transform if needed</div>
+                <div class="step-desc">Don't transform blindly. Check the skewness value. If |skew| &gt; 1, consider log transform.</div>
+                <div class="step-code">from scipy.stats import skew
+print(df['income'].skew())  # > 1 → right skewed → try log
+import matplotlib.pyplot as plt
+df['income'].hist()  # visual check</div>
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Apply the right variant</div>
+                <div class="step-code">import numpy as np
+# All values > 0: use log
+df['log_income'] = np.log(df['income'])
+# Has zeros: use log1p
+df['log_views'] = np.log1p(df['page_views'])
+# sklearn: FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer
+log_transformer = FunctionTransformer(np.log1p, validate=True)</div>
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">In a sklearn Pipeline</div>
+                <div class="step-code">from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
+pipe = Pipeline([
+    ('log',    FunctionTransformer(np.log1p)),  # log1p first
+    ('scaler', StandardScaler()),               # then standardize
+    ('model',  LinearRegression())
+])</div>
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">Reverse the transform for predictions</div>
+                <div class="step-desc">If you log-transformed the target variable (y), remember to exponentiate predictions to get back original scale.</div>
+                <div class="step-code">y_pred_log = model.predict(X_test)
+y_pred_original = np.expm1(y_pred_log)  # reverse of log1p
+# np.exp() reverses np.log()
+# np.expm1() reverses np.log1p()</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">log_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Applying log to data with zeros or negatives.</strong> log(0) = −∞ and log(negative) = error. Always check: df['col'].min(). If min is 0, use log1p. If min is negative, shift first.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Forgetting to reverse the transform on predictions.</strong> If you log-transformed the target y, model predictions are in log space. Use np.expm1() or np.exp() to get predictions back in original units.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Applying log to already-normal data.</strong> Log transform on symmetric data makes it left-skewed. Always check skewness first — only apply if |skew| &gt; 1.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using log on tree-based models unnecessarily.</strong> Random Forest, XGBoost, LightGBM are scale and distribution invariant. Log transforming features doesn't help them and makes features harder to interpret.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Remember these 5 things</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Purpose:</strong> converts right-skewed distributions (income, prices, counts) into approximately normal ones</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Has zeros?</strong> Use np.log1p(x) not np.log(x). log1p(0) = 0, log(0) = error</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Check skewness first:</strong> only apply when |skew| &gt; 1. Don't transform symmetric data</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Reverse it:</strong> predictions on log-transformed y need np.expm1() to return to original scale</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Not needed for:</strong> tree-based models (RF, XGBoost) — they don't care about distribution shape</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="robust-scaling.html"><span class="pn-dir">Previous</span><span class="pn-title">Robust Scaling</span></a>
+            <a class="pn-card next" id="next-card" href="boxcox-transform.html"><span class="pn-dir">Next</span><span class="pn-title">Box-Cox Transform</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#big-idea">The idea</a></li>
+            <li class="toc-item"><a href="#live-demo">Live demo</a></li>
+            <li class="toc-item"><a href="#log-curve">The log curve</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use</a></li>
+            <li class="toc-item"><a href="#zeros-negatives">Zeros &amp; negatives</a></li>
+            <li class="toc-item"><a href="#how-to-code">Code steps</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgCard(){return isDark()?'#1e1e26':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+
+function normalRand(mu,sigma){
+  var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return(mu||0)+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function skewness(arr){
+  var n=arr.length,m=arr.reduce(function(a,b){return a+b;},0)/n;
+  var s=Math.sqrt(arr.reduce(function(a,v){return a+(v-m)**2;},0)/n)||1;
+  return arr.reduce(function(a,v){return a+((v-m)/s)**3;},0)/n;
+}
+
+/* ══════════════════════════════
+   SQUISH ROWS (intro visual)
+══════════════════════════════ */
+function buildSquishRows(){
+  var pairs=[[1,10],[10,100],[100,1000],[10000,100000],[1000000,10000000]];
+  var maxOrig=10000000;
+  var container=C('squish-rows');
+  container.innerHTML='';
+  pairs.forEach(function(pair){
+    var orig=pair[0],next=pair[1];
+    var logOrig=Math.log(orig),logNext=Math.log(next);
+    var origPct=orig/maxOrig*100,nextPct=next/maxOrig*100;
+    var logPct=(logOrig/Math.log(maxOrig))*100,logNextPct=(logNext/Math.log(maxOrig))*100;
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:12px;';
+    row.innerHTML=
+      '<div style="width:85px;font-family:var(--font-mono);font-size:11px;color:var(--text-2);text-align:right;flex-shrink:0;">'+orig.toLocaleString()+'</div>'+
+      '<div style="flex:1;height:22px;background:var(--bg-input);border-radius:4px;position:relative;">'+
+        '<div style="position:absolute;left:0;top:0;height:100%;width:'+Math.max(0.3,Math.min(100,origPct))+'%;background:rgba(240,96,96,0.5);border-radius:4px;"></div>'+
+      '</div>'+
+      '<div style="width:14px;text-align:center;font-size:12px;color:var(--text-3);flex-shrink:0;">→</div>'+
+      '<div style="flex:1;height:22px;background:var(--bg-input);border-radius:4px;position:relative;">'+
+        '<div style="position:absolute;left:0;top:0;height:100%;width:'+Math.min(100,logPct*1.05)+'%;background:rgba(62,207,142,0.6);border-radius:4px;"></div>'+
+        '<div style="position:absolute;top:50%;transform:translateY(-50%);left:'+(Math.min(100,logPct*1.05)+1)+'%;font-family:var(--font-mono);font-size:10px;color:var(--green);white-space:nowrap;">ln='+logOrig.toFixed(2)+'</div>'+
+      '</div>';
+    container.appendChild(row);
+  });
+  // Add headers
+  var header=document.createElement('div');
+  header.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:8px;';
+  header.innerHTML=
+    '<div style="width:85px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);text-align:right;">Original</div>'+
+    '<div style="flex:1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);">Original scale (compressed to fit)</div>'+
+    '<div style="width:14px;"></div>'+
+    '<div style="flex:1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);">After log transform</div>';
+  container.insertBefore(header,container.firstChild);
+}
+
+/* ══════════════════════════════
+   DATASET GENERATION
+══════════════════════════════ */
+var LOG_DATASETS={
+  income:function(){var d=[];for(var i=0;i<300;i++)d.push(Math.max(1,Math.exp(normalRand(10.5,0.8))));return d;},
+  house:function(){var d=[];for(var i=0;i<300;i++)d.push(Math.max(1,Math.exp(normalRand(12.5,0.7))));return d;},
+  population:function(){var d=[];for(var i=0;i<300;i++)d.push(Math.max(100,Math.exp(normalRand(10,1.5))));return d;},
+  websessions:function(){var d=[];for(var i=0;i<300;i++)d.push(Math.max(1,Math.exp(normalRand(5,1.2))));return d;}
+};
+
+/* ══════════════════════════════
+   LOG CANVAS: BEFORE/AFTER
+══════════════════════════════ */
+var LC=C('log-canvas'),LX=LC.getContext('2d');
+
+function loadLogDataset(key){
+  var raw=LOG_DATASETS[key]?LOG_DATASETS[key]():LOG_DATASETS.income();
+  var logType=C('log-type').value;
+  var transformed;
+  if(logType==='log')     transformed=raw.map(function(v){return Math.log(Math.max(0.001,v));});
+  else if(logType==='log1p') transformed=raw.map(function(v){return Math.log1p(v);});
+  else if(logType==='log10') transformed=raw.map(function(v){return Math.log10(Math.max(0.001,v));});
+  else transformed=raw.map(function(v){return Math.sqrt(Math.max(0,v));});
+
+  var sk1=skewness(raw),sk2=skewness(transformed);
+  var pct=sk1!==0?((1-Math.abs(sk2)/Math.abs(sk1))*100):0;
+  C('log-skew-before').textContent=sk1.toFixed(2);
+  C('log-skew-after').textContent=sk2.toFixed(2);
+  C('log-skew-pct').textContent=(pct>0?'+':'')+pct.toFixed(0)+'%';
+  C('log-skew-before').style.color=Math.abs(sk1)>1?'var(--red)':'var(--accent)';
+  C('log-skew-after').style.color=Math.abs(sk2)<0.5?'var(--green)':Math.abs(sk2)<1?'var(--accent)':'var(--red)';
+  C('log-shape').textContent=Math.abs(sk2)<0.5?'Near normal':Math.abs(sk2)<1?'Mild skew':'Still skewed';
+  C('log-n').textContent=raw.length;
+
+  drawLogHistograms(raw,transformed);
+}
+
+function drawLogHistograms(orig,trans){
+  var W=LC.width,H=LC.height,pad={l:55,r:15,t:35,b:50};
+  LX.clearRect(0,0,W,H);LX.fillStyle=bg();LX.fillRect(0,0,W,H);
+  var halfW=(W-20)/2;
+
+  function drawHist(vals,xOff,label,color,xLabel){
+    var n=vals.length,nb=20;
+    var mnV=Math.min.apply(null,vals),mxV=Math.max.apply(null,vals),range=mxV-mnV||1;
+    var bw=range/nb,counts=new Array(nb).fill(0);
+    vals.forEach(function(v){var bi=Math.min(Math.floor((v-mnV)/bw),nb-1);counts[bi]++;});
+    var mc=Math.max.apply(null,counts)||1;
+    var iW=halfW-pad.l-pad.r,iH=H-pad.t-pad.b;
+
+    LX.strokeStyle=gc();LX.lineWidth=0.5;
+    for(var gi=0;gi<=4;gi++){var gy=pad.t+gi*iH/4;LX.beginPath();LX.moveTo(xOff+pad.l,gy);LX.lineTo(xOff+halfW-pad.r,gy);LX.stroke();}
+
+    counts.forEach(function(c,i){
+      if(c===0)return;
+      var x=xOff+pad.l+i*(iW/nb),bh=(c/mc)*iH*0.9;
+      LX.fillStyle=color+'55';LX.fillRect(x+1,H-pad.b-bh,iW/nb-2,bh);
+      LX.strokeStyle=color;LX.lineWidth=1.5;LX.strokeRect(x+1,H-pad.b-bh,iW/nb-2,bh);
+    });
+
+    // KDE overlay
+    var m=vals.reduce(function(a,b){return a+b;},0)/n;
+    var s=Math.sqrt(vals.reduce(function(a,v){return a+(v-m)**2;},0)/n)||1;
+    var h2=1.06*s*Math.pow(n,-0.2);
+    LX.beginPath();LX.strokeStyle=color;LX.lineWidth=2.5;
+    for(var px=0;px<=iW;px+=3){
+      var xv=mnV+px/iW*range;
+      var kde=vals.reduce(function(sum,xi){var u=(xv-xi)/h2;return sum+Math.exp(-0.5*u*u);},0)/(n*h2*Math.sqrt(2*Math.PI));
+      var py=H-pad.b-(kde*n*bw/mc)*iH*0.9;
+      px===0?LX.moveTo(xOff+pad.l+px,py):LX.lineTo(xOff+pad.l+px,py);
+    }
+    LX.stroke();
+
+    LX.fillStyle=tc();LX.font='9px monospace';LX.textAlign='center';
+    for(var xi=0;xi<=4;xi++){LX.fillText((mnV+xi/4*range).toFixed(1),xOff+pad.l+xi/4*iW,H-pad.b+14);}
+    LX.fillStyle=tc();LX.font='11px sans-serif';LX.fillText(xLabel,xOff+halfW/2,H-pad.b+28);
+    LX.fillStyle=color;LX.font='bold 13px sans-serif';LX.fillText(label,xOff+halfW/2,22);
+
+    // Skewness badge
+    var sk=skewness(vals);
+    var badgeCol=Math.abs(sk)<0.5?'var(--green)':Math.abs(sk)<1?'var(--accent)':'var(--red)';
+    LX.fillStyle=badgeCol;LX.font='bold 11px monospace';LX.textAlign='right';
+    LX.fillText('skew='+sk.toFixed(2),xOff+halfW-pad.r,22);
+  }
+
+  drawHist(orig,0,'BEFORE','#f06060','Original values (skewed)');
+  drawHist(trans,halfW+20,'AFTER','#3ecf8e','After log transform');
+
+  LX.strokeStyle=gc();LX.lineWidth=2;LX.beginPath();LX.moveTo(halfW+10,20);LX.lineTo(halfW+10,H-20);LX.stroke();
+  LX.fillStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';LX.font='22px sans-serif';LX.textAlign='center';
+  LX.fillText('→',halfW+10,H/2+8);LX.fillStyle=tc();LX.font='bold 9px monospace';LX.fillText('log(x)',halfW+10,H/2+22);
+}
+
+/* ══════════════════════════════
+   LOG CURVE CANVAS
+══════════════════════════════ */
+var CC=C('curve-canvas'),CX=CC.getContext('2d');
+
+function updateLogCurve(v){
+  v=parseInt(v);C('log-x-val').textContent=v;
+  C('lc-x').textContent=v;
+  C('lc-ln').textContent=Math.log(v).toFixed(3);
+  C('lc-log10').textContent=Math.log10(v).toFixed(3);
+  C('lc-sqrt').textContent=Math.sqrt(v).toFixed(2);
+  var note=v<10?'Small x: each step gives big log jump':v<100?'Medium x: moderate compression':v<500?'Large x: strong compression':'Very large: heavily compressed';
+  C('lc-note').textContent=note;
+  drawLogCurve(v);
+}
+
+CC.addEventListener('click',function(e){
+  var r=CC.getBoundingClientRect(),sx=CC.width/r.width;
+  var x=(e.clientX-r.left)*sx;
+  var W=CC.width,H=CC.height,pad={l:50,r:20,t:20,b:40};
+  var iW=W-pad.l-pad.r,maxX=1000;
+  var xVal=Math.max(1,Math.round((x-pad.l)/iW*maxX));
+  C('log-x-slider').value=Math.min(1000,xVal);
+  updateLogCurve(xVal);
+});
+
+function drawLogCurve(xVal){
+  var W=CC.width,H=CC.height,pad={l:50,r:20,t:20,b:40};
+  CX.clearRect(0,0,W,H);CX.fillStyle=bg();CX.fillRect(0,0,W,H);
+  var iW=W-pad.l-pad.r,iH=H-pad.t-pad.b,maxX=1000,maxY=7;
+
+  CX.strokeStyle=gc();CX.lineWidth=0.5;
+  [0,1,2,3,4,5,6,7].forEach(function(v){
+    var y=pad.t+(1-v/maxY)*iH;
+    CX.beginPath();CX.moveTo(pad.l,y);CX.lineTo(W-pad.r,y);CX.stroke();
+    CX.fillStyle=tc();CX.font='9px monospace';CX.textAlign='right';CX.fillText(v,pad.l-3,y+3);
+  });
+  [1,100,200,400,600,800,1000].forEach(function(v){
+    var x=pad.l+(v/maxX)*iW;
+    CX.beginPath();CX.moveTo(x,pad.t);CX.lineTo(x,H-pad.b);CX.stroke();
+    CX.fillStyle=tc();CX.font='9px monospace';CX.textAlign='center';CX.fillText(v,x,H-pad.b+14);
+  });
+
+  // Functions
+  var curves=[
+    {fn:function(x){return Math.log(x);},col:'#3ecf8e',label:'ln(x)'},
+    {fn:function(x){return Math.log10(x);},col:'#4b96ff',label:'log₁₀(x)'},
+    {fn:function(x){return Math.sqrt(x)/Math.sqrt(maxX)*maxY;},col:'#f0a500',label:'√x (scaled)'},
+  ];
+
+  curves.forEach(function(curve){
+    CX.beginPath();CX.strokeStyle=curve.col;CX.lineWidth=2;
+    var first=true;
+    for(var xi=1;xi<=maxX;xi+=5){
+      var y2=curve.fn(xi);
+      if(isNaN(y2)||y2<0||y2>maxY+0.5)continue;
+      var px=pad.l+(xi/maxX)*iW,py=pad.t+(1-y2/maxY)*iH;
+      first?CX.moveTo(px,py):CX.lineTo(px,py);first=false;
+    }
+    CX.stroke();
+    var endY=curve.fn(maxX);
+    if(endY>0&&endY<=maxY){
+      CX.fillStyle=curve.col;CX.font='bold 10px sans-serif';CX.textAlign='left';
+      CX.fillText(curve.label,W-pad.r+3,pad.t+(1-endY/maxY)*iH+3);
+    }
+  });
+
+  // Current x marker
+  if(xVal>=1&&xVal<=maxX){
+    var cx=pad.l+(xVal/maxX)*iW,cy=pad.t+(1-Math.log(xVal)/maxY)*iH;
+    CX.beginPath();CX.strokeStyle='rgba(255,255,255,0.2)';CX.lineWidth=1;CX.setLineDash([4,4]);
+    CX.moveTo(cx,pad.t);CX.lineTo(cx,H-pad.b);CX.stroke();
+    CX.beginPath();CX.moveTo(pad.l,cy);CX.lineTo(W-pad.r,cy);CX.stroke();CX.setLineDash([]);
+    CX.beginPath();CX.arc(cx,cy,7,0,Math.PI*2);CX.fillStyle='#3ecf8e';CX.fill();
+    CX.strokeStyle='#fff';CX.lineWidth=2;CX.stroke();
+    CX.fillStyle='#3ecf8e';CX.font='bold 11px sans-serif';CX.textAlign='center';
+    CX.fillText('ln('+xVal+')='+Math.log(xVal).toFixed(2),cx,cy-12);
+  }
+
+  CX.fillStyle=tc();CX.font='11px sans-serif';CX.textAlign='center';CX.fillText('x (original value)',W/2,H-4);
+  CX.save();CX.translate(12,H/2);CX.rotate(-Math.PI/2);CX.fillText('log(x)',0,0);CX.restore();
+}
+
+/* Log intuition table */
+function buildLogTable(){
+  var rows=[[1,10,'10×',0,2.30,'$1 → $10 (coffee)'],[10,100,'10×',2.30,4.61,'$10 → $100 (dinner)'],[100,1000,'10×',4.61,6.91,'$100 → $1,000 (phone)'],[1000,10000,'10×',6.91,9.21,'$1,000 → $10,000 (laptop)'],[10000,100000,'10×',9.21,11.51,'$10k → $100k (salary)']];
+  var tbody=C('log-table-body');
+  if(!tbody)return;
+  tbody.innerHTML=rows.map(function(r,i){
+    var add=(r[4]-r[3]).toFixed(2);
+    return '<tr style="'+(i%2===0?'background:var(--bg-hover)':'')+'">'+
+      '<td style="padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);">'+r[0].toLocaleString()+'</td>'+
+      '<td style="padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-3);">'+r[2]+'</td>'+
+      '<td style="padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);color:var(--green);">'+r[4].toFixed(2)+'</td>'+
+      '<td style="padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--font-mono);color:var(--blue);">+'+add+' always</td>'+
+      '<td style="padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-3);">'+r[5]+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+/* Skewness guide canvas */
+var SGC=C('skew-guide-canvas'),SGX=SGC.getContext('2d');
+function drawSkewGuide(){
+  var W=SGC.width,H=SGC.height;
+  SGX.clearRect(0,0,W,H);SGX.fillStyle=bg();SGX.fillRect(0,0,W,H);
+
+  var zones=[
+    {x:0,w:W*0.2,label:'< -1',sub:'Left skew\nUse square\nor cube',col:'rgba(75,150,255,0.15)',border:'var(--blue)'},
+    {x:W*0.2,w:W*0.2,label:'-1 to -0.5',sub:'Mild left\nUsually OK',col:'rgba(75,150,255,0.07)',border:'rgba(75,150,255,0.3)'},
+    {x:W*0.4,w:W*0.2,label:'-0.5 to +0.5',sub:'Symmetric\nNo transform\nneeded',col:'rgba(62,207,142,0.12)',border:'var(--green)'},
+    {x:W*0.6,w:W*0.2,label:'+0.5 to +1',sub:'Mild right\nsqrt(x)\nmight help',col:'rgba(240,165,0,0.08)',border:'rgba(240,165,0,0.4)'},
+    {x:W*0.8,w:W*0.2,label:'> +1',sub:'Right skew\nUse log(x)\nor log1p(x)',col:'rgba(240,96,96,0.12)',border:'var(--red)'},
+  ];
+
+  zones.forEach(function(z){
+    SGX.fillStyle=z.col;SGX.fillRect(z.x,0,z.w,H);
+    SGX.strokeStyle=z.border;SGX.lineWidth=2;SGX.strokeRect(z.x,0,z.w,H);
+    SGX.fillStyle=isDark()?'rgba(255,255,255,0.7)':'rgba(0,0,0,0.65)';
+    SGX.font='bold 12px sans-serif';SGX.textAlign='center';
+    SGX.fillText(z.label,z.x+z.w/2,22);
+    z.sub.split('\n').forEach(function(line,li){
+      SGX.fillStyle=tc();SGX.font='11px sans-serif';
+      SGX.fillText(line,z.x+z.w/2,50+li*16);
+    });
+  });
+  // Arrow and label
+  SGX.fillStyle='var(--red)';SGX.font='bold 11px sans-serif';SGX.textAlign='center';
+  SGX.fillText('← Log transform helps most in this region →',W*0.8+W*0.1,H-8);
+}
+
+/* ══════════════════════════════
+   LIVE EDITOR
+══════════════════════════════ */
+var SNIPPETS=[
+{file:'log_basics.py',label:'Basics',code:`import numpy as np
+import pandas as pd
+from scipy.stats import skew
+
+np.random.seed(42)
+
+# Simulate income data (right-skewed like real income)
+income = np.random.lognormal(mean=10.5, sigma=0.8, size=500)
+
+print("ORIGINAL income:")
+print(f"  Min:  ${income.min():>12,.0f}")
+print(f"  Max:  ${income.max():>12,.0f}")
+print(f"  Mean: ${income.mean():>12,.0f}")
+print(f"  Skewness: {skew(income):>8.2f}  ← highly right skewed")
+print()
+
+# Apply log transform
+log_income = np.log(income)          # natural log
+log1p_income = np.log1p(income)      # log(1+x) - safe for zeros
+log10_income = np.log10(income)      # base-10 log
+
+print("AFTER log transforms:")
+print(f"  ln(income):    skew = {skew(log_income):.4f}")
+print(f"  log1p(income): skew = {skew(log1p_income):.4f}")
+print(f"  log10(income): skew = {skew(log10_income):.4f}")
+print()
+
+# Check: does it have zeros? Use log1p
+counts = np.array([0, 1, 5, 12, 0, 3, 8, 0, 20, 2])
+print("Count data with zeros:", counts)
+print("log(0) =", np.log(0))           # -inf!
+print("log1p(0) =", np.log1p(0))       # 0 - safe!
+print("log1p(counts):", np.log1p(counts).round(3))`},
+{file:'log_regression.py',label:'Log transform for regression',code:`import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score
+
+np.random.seed(42)
+n = 300
+
+# Features: age and experience
+age  = np.random.uniform(22, 60, n)
+exp  = np.random.uniform(0, 30, n)
+
+# Target: salary is log-normally distributed
+salary = np.exp(8 + 0.05*age + 0.1*exp + np.random.normal(0, 0.5, n))
+
+X = np.column_stack([age, exp])
+
+# Model 1: direct regression on salary
+r2_direct = cross_val_score(LinearRegression(), X, salary, cv=5, scoring='r2')
+
+# Model 2: log-transform the target
+log_salary = np.log(salary)
+r2_log = cross_val_score(LinearRegression(), X, log_salary, cv=5, scoring='r2')
+
+print("Linear regression results:")
+print(f"  On raw salary:       R2 = {r2_direct.mean():.4f}")
+print(f"  On log(salary):      R2 = {r2_log.mean():.4f}  ← better fit!")
+print()
+print("Tip: When target is log-transformed, reverse predictions:")
+model = LinearRegression().fit(X, log_salary)
+pred_log = model.predict(X[:3])
+pred_salary = np.exp(pred_log)  # reverse with exp()
+print("Log predictions:", pred_log.round(2))
+print("Original scale:", pred_salary.round(0))`},
+{file:'log_auto_detect.py',label:'Auto-detect & apply',code:`import numpy as np
+import pandas as pd
+from scipy.stats import skew
+
+np.random.seed(42)
+n = 300
+
+df = pd.DataFrame({
+    'age'       : np.random.normal(35, 10, n).clip(18, 70),
+    'income'    : np.random.lognormal(10.5, 0.8, n),
+    'score'     : np.random.normal(70, 15, n).clip(0, 100),
+    'page_views': np.random.lognormal(4, 1.2, n),
+    'tenure_months': np.random.exponential(24, n),
+})
+
+def auto_log_transform(df, skew_threshold=1.0, verbose=True):
+    df_out = df.copy()
+    log_cols = []
+    for col in df.select_dtypes('number').columns:
+        s = skew(df[col].dropna())
+        if s > skew_threshold and df[col].min() >= 0:
+            if df[col].min() == 0:
+                df_out[col] = np.log1p(df[col])
+                log_cols.append((col, 'log1p', s))
+            else:
+                df_out[col] = np.log(df[col])
+                log_cols.append((col, 'log', s))
+
+    if verbose:
+        print(f"Columns transformed ({len(log_cols)}):")
+        for col, fn, s in log_cols:
+            new_s = skew(df_out[col].dropna())
+            print(f"  {col:20}: {fn}  skew {s:.2f} → {new_s:.2f}")
+        skipped = [c for c in df.select_dtypes('number').columns if not any(c==x[0] for x in log_cols)]
+        print(f"Skipped (not skewed): {skipped}")
+    return df_out
+
+df_transformed = auto_log_transform(df)`},
+{file:'log_pipeline.py',label:'Full pipeline',code:`import numpy as np
+import pandas as pd
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import cross_val_score
+
+np.random.seed(42)
+n = 200
+X = pd.DataFrame({
+    'income'  : np.random.lognormal(10.5, 0.7, n),  # skewed
+    'age'     : np.random.normal(38, 10, n),          # normal
+    'views'   : np.random.lognormal(4, 1.2, n),       # skewed, has potential 0s
+})
+y = (np.log(X['income']) * 0.5 + X['age'] * 0.3
+     + np.random.normal(0, 1, n))
+
+# Apply different transforms per column type
+log_cols    = ['income']
+log1p_cols  = ['views']
+normal_cols = ['age']
+
+preprocessor = ColumnTransformer([
+    ('log',    Pipeline([('t', FunctionTransformer(np.log)),   ('s', StandardScaler())]), log_cols),
+    ('log1p',  Pipeline([('t', FunctionTransformer(np.log1p)), ('s', StandardScaler())]), log1p_cols),
+    ('normal', StandardScaler(), normal_cols),
+])
+
+pipe = Pipeline([
+    ('preprocessor', preprocessor),
+    ('model', Ridge(alpha=1.0))
+])
+
+scores = cross_val_score(pipe, X, y, cv=5, scoring='r2')
+print(f"Pipeline R2: {scores.mean():.4f} +/- {scores.std():.4f}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scipy','scikit-learn']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  buildSquishRows();
+  loadLogDataset('income');
+  updateLogCurve(10);
+  buildLogTable();
+  drawSkewGuide();
+  initEditor();
+  new MutationObserver(function(){
+    buildSquishRows();
+    loadLogDataset(document.getElementById('log-dataset').value);
+    updateLogCurve(document.getElementById('log-x-slider').value);
+    drawSkewGuide();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

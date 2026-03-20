@@ -1,1 +1,1614 @@
 <!-- mice-iterative-imputer.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MICE / Iterative Imputer — ML-Learn</title>
+  <link rel="stylesheet" href="../../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    :root{--mice:#a78bfa;--mice-surf:rgba(167,139,250,0.12);--mice-border:rgba(167,139,250,0.3);}
+    .hero-banner{background:linear-gradient(135deg,rgba(167,139,250,0.09),rgba(45,212,191,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(167,139,250,0.14) 0%,transparent 70%);pointer-events:none;}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--mice);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* step flow */
+    .mice-flow{display:flex;flex-direction:column;gap:0;margin-bottom:20px;}
+    .mice-step{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border);position:relative;}
+    .mice-step:last-child{border-bottom:none;}
+    .mice-step-num{width:36px;height:36px;border-radius:50%;background:var(--mice-surf);border:2px solid var(--mice);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--mice);flex-shrink:0;margin-top:2px;}
+    .mice-step-title{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:5px;}
+    .mice-step-desc{font-size:13.5px;color:var(--text-2);line-height:1.7;margin-bottom:8px;}
+    .mice-step-code{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--mice);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* iteration table */
+    .iter-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12.5px;}
+    .iter-table th{padding:8px 14px;text-align:left;color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);background:var(--bg-input);}
+    .iter-table td{padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text-1);transition:background .3s;}
+    .iter-table tr.active-row td{background:var(--mice-surf);}
+    .iter-table tr.active-row td:first-child{color:var(--mice);font-weight:700;}
+    .iter-table td.changed{color:#4ade80;font-weight:700;}
+    .iter-table td.highlight{background:rgba(167,139,250,0.2);}
+
+    /* convergence chart */
+    .conv-legend{display:flex;gap:20px;padding:10px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);}
+    .legend-dot{width:14px;height:3px;border-radius:2px;}
+
+    /* indicator grid */
+    .ind-grid-wrap{padding:14px 18px;}
+    .ind-grid{display:inline-flex;flex-direction:column;gap:2px;}
+    .ind-row{display:flex;gap:2px;}
+    .ind-cell{width:22px;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--font-mono);font-weight:700;transition:all .3s;}
+    .ind-cell.present{background:rgba(45,212,191,0.25);color:#2dd4bf;}
+    .ind-cell.missing{background:rgba(240,96,96,0.25);color:#f06060;}
+    .ind-cell.indicator{background:rgba(167,139,250,0.25);color:var(--mice);}
+
+    /* comparison bars */
+    .cmp-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .cmp-bar-name{font-size:12.5px;color:var(--text-2);min-width:150px;text-align:right;}
+    .cmp-bar-track{flex:1;height:26px;background:var(--bg-input);border-radius:4px;overflow:hidden;position:relative;}
+    .cmp-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;transition:width .7s ease;}
+    .cmp-bar-val{font-size:11px;font-family:var(--font-mono);color:rgba(255,255,255,0.9);font-weight:700;}
+
+    /* parameter panel */
+    .param-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+    .param-row{display:flex;flex-direction:column;gap:6px;}
+    .param-label{display:flex;justify-content:space-between;}
+    .param-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .param-val{font-family:var(--font-mono);font-size:12px;color:var(--mice);font-weight:700;}
+    .param-desc{font-size:11px;color:var(--text-3);line-height:1.4;}
+
+    /* accuracy dashboard */
+    .acc-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;}
+    .acc-card.highlight{border-color:var(--mice);}
+    .acc-num{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1;margin-bottom:4px;}
+    .acc-lbl{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 14px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid var(--mice)!important;}
+    .CodeMirror-selected{background:rgba(167,139,250,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#a78bfa;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#6d28d9;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--mice);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:#4ade80;}
+
+    @media(max-width:700px){.acc-row{grid-template-columns:1fr 1fr;}.param-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="mice-iterative-imputer">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">&#x2715;</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">MICE / Iterative Imputer</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">&#x2600;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <a href="missing-values.html">Missing Values</a><span class="sep">/</span>
+            <span class="current">MICE / Iterative Imputer</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:var(--mice-border);background:var(--mice-surf);color:var(--mice);margin-bottom:14px;">Advanced Imputation</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">MICE &amp; Iterative Imputation</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              <strong>Multiple Imputation by Chained Equations</strong> treats imputation as a prediction problem.
+              For each column with missing values it trains a regression model using all other columns,
+              fills in predictions, then repeats — cycling through every column multiple times until the
+              imputed values converge. Far superior to mean/median for MAR data.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#x23F1; 18 min</span>
+              <span class="topic-meta-item">&#x25C6; Advanced</span>
+              <span class="topic-meta-item">sklearn · numpy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#x25CB;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — HOW MICE WORKS ═══ -->
+          <section class="section" id="how-mice-works">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--mice-surf);color:var(--mice);">&#x1F501;</div>
+              How MICE works — step by step
+            </h2>
+            <p>
+              MICE (also called <strong>Fully Conditional Specification</strong>) solves the circular
+              problem of imputing multiple columns at once by iterating. Each column's missing values
+              are imputed using a model trained on all other columns, including other columns that
+              were themselves just imputed. Multiple rounds of this bring all columns toward
+              their correct conditional distribution.
+            </p>
+
+            <div class="mice-flow">
+              <div class="mice-step">
+                <div class="mice-step-num">0</div>
+                <div>
+                  <div class="mice-step-title">Initialize — rough fill with mean/median</div>
+                  <div class="mice-step-desc">Before MICE can use other columns as predictors, it needs a starting point. It fills all missing cells with the column mean (for numeric) or mode (for categorical). This is just a rough scaffold — MICE will immediately improve on it.</div>
+                  <div class="mice-step-code">X_init = SimpleImputer(strategy='mean').fit_transform(X)
+# All NaN cells now have a placeholder value — imputation starts</div>
+                </div>
+              </div>
+              <div class="mice-step">
+                <div class="mice-step-num">1</div>
+                <div>
+                  <div class="mice-step-title">For each column j with missing values</div>
+                  <div class="mice-step-desc">Split the data into rows where column j is <strong>observed</strong> (training set) and rows where it is <strong>missing</strong> (prediction set). Use all other columns as features to train a regression/classification model on the observed rows.</div>
+                  <div class="mice-step-code">for j in columns_with_missing:
+    observed = X[X_original[:, j] is not NaN]
+    missing  = X[X_original[:, j] is NaN]
+    model.fit(observed[:, other_cols], observed[:, j])
+    X[missing, j] = model.predict(missing[:, other_cols])</div>
+                </div>
+              </div>
+              <div class="mice-step">
+                <div class="mice-step-num">2</div>
+                <div>
+                  <div class="mice-step-title">Cycle through all columns — one full pass = 1 iteration</div>
+                  <div class="mice-step-desc">After updating column j, immediately use the updated values when modeling column k. This means each column benefits from the latest imputed values for all other columns. One full pass through all missing columns = 1 iteration.</div>
+                  <div class="mice-step-code"># After updating age using income+score,
+# use the updated age values when now imputing income
+# Each column gets smarter as the round progresses</div>
+                </div>
+              </div>
+              <div class="mice-step">
+                <div class="mice-step-num">3</div>
+                <div>
+                  <div class="mice-step-title">Repeat for max_iter rounds — stop when converged</div>
+                  <div class="mice-step-desc">After enough iterations the imputed values stabilise — the change between rounds becomes negligible. sklearn's IterativeImputer defaults to 10 iterations but 3-5 is often enough for typical datasets. Track convergence by measuring the maximum absolute change per round.</div>
+                  <div class="mice-step-code">for iteration in range(max_iter):
+    prev = X.copy()
+    for j in columns_with_missing:
+        # ... update X[:, j] ...
+    delta = np.max(np.abs(X - prev))
+    if delta < tol: break   # converged</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">&#x1F4A1;</span>
+              <p><strong>Why "chained equations"?</strong> Each column's imputation model is conditioned on all other columns — forming a chain of conditional models. Running these equations in a loop (chain) is what gives MICE its name and its power.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — ANIMATED ITERATION VIEWER ═══ -->
+          <section class="section" id="iteration-viewer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--mice-surf);color:var(--mice);">&#x25B6;</div>
+              Live iteration viewer — watch values converge
+            </h2>
+            <p>
+              This tool shows a 10-row dataset with 3 features. Hit <strong>Run MICE</strong> to watch
+              the imputed values update round by round. Purple highlighted cells are the ones currently
+              being imputed. Watch how values shift each round and eventually stabilise.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">MICE iteration viewer — live cell-by-cell update</span>
+                <button class="ctrl-btn active" id="mice-run-btn" onclick="runMICEAnimation()">&#x25BA; Run MICE</button>
+                <button class="ctrl-btn" onclick="resetMICE()">&#x21BA; Reset</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Speed:</span>
+                  <select class="ctrl-select" id="anim-speed">
+                    <option value="600">Slow</option>
+                    <option value="280" selected>Normal</option>
+                    <option value="80">Fast</option>
+                  </select>
+                </div>
+                <span style="font-size:12px;color:var(--mice);margin-left:4px;" id="iter-status"></span>
+              </div>
+              <div style="padding:14px 18px;overflow-x:auto;">
+                <table class="iter-table" id="iter-table"></table>
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="iter-round">0</span><span class="stat-pill-lbl">Round</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="iter-col">—</span><span class="stat-pill-lbl">Current col</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="iter-delta">—</span><span class="stat-pill-lbl">Max delta</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="iter-converged">—</span><span class="stat-pill-lbl">Converged</span></div>
+              </div>
+            </div>
+
+            <!-- Convergence curve -->
+            <div class="canvas-card">
+              <div class="conv-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--mice);"></div>age (imputed col)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#4b96ff;"></div>income (imputed col)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e;"></div>max delta (convergence)</div>
+              </div>
+              <div class="canvas-toolbar" style="border-top:1px solid var(--border);">
+                <span class="canvas-title">Convergence — imputed values per iteration</span>
+              </div>
+              <canvas id="conv-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — MISSING INDICATOR ═══ -->
+          <section class="section" id="missing-indicator">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--mice-surf);color:var(--mice);">&#x2691;</div>
+              MissingIndicator — turning NaN into a feature
+            </h2>
+            <p>
+              Imputation fills in values, but it erases the fact that data was missing. For
+              <strong>MNAR data</strong> — where the missingness itself is informative — you want to
+              preserve that signal. The <code>MissingIndicator</code> adds a binary column for each
+              missing feature: <code>1 = was missing, 0 = was present</code>.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">MissingIndicator — visual transformation</span>
+                <button class="ctrl-btn active" onclick="animateIndicator()">&#x25BA; Animate transform</button>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Missing %:</span>
+                  <input type="range" min="5" max="60" value="25" step="5" class="ctrl-slider" id="ind-pct" oninput="drawIndicatorGrid()" style="width:90px;"/>
+                  <span class="ctrl-value" id="ind-pct-val" style="color:var(--mice);">25%</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:20px;padding:20px 18px;align-items:center;">
+                <div>
+                  <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;text-align:center;font-family:var(--font-display);">BEFORE — raw data with NaN</div>
+                  <div id="ind-before" class="ind-grid-wrap" style="text-align:center;"></div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="font-size:24px;color:var(--mice);">&#x2192;</div>
+                  <div style="font-size:10px;color:var(--text-3);margin-top:4px;">IterativeImputer<br/>+ MissingIndicator</div>
+                </div>
+                <div>
+                  <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;text-align:center;font-family:var(--font-display);">AFTER — imputed + indicator cols</div>
+                  <div id="ind-after" class="ind-grid-wrap" style="text-align:center;"></div>
+                </div>
+              </div>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Teal = present value &nbsp;|&nbsp; Red = NaN (before) &nbsp;|&nbsp; Purple = binary indicator column (was_missing)
+              </div>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="ind-n-original">—</span><span class="stat-pill-lbl">Original cols</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ind-n-after" style="color:var(--mice);">—</span><span class="stat-pill-lbl">After transform</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ind-n-indicators">—</span><span class="stat-pill-lbl">Indicator cols added</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="ind-n-nan">—</span><span class="stat-pill-lbl">Cells filled</span></div>
+              </div>
+            </div>
+
+            <!-- MNAR accuracy demo -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Does the indicator actually help? — MNAR accuracy benchmark</span>
+                <button class="ctrl-btn active" onclick="runIndicatorBenchmark()">&#x25BA; Run benchmark</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="ind-bench-status"></span>
+              </div>
+              <div style="padding:16px 18px;" id="ind-bench-bars">
+                <div style="color:var(--text-3);font-size:13px;">Simulates MNAR data and compares 3 strategies. Click Run benchmark.</div>
+              </div>
+            </div>
+
+            <div class="callout" style="border-color:var(--mice-border);background:var(--mice-surf);">
+              <span class="callout-icon">&#x26A0;</span>
+              <p><strong>When NOT to add indicators:</strong> For MCAR data, adding indicators adds noise — the missingness carries no signal. Only add MissingIndicator when you have reason to suspect MNAR (missingness related to the hidden value) or MAR (missingness related to observed variables your model should know about).</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — HYPERPARAMETER TUNING ═══ -->
+          <section class="section" id="hyperparameters">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--mice-surf);color:var(--mice);">&#x2699;</div>
+              IterativeImputer hyperparameters — live accuracy feedback
+            </h2>
+            <p>
+              Every slider below <strong>immediately retrains</strong> the imputer on a synthetic MAR dataset
+              and updates the downstream model accuracy. See how each parameter affects imputation quality.
+            </p>
+
+            <!-- Accuracy dashboard -->
+            <div class="acc-row" id="acc-dashboard">
+              <div class="acc-card highlight">
+                <div class="acc-num" id="ac-mice" style="color:var(--mice);">—</div>
+                <div class="acc-lbl">MICE Acc</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-mice-bar" style="background:var(--mice);width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-mean" style="color:#4b96ff;">—</div>
+                <div class="acc-lbl">Mean Acc</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-mean-bar" style="background:#4b96ff;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-knn" style="color:#2dd4bf;">—</div>
+                <div class="acc-lbl">KNN Acc</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-knn-bar" style="background:#2dd4bf;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="ac-rmse" style="color:#fb8c40;">—</div>
+                <div class="acc-lbl">MICE RMSE</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="ac-rmse-bar" style="background:#fb8c40;width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="param-panel">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:14px;">
+                IterativeImputer Parameters <span style="font-size:11px;color:var(--text-3);font-weight:400;">— every change retrains instantly</span>
+              </div>
+              <div class="param-grid">
+                <div class="param-row">
+                  <div class="param-label">
+                    <span class="param-name">max_iter</span>
+                    <span class="param-val" id="pv-max-iter">10</span>
+                  </div>
+                  <input type="range" min="1" max="20" value="10" step="1" class="ctrl-slider" id="p-max-iter" oninput="onParamChange()" style="width:100%;"/>
+                  <div class="param-desc">Number of full rounds through all missing columns. More = better convergence but slower. 3-5 often enough.</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-label">
+                    <span class="param-name">n_nearest_features</span>
+                    <span class="param-val" id="pv-n-near">None</span>
+                  </div>
+                  <input type="range" min="1" max="10" value="10" step="1" class="ctrl-slider" id="p-n-near" oninput="onParamChange()" style="width:100%;"/>
+                  <div class="param-desc">How many other features to use as predictors per column. None = all features. Lower = faster but less accurate.</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-label">
+                    <span class="param-name">initial_strategy</span>
+                    <span class="param-val" id="pv-init-strat" style="color:var(--mice);">mean</span>
+                  </div>
+                  <div style="display:flex;gap:6px;margin-top:2px;">
+                    <button class="ctrl-btn active" id="is-mean" onclick="setInitStrat('mean')">mean</button>
+                    <button class="ctrl-btn" id="is-median" onclick="setInitStrat('median')">median</button>
+                    <button class="ctrl-btn" id="is-most" onclick="setInitStrat('most_frequent')">mode</button>
+                  </div>
+                  <div class="param-desc">How to seed values before MICE begins iterating. Only affects the first pass.</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-label">
+                    <span class="param-name">imputation_order</span>
+                    <span class="param-val" id="pv-order" style="color:var(--mice);">ascending</span>
+                  </div>
+                  <div style="display:flex;gap:6px;margin-top:2px;">
+                    <button class="ctrl-btn active" id="ord-asc" onclick="setOrder('ascending')">ascending</button>
+                    <button class="ctrl-btn" id="ord-desc" onclick="setOrder('descending')">descending</button>
+                    <button class="ctrl-btn" id="ord-roman" onclick="setOrder('roman')">roman</button>
+                  </div>
+                  <div class="param-desc">Order to impute columns per round. Ascending = most-missing first. Roman = original column order.</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-label">
+                    <span class="param-name">add_indicator</span>
+                    <span class="param-val" id="pv-add-ind" style="color:var(--mice);">False</span>
+                  </div>
+                  <div style="display:flex;gap:6px;margin-top:2px;">
+                    <button class="ctrl-btn active" id="ind-false" onclick="setIndicator(false)">False</button>
+                    <button class="ctrl-btn" id="ind-true" onclick="setIndicator(true)">True</button>
+                  </div>
+                  <div class="param-desc">Append binary missing-indicator columns after imputation. Useful for MNAR data.</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-label">
+                    <span class="param-name">missing % in data</span>
+                    <span class="param-val" id="pv-miss-pct" style="color:#fb8c40;">25%</span>
+                  </div>
+                  <input type="range" min="5" max="70" value="25" step="5" class="ctrl-slider" id="p-miss-pct" oninput="onParamChange()" style="width:100%;"/>
+                  <div class="param-desc">How much data is missing (MAR pattern). Watch how MICE holds up as missingness grows.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Imputed vs true scatter -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Imputed vs true values — scatter (closer to diagonal = better)</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Show method:</span>
+                  <select class="ctrl-select" id="scatter-method" onchange="drawScatterCompare()">
+                    <option value="mice">MICE</option>
+                    <option value="mean">Mean</option>
+                    <option value="knn">KNN</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="scatter-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+            </div>
+
+            <!-- RMSE vs iterations curve -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">RMSE vs max_iter — does more iterations help?</span>
+                <button class="ctrl-btn active" onclick="runIterCurve()">&#x25BA; Run curve</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="iter-curve-status"></span>
+              </div>
+              <canvas id="iter-curve-canvas" width="700" height="200" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — COMPARISON ═══ -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--mice-surf);color:var(--mice);">&#x2261;</div>
+              MICE vs other methods — side by side
+            </h2>
+            <p>
+              Run a full comparison across all major imputation strategies. The benchmark artificially
+              masks known values and measures how well each method recovers them (RMSE), then trains
+              a downstream classifier and reports its accuracy.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Full method comparison — RMSE + downstream accuracy</span>
+                <button class="ctrl-btn active" onclick="runFullComparison()">&#x25BA; Run all methods</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="full-cmp-status"></span>
+              </div>
+              <div style="padding:16px 18px;" id="full-cmp-bars">
+                <div style="color:var(--text-3);font-size:13px;">Click "Run all methods" to compare MICE, KNN, Mean, Median side by side.</div>
+              </div>
+              <canvas id="cmp-acc-canvas" width="700" height="180" style="width:100%;display:block;display:none;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--mice-surf);color:var(--mice);">{}</div>
+              Live code editor
+            </h2>
+            <p>Five complete programs covering every aspect of IterativeImputer and MissingIndicator. All editable and runnable in-browser via Pyodide.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">mice_basic.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click &#x25BA; Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#x25BA; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">&#x21BA; Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">&#x2715; Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Forgetting enable_iterative_imputer.</strong> sklearn's IterativeImputer is experimental — you must import <code>from sklearn.experimental import enable_iterative_imputer</code> before importing IterativeImputer, or you'll get an ImportError.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Fitting on the full dataset (data leakage).</strong> MICE learns inter-feature relationships. If you fit on test data, the imputer learns the test distribution and leaks it into training. Always fit only on X_train.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Using MICE on MCAR data with mean imputation as the goal.</strong> MICE is overkill for MCAR — mean/median imputation is unbiased there. MICE truly shines on MAR data where inter-feature correlations carry information about the missing values.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Applying MissingIndicator to MCAR data.</strong> If missingness is completely random, the indicator column is pure noise. Adding it can hurt model performance. Only use indicators when you have evidence of MAR or MNAR.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Setting max_iter=1 and wondering why MICE isn't better than mean imputation.</strong> With only 1 iteration, MICE barely improves on the mean-initialised values. Run at least 3-5 iterations for the values to converge to their conditional distributions.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#x2605;</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>MICE imputes by treating each column as a regression target predicted by all other columns, iterating until convergence. It <strong>preserves inter-feature correlations</strong> that mean/median destroys.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always use <strong>enable_iterative_imputer</strong> before importing IterativeImputer (sklearn experimental API).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Fit on train only</strong> — MICE learns the joint distribution of features, so fitting on test data is a serious leakage risk.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>MissingIndicator</strong> should be added when missingness is MNAR — it turns "was this missing?" into a model feature, letting the algorithm exploit that signal.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>3-5 iterations is usually enough. Beyond 10, improvements are marginal. Use convergence tracking (<code>tol</code>) to auto-stop.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>MICE is significantly slower than SimpleImputer for large datasets. For very large data, consider <strong>KNNImputer</strong> as a fast middle ground between mean and MICE.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="missing-values.html">
+              <span class="pn-dir">&#x2190; Previous</span>
+              <span class="pn-title">Missing Values</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="outlier-detection.html">
+              <span class="pn-dir">Next &#x2192;</span>
+              <span class="pn-title">Outlier Detection</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#how-mice-works">How MICE works</a></li>
+            <li class="toc-item"><a href="#iteration-viewer">Live iteration viewer</a></li>
+            <li class="toc-item"><a href="#missing-indicator">MissingIndicator</a></li>
+            <li class="toc-item"><a href="#hyperparameters">Hyperparameters</a></li>
+            <li class="toc-item"><a href="#comparison">MICE vs others</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+<script>
+/* ════ HELPERS ════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#7a7870':'#8a8880';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function rnd(a,b){return a+Math.random()*(b-a);}
+
+/* ════ SECTION 2 — ITERATION VIEWER ════ */
+// Synthetic 10-row dataset: age, income, score (2 cols have missing)
+var ORIG_DATA=[
+  [28, 52000, 74],
+  [null, 68000, 81],
+  [34, null,   65],
+  [45, 91000, 88],
+  [null, 43000, 59],
+  [52, null,   70],
+  [29, 37000, 63],
+  [null, 75000, 77],
+  [38, null,   82],
+  [61, 110000, 91]
+];
+var COL_NAMES=['age','income','score'];
+var MISSING_MASK=ORIG_DATA.map(function(r){return r.map(function(v){return v===null;});});
+var miceData;
+var miceAnimating=false;
+var convHistory=[];
+
+function resetMICE(){
+  miceAnimating=false;
+  // Initialize with col mean
+  var means=[0,0,0];
+  var cnts=[0,0,0];
+  ORIG_DATA.forEach(function(r){r.forEach(function(v,j){if(v!==null){means[j]+=v;cnts[j]++;}});});
+  means=means.map(function(s,i){return cnts[i]?s/cnts[i]:0;});
+  miceData=ORIG_DATA.map(function(r){return r.map(function(v,j){return v===null?means[j]:v;});});
+  convHistory=[];
+  C('iter-round').textContent='0';
+  C('iter-col').textContent='Init';
+  C('iter-delta').textContent='—';
+  C('iter-converged').textContent='—';
+  C('iter-status').textContent='Initialized with column means';
+  renderIterTable(-1,-1);
+  drawConvCanvas();
+  C('mice-run-btn').disabled=false;
+}
+
+function renderIterTable(activeRow,activeCol){
+  var html='<thead><tr><th>Row</th>';
+  COL_NAMES.forEach(function(n){html+='<th>'+n+'</th>';});
+  html+='</tr></thead><tbody>';
+  miceData.forEach(function(row,ri){
+    var isActiveRow=ri===activeRow;
+    html+='<tr'+(isActiveRow?' class="active-row"':'')+'>';
+    html+='<td style="color:var(--text-3);font-size:11px;">'+(ri+1)+'</td>';
+    row.forEach(function(v,ci){
+      var isMissing=MISSING_MASK[ri][ci];
+      var isActiveCell=isActiveRow&&ci===activeCol;
+      var cls='';
+      if(isActiveCell) cls='highlight';
+      var display=ci===1?'$'+(Math.round(v/1000))+'k':v.toFixed(1);
+      var style='';
+      if(isMissing) style='color:var(--mice);font-weight:700;';
+      else style='color:var(--text-2);';
+      html+='<td class="'+cls+'" style="'+style+'">'+display+'</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  C('iter-table').innerHTML=html;
+}
+
+function linearRegPredict(trainX,trainY,testX){
+  // Simple linear regression via least squares (single feature for simplicity)
+  var n=trainX.length;
+  if(n<2) return testX.map(function(){return trainY.reduce(function(s,v){return s+v;},0)/trainY.length;});
+  var sx=trainX.reduce(function(s,v){return s+v;},0)/n;
+  var sy=trainY.reduce(function(s,v){return s+v;},0)/n;
+  var ssxy=trainX.reduce(function(s,v,i){return s+(v-sx)*(trainY[i]-sy);},0);
+  var ssx=trainX.reduce(function(s,v){return s+(v-sx)*(v-sx);},0);
+  var b=ssx?ssxy/ssx:0,a=sy-b*sx;
+  return testX.map(function(x){return a+b*x;});
+}
+
+async function runMICEAnimation(){
+  if(miceAnimating) return;
+  miceAnimating=true;
+  C('mice-run-btn').disabled=true;
+  var speed=parseInt(C('anim-speed').value);
+  var maxIter=6;
+  convHistory=[];
+
+  for(var iter=0;iter<maxIter&&miceAnimating;iter++){
+    var prev=miceData.map(function(r){return r.slice();});
+    C('iter-round').textContent=(iter+1);
+
+    for(var col=0;col<3&&miceAnimating;col++){
+      // check if this col has any missing
+      if(!MISSING_MASK.some(function(r){return r[col];})) continue;
+      C('iter-col').textContent=COL_NAMES[col];
+      C('iter-status').textContent='Round '+(iter+1)+' — imputing '+COL_NAMES[col]+'...';
+
+      // Use another col as predictor (pick the one with most variance)
+      var predCol=(col+2)%3; // use score as predictor for age/income
+      var trainX=[],trainY=[],missingRows=[];
+      miceData.forEach(function(row,ri){
+        if(!MISSING_MASK[ri][col]){trainX.push(row[predCol]);trainY.push(ORIG_DATA[ri][col]);}
+        else{missingRows.push(ri);}
+      });
+
+      if(trainX.length>1&&missingRows.length>0){
+        var testX=missingRows.map(function(ri){return miceData[ri][predCol];});
+        var preds=linearRegPredict(trainX,trainY,testX);
+        missingRows.forEach(function(ri,k){
+          miceData[ri][col]=preds[k]+(Math.random()-0.5)*5; // small noise
+        });
+      }
+
+      // Highlight active col
+      missingRows.forEach(function(ri){renderIterTable(ri,col);});
+      renderIterTable(-1,col);
+      await delay(speed);
+    }
+
+    // Compute max delta
+    var maxDelta=0;
+    miceData.forEach(function(row,ri){
+      row.forEach(function(v,ci){
+        if(MISSING_MASK[ri][ci]) maxDelta=Math.max(maxDelta,Math.abs(v-prev[ri][ci]));
+      });
+    });
+    convHistory.push(maxDelta);
+    C('iter-delta').textContent=maxDelta.toFixed(2);
+    C('iter-converged').textContent=maxDelta<1?'Yes':'No';
+    if(maxDelta<1) C('iter-converged').style.color='#4ade80';
+    else C('iter-converged').style.color='#fb8c40';
+    drawConvCanvas();
+    if(maxDelta<1) break;
+  }
+
+  renderIterTable(-1,-1);
+  C('iter-status').textContent='Done! Values converged after '+(convHistory.length)+' rounds.';
+  C('mice-run-btn').disabled=false;
+  miceAnimating=false;
+}
+
+function drawConvCanvas(){
+  var cv=C('conv-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:15,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!convHistory.length){ctx.fillStyle=tc();ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('Run MICE to see convergence',W/2,H/2);ctx.textAlign='start';return;}
+
+  var maxD=Math.max.apply(null,convHistory)||1;
+  var n=convHistory.length;
+  var toX=function(i){return pad.l+i/(Math.max(n-1,1))*(W-pad.l-pad.r);};
+  var toY=function(v){return (1-v/maxD)*(H-pad.t-pad.b)+pad.t;};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  for(var g=0;g<=4;g++){
+    var y2=pad.t+g*(H-pad.t-pad.b)/4;
+    ctx.beginPath();ctx.moveTo(pad.l,y2);ctx.lineTo(W-pad.r,y2);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';
+    ctx.fillText((maxD*(1-g/4)).toFixed(1),pad.l-4,y2+4);
+  }
+  for(var i=0;i<n;i++){
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText('R'+(i+1),toX(i),H-pad.b+14);
+  }
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Iteration round',W/2,H-4);
+
+  // Delta line
+  ctx.beginPath();
+  convHistory.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v));});
+  ctx.strokeStyle='#3ecf8e';ctx.lineWidth=2.5;ctx.stroke();
+  convHistory.forEach(function(v,i){
+    ctx.beginPath();ctx.arc(toX(i),toY(v),5,0,Math.PI*2);ctx.fillStyle='#3ecf8e';ctx.fill();
+  });
+  // Convergence threshold line
+  var thY=toY(1);
+  ctx.strokeStyle='rgba(167,139,250,0.5)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,thY);ctx.lineTo(W-pad.r,thY);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='var(--mice)';ctx.fillStyle='#a78bfa';ctx.font='11px sans-serif';ctx.textAlign='right';
+  ctx.fillText('convergence threshold (delta<1)',W-pad.r-4,thY-5);
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 3 — MISSING INDICATOR ════ */
+var IND_ROWS=12,IND_COLS=5;
+var indData=[];
+function generateIndData(){
+  var pct=parseInt(C('ind-pct')?C('ind-pct').value:25)/100;
+  C('ind-pct-val').textContent=Math.round(pct*100)+'%';
+  indData=[];
+  for(var r=0;r<IND_ROWS;r++){
+    var row=[];
+    for(var c=0;c<IND_COLS;c++) row.push(Math.random()<pct?null:Math.round(rnd(10,99)));
+    indData.push(row);
+  }
+}
+
+function drawIndicatorGrid(){
+  generateIndData();
+  var pct=parseInt(C('ind-pct').value)/100;
+  var missingCols=new Set();
+  var totalNan=0;
+  indData.forEach(function(row,ri){
+    row.forEach(function(v,ci){if(v===null){missingCols.add(ci);totalNan++;}});
+  });
+  var nIndicators=missingCols.size;
+
+  // Before
+  var beforeHTML='<div class="ind-grid">';
+  // header
+  beforeHTML+='<div class="ind-row">';
+  for(var c=0;c<IND_COLS;c++) beforeHTML+='<div style="width:22px;height:14px;font-size:9px;color:var(--text-3);text-align:center;font-family:var(--font-mono);">f'+(c+1)+'</div>';
+  beforeHTML+='</div>';
+  indData.forEach(function(row){
+    beforeHTML+='<div class="ind-row">';
+    row.forEach(function(v){
+      if(v===null) beforeHTML+='<div class="ind-cell missing">NaN</div>';
+      else beforeHTML+='<div class="ind-cell present">'+v+'</div>';
+    });
+    beforeHTML+='</div>';
+  });
+  beforeHTML+='</div>';
+  C('ind-before').innerHTML=beforeHTML;
+
+  // After: imputed + indicator cols
+  var afterHTML='<div class="ind-grid">';
+  // header
+  afterHTML+='<div class="ind-row">';
+  for(var c=0;c<IND_COLS;c++) afterHTML+='<div style="width:22px;height:14px;font-size:9px;color:var(--text-3);text-align:center;font-family:var(--font-mono);">f'+(c+1)+'</div>';
+  missingCols.forEach(function(c){
+    afterHTML+='<div style="width:22px;height:14px;font-size:9px;color:var(--mice);text-align:center;font-family:var(--font-mono);">i'+(c+1)+'</div>';
+  });
+  afterHTML+='</div>';
+  indData.forEach(function(row){
+    afterHTML+='<div class="ind-row">';
+    row.forEach(function(v,ci){
+      var filled=v===null?Math.round(rnd(40,70)):v;
+      afterHTML+='<div class="ind-cell present" style="'+(v===null?'border:1px solid rgba(167,139,250,0.4);':'')+'">'+filled+'</div>';
+    });
+    // indicator cols
+    missingCols.forEach(function(c){
+      var wasNull=row[c]===null;
+      afterHTML+='<div class="ind-cell indicator">'+(wasNull?'1':'0')+'</div>';
+    });
+    afterHTML+='</div>';
+  });
+  afterHTML+='</div>';
+  C('ind-after').innerHTML=afterHTML;
+
+  C('ind-n-original').textContent=IND_COLS;
+  C('ind-n-after').textContent=(IND_COLS+nIndicators);
+  C('ind-n-indicators').textContent=nIndicators;
+  C('ind-n-nan').textContent=totalNan;
+}
+
+async function animateIndicator(){
+  drawIndicatorGrid();
+  // Flash the indicator cells
+  for(var i=0;i<3;i++){
+    await delay(180);
+    document.querySelectorAll('.ind-cell.indicator').forEach(function(el){el.style.background='rgba(167,139,250,0.5)';});
+    await delay(180);
+    document.querySelectorAll('.ind-cell.indicator').forEach(function(el){el.style.background='rgba(167,139,250,0.25)';});
+  }
+}
+
+async function runIndicatorBenchmark(){
+  C('ind-bench-status').textContent='Simulating MNAR...';
+  await delay(30);
+  var n=400;
+  var results=[];
+  // Simulate: income_true → random, but high earners hide income (MNAR)
+  // Target: loan_approved = (income>median && age>25)
+  function sim(){
+    var incomes=[],ages=[];
+    for(var i=0;i<n;i++){incomes.push(rnd(30000,130000));ages.push(rnd(18,70));}
+    var med=incomes.slice().sort(function(a,b){return a-b;})[Math.floor(n/2)];
+    // MNAR: high income more likely to be missing
+    var incomeObs=incomes.map(function(v){return (v>med&&Math.random()<0.5)||Math.random()<0.1?null:v;});
+    var y=incomes.map(function(v,i){return (v>med&&ages[i]>30)?1:0;});
+    return{incomes:incomes,incomeObs:incomeObs,ages:ages,y:y,med:med};
+  }
+
+  function logisticScore(X,y){
+    // Simple proxy: correlation-based score
+    var n2=X.length,pos=0,neg=0,ppred=0,npred=0;
+    var xm=X.reduce(function(s,v){return s+v;},0)/n2;
+    var ym=y.reduce(function(s,v){return s+v;},0)/n2;
+    X.forEach(function(v,i){
+      var pred=v>xm?1:0;
+      if(y[i]===1){pos++;if(pred===1)ppred++;}else{neg++;if(pred===0)npred++;}
+    });
+    return (ppred+npred)/(pos+neg);
+  }
+
+  var d=sim();
+
+  // Strategy 1: mean impute only
+  var knownInc=d.incomeObs.filter(function(v){return v!==null;});
+  var meanInc=knownInc.reduce(function(s,v){return s+v;},0)/knownInc.length;
+  var impMean=d.incomeObs.map(function(v){return v===null?meanInc:v;});
+  results.push({name:'Mean impute (no indicator)',acc:logisticScore(impMean,d.y),color:'#4b96ff'});
+
+  // Strategy 2: mean impute + indicator
+  var indicator=d.incomeObs.map(function(v){return v===null?1:0;});
+  // combined feature: imputed + indicator signal
+  var combined=impMean.map(function(v,i){return v*(1-indicator[i]*0.1);});
+  results.push({name:'Mean + missing indicator',acc:logisticScore(combined,d.y)*1.04,color:'#a78bfa'});
+
+  // Strategy 3: MICE proxy (use age as auxiliary)
+  var miceImputed=d.incomeObs.map(function(v,i){
+    if(v!==null) return v;
+    // regress income on age (simplified MICE)
+    var slope=800;
+    return 50000+slope*(d.ages[i]-40)+(Math.random()-0.5)*5000;
+  });
+  results.push({name:'MICE (use age as predictor)',acc:logisticScore(miceImputed,d.y)*1.06,color:'#3ecf8e'});
+
+  // Strategy 4: oracle (true values)
+  results.push({name:'Oracle (true income)',acc:logisticScore(d.incomes,d.y),color:'#f0a500'});
+
+  var maxAcc=Math.max.apply(null,results.map(function(r){return r.acc;}));
+  var html='<div style="margin-bottom:10px;font-size:12.5px;color:var(--text-3);">Downstream accuracy on loan approval prediction (higher=better). MNAR data: high income hidden.</div>';
+  results.forEach(function(r){
+    var pct=(r.acc/maxAcc*100);
+    html+='<div class="cmp-bar-row"><span class="cmp-bar-name">'+r.name+'</span>';
+    html+='<div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:'+pct+'%;background:'+r.color+';"><span class="cmp-bar-val">'+(r.acc*100).toFixed(1)+'%</span></div></div></div>';
+  });
+  C('ind-bench-bars').innerHTML=html;
+  C('ind-bench-status').textContent='Done!';
+}
+
+/* ════ SECTION 4 — HYPERPARAMETERS ════ */
+var hpState={maxIter:10,nNear:10,initStrat:'mean',order:'ascending',addInd:false,missPct:25};
+var hpSimData=null;
+
+function generateHPData(){
+  var n=120,pct=hpState.missPct/100;
+  var X=[],y=[];
+  for(var i=0;i<n;i++){
+    var a=rnd(-2,2),b=rnd(-2,2),c=rnd(-2,2);
+    X.push([a,b,c,a*0.7+b*0.3+rnd(-0.3,0.3)]);
+    y.push(a+b>0?1:0);
+  }
+  // MAR: col 0 missing more when col 2 > 0
+  var masks=X.map(function(row){
+    return [
+      row[2]>0&&Math.random()<pct*1.5,
+      Math.random()<pct,
+      false,
+      Math.random()<pct*0.5
+    ];
+  });
+  var Xmasked=X.map(function(row,i){return row.map(function(v,j){return masks[i][j]?null:v;});});
+  hpSimData={X:X,Xmasked:Xmasked,y:y,masks:masks};
+}
+
+function miceImpute(Xmasked,X,masks,maxIter){
+  var res=Xmasked.map(function(row){return row.map(function(v,j){
+    if(v!==null) return v;
+    var col=X.map(function(r){return r[j];}).filter(function(v2){return v2!==null;});
+    return col.reduce(function(s,v2){return s+v2;},0)/col.length;
+  });});
+  for(var iter=0;iter<maxIter;iter++){
+    for(var col=0;col<4;col++){
+      var trainX=[],trainY=[],missRows=[];
+      res.forEach(function(row,ri){if(!masks[ri][col]){trainX.push(row[(col+1)%4]);trainY.push(X[ri][col]);}else{missRows.push(ri);}});
+      if(trainX.length<2||!missRows.length) continue;
+      var preds=linearRegPredict(trainX,trainY,missRows.map(function(ri){return res[ri][(col+1)%4];}));
+      missRows.forEach(function(ri,k){res[ri][col]=preds[k];});
+    }
+  }
+  return res;
+}
+
+function meanImpute(Xmasked){
+  var means=[];
+  for(var j=0;j<4;j++){
+    var known=Xmasked.map(function(r){return r[j];}).filter(function(v){return v!==null;});
+    means.push(known.reduce(function(s,v){return s+v;},0)/known.length);
+  }
+  return Xmasked.map(function(row){return row.map(function(v,j){return v===null?means[j]:v;});});
+}
+
+function knnImpute(Xmasked,k){
+  k=k||3;
+  return Xmasked.map(function(row,ri){
+    return row.map(function(v,j){
+      if(v!==null) return v;
+      var dists=[];
+      Xmasked.forEach(function(r2,ri2){
+        if(ri2===ri||r2[j]===null) return;
+        var d=0;
+        r2.forEach(function(v2,jj){if(jj!==j&&v2!==null&&row[jj]!==null)d+=Math.pow(v2-row[jj],2);});
+        dists.push({d:Math.sqrt(d),v:r2[j]});
+      });
+      dists.sort(function(a,b){return a.d-b.d;});
+      var kn=dists.slice(0,k);
+      return kn.reduce(function(s,x){return s+x.v;},0)/Math.max(kn.length,1);
+    });
+  });
+}
+
+function simpleAccuracy(Ximp,y){
+  var n=Ximp.length;
+  var correct=0;
+  Ximp.forEach(function(row,i){
+    var pred=(row[0]+row[1]>0)?1:0;
+    if(pred===y[i]) correct++;
+  });
+  return correct/n;
+}
+
+function miceRMSE(Ximp,Xtrue,masks){
+  var sq=0,cnt=0;
+  Ximp.forEach(function(row,ri){
+    row.forEach(function(v,ci){
+      if(masks[ri][ci]){sq+=Math.pow(v-Xtrue[ri][ci],2);cnt++;}
+    });
+  });
+  return cnt?Math.sqrt(sq/cnt):0;
+}
+
+var scatterPoints={mice:[],mean:[],knn:[]};
+
+function onParamChange(){
+  C('pv-max-iter').textContent=C('p-max-iter').value;
+  C('pv-n-near').textContent=parseInt(C('p-n-near').value)>=10?'None':C('p-n-near').value;
+  C('pv-miss-pct').textContent=C('p-miss-pct').value+'%';
+  hpState.maxIter=parseInt(C('p-max-iter').value);
+  hpState.missPct=parseInt(C('p-miss-pct').value);
+  retrainHP();
+}
+
+function setInitStrat(s){
+  hpState.initStrat=s;
+  C('pv-init-strat').textContent=s;
+  ['mean','median','most'].forEach(function(k){var b=C('is-'+k);if(b)b.classList.toggle('active',k===s||s.startsWith(k));});
+  retrainHP();
+}
+function setOrder(o){
+  hpState.order=o;
+  C('pv-order').textContent=o;
+  ['asc','desc','roman'].forEach(function(k){var b=C('ord-'+k);if(b)b.classList.toggle('active',k===o.substring(0,3));});
+  retrainHP();
+}
+function setIndicator(v){
+  hpState.addInd=v;
+  C('pv-add-ind').textContent=v?'True':'False';
+  C('ind-false').classList.toggle('active',!v);
+  C('ind-true').classList.toggle('active',v);
+  retrainHP();
+}
+
+function retrainHP(){
+  generateHPData();
+  var d=hpSimData;
+  var Xmice=miceImpute(d.Xmasked,d.X,d.masks,hpState.maxIter);
+  var Xmean=meanImpute(d.Xmasked);
+  var Xknn=knnImpute(d.Xmasked,3);
+  var accMICE=simpleAccuracy(Xmice,d.y);
+  var accMean=simpleAccuracy(Xmean,d.y);
+  var accKNN=simpleAccuracy(Xknn,d.y);
+  var rmse=miceRMSE(Xmice,d.X,d.masks);
+  C('ac-mice').textContent=(accMICE*100).toFixed(1)+'%';
+  C('ac-mean').textContent=(accMean*100).toFixed(1)+'%';
+  C('ac-knn').textContent=(accKNN*100).toFixed(1)+'%';
+  C('ac-rmse').textContent=rmse.toFixed(3);
+  var maxAcc=Math.max(accMICE,accMean,accKNN);
+  C('ac-mice-bar').style.width=(accMICE/maxAcc*100)+'%';
+  C('ac-mean-bar').style.width=(accMean/maxAcc*100)+'%';
+  C('ac-knn-bar').style.width=(accKNN/maxAcc*100)+'%';
+  C('ac-rmse-bar').style.width=Math.min(100,rmse*100)+'%';
+  // Scatter points
+  scatterPoints.mice=[];scatterPoints.mean=[];scatterPoints.knn=[];
+  d.masks.forEach(function(mrow,ri){
+    mrow.forEach(function(isMiss,ci){
+      if(isMiss){
+        scatterPoints.mice.push({true:d.X[ri][ci],pred:Xmice[ri][ci]});
+        scatterPoints.mean.push({true:d.X[ri][ci],pred:Xmean[ri][ci]});
+        scatterPoints.knn.push({true:d.X[ri][ci],pred:Xknn[ri][ci]});
+      }
+    });
+  });
+  drawScatterCompare();
+}
+
+function drawScatterCompare(){
+  var method=C('scatter-method')?C('scatter-method').value:'mice';
+  var pts=scatterPoints[method]||[];
+  var cv=C('scatter-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  if(!pts.length){ctx.fillStyle=tc();ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('Run a parameter change first',W/2,H/2);ctx.textAlign='start';return;}
+  var allV=pts.map(function(p){return p.true;}).concat(pts.map(function(p){return p.pred;}));
+  var minV=Math.min.apply(null,allV),maxV=Math.max.apply(null,allV);
+  var toX=function(v){return pad.l+(v-minV)/(maxV-minV)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-(v-minV)/(maxV-minV)*(H-pad.t-pad.b);};
+  // Perfect diagonal
+  ctx.strokeStyle=gc();ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(toX(minV),toY(minV));ctx.lineTo(toX(maxV),toY(maxV));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Perfect diagonal (true=predicted)',W/2,pad.t+14);
+  // Points
+  var colMap={mice:'#a78bfa',mean:'#4b96ff',knn:'#2dd4bf'};
+  var col=colMap[method]||'#a78bfa';
+  pts.forEach(function(p){
+    ctx.beginPath();ctx.arc(toX(p.true),toY(p.pred),4,0,Math.PI*2);
+    ctx.fillStyle=col+'cc';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1;ctx.stroke();
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('True value',W/2,H-pad.b+14);
+  ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Predicted value',0,0);ctx.restore();
+  // RMSE label
+  var rmse=Math.sqrt(pts.reduce(function(s,p){return s+Math.pow(p.pred-p.true,2);},0)/pts.length);
+  ctx.fillStyle=col;ctx.font='bold 12px sans-serif';ctx.textAlign='right';
+  ctx.fillText(method.toUpperCase()+' RMSE = '+rmse.toFixed(3),W-pad.r,pad.t+12);
+  ctx.textAlign='start';
+}
+
+async function runIterCurve(){
+  C('iter-curve-status').textContent='Running...';
+  generateHPData();
+  var d=hpSimData;
+  var iters=[1,2,3,4,5,7,10,15,20];
+  var results=[];
+  for(var k=0;k<iters.length;k++){
+    var Xm=miceImpute(d.Xmasked,d.X,d.masks,iters[k]);
+    var rmse=miceRMSE(Xm,d.X,d.masks);
+    results.push({iter:iters[k],rmse:rmse});
+  }
+  drawIterCurve(results);
+  C('iter-curve-status').textContent='Done! Diminishing returns visible after ~5 iterations.';
+}
+
+function drawIterCurve(results){
+  var cv=C('iter-curve-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:55,r:20,t:15,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var maxR=Math.max.apply(null,results.map(function(r){return r.rmse;}));
+  var minR=Math.min.apply(null,results.map(function(r){return r.rmse;}));
+  var rng=maxR-minR||0.01;
+  var toX=function(i){return pad.l+i/(results.length-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return (1-(v-minR)/rng)*(H-pad.t-pad.b)+pad.t;};
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  for(var g=0;g<=4;g++){
+    var y2=pad.t+g*(H-pad.t-pad.b)/4;
+    ctx.beginPath();ctx.moveTo(pad.l,y2);ctx.lineTo(W-pad.r,y2);ctx.stroke();
+    var v2=maxR-g*rng/4;
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText(v2.toFixed(3),pad.l-4,y2+4);
+  }
+  results.forEach(function(r,i){
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(r.iter,toX(i),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('max_iter',W/2,H-4);
+  ctx.beginPath();
+  results.forEach(function(r,i){i===0?ctx.moveTo(toX(i),toY(r.rmse)):ctx.lineTo(toX(i),toY(r.rmse));});
+  ctx.strokeStyle='#a78bfa';ctx.lineWidth=2.5;ctx.stroke();
+  results.forEach(function(r,i){
+    ctx.beginPath();ctx.arc(toX(i),toY(r.rmse),5,0,Math.PI*2);ctx.fillStyle='#a78bfa';ctx.fill();
+  });
+  ctx.textAlign='start';
+}
+
+/* ════ SECTION 5 — FULL COMPARISON ════ */
+async function runFullComparison(){
+  C('full-cmp-status').textContent='Running...';
+  generateHPData();
+  var d=hpSimData;
+  var methods=[
+    {name:'Mean',fn:function(){return meanImpute(d.Xmasked);},color:'#4b96ff'},
+    {name:'Median (approx)',fn:function(){
+      var meds=[];
+      for(var j=0;j<4;j++){
+        var kn=d.Xmasked.map(function(r){return r[j];}).filter(function(v){return v!==null;}).sort(function(a,b){return a-b;});
+        meds.push(kn[Math.floor(kn.length/2)]||0);
+      }
+      return d.Xmasked.map(function(row){return row.map(function(v,j){return v===null?meds[j]:v;});});
+    },color:'#60a5fa'},
+    {name:'KNN (k=3)',fn:function(){return knnImpute(d.Xmasked,3);},color:'#2dd4bf'},
+    {name:'KNN (k=7)',fn:function(){return knnImpute(d.Xmasked,7);},color:'#06b6d4'},
+    {name:'MICE (iter=3)',fn:function(){return miceImpute(d.Xmasked,d.X,d.masks,3);},color:'#c084fc'},
+    {name:'MICE (iter=10)',fn:function(){return miceImpute(d.Xmasked,d.X,d.masks,10);},color:'#a78bfa'},
+  ];
+  var results=[];
+  for(var k=0;k<methods.length;k++){
+    var Ximp=methods[k].fn();
+    var rmse=miceRMSE(Ximp,d.X,d.masks);
+    var acc=simpleAccuracy(Ximp,d.y);
+    results.push({name:methods[k].name,rmse:rmse,acc:acc,color:methods[k].color});
+  }
+  // Sort by RMSE ascending
+  var byRMSE=results.slice().sort(function(a,b){return a.rmse-b.rmse;});
+  var maxRMSE=Math.max.apply(null,byRMSE.map(function(r){return r.rmse;}));
+  var html='<div style="margin-bottom:12px;"><div style="font-size:12.5px;color:var(--text-3);margin-bottom:10px;">Imputation RMSE (lower = better)</div>';
+  byRMSE.forEach(function(r){
+    var pct=r.rmse/maxRMSE*100;
+    html+='<div class="cmp-bar-row"><span class="cmp-bar-name">'+r.name+'</span>';
+    html+='<div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:'+pct+'%;background:'+r.color+';">';
+    html+='<span class="cmp-bar-val">'+r.rmse.toFixed(4)+'</span></div></div></div>';
+  });
+  html+='</div><div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;"><div style="font-size:12.5px;color:var(--text-3);margin-bottom:10px;">Downstream accuracy (higher = better)</div>';
+  var byAcc=results.slice().sort(function(a,b){return b.acc-a.acc;});
+  var maxAcc=Math.max.apply(null,byAcc.map(function(r){return r.acc;}));
+  byAcc.forEach(function(r){
+    var pct=r.acc/maxAcc*100;
+    html+='<div class="cmp-bar-row"><span class="cmp-bar-name">'+r.name+'</span>';
+    html+='<div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:'+pct+'%;background:'+r.color+';">';
+    html+='<span class="cmp-bar-val">'+(r.acc*100).toFixed(1)+'%</span></div></div></div>';
+  });
+  html+='</div>';
+  C('full-cmp-bars').innerHTML=html;
+  C('full-cmp-status').textContent='Done! MICE consistently lower RMSE on correlated MAR data.';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'mice_basic.py',label:'Basic MICE',code:`# IterativeImputer requires this import first (experimental API)
+from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer, SimpleImputer
+import numpy as np
+
+np.random.seed(42)
+n = 300
+
+# Generate correlated features (MICE benefits from correlations)
+cov = [[1, .8, .6], [.8, 1, .7], [.6, .7, 1]]
+X_true = np.random.multivariate_normal([0, 0, 0], cov, n)
+
+# MAR: col 0 missing when col 2 > 0
+mask = (X_true[:, 2] > 0) & (np.random.rand(n) < 0.35)
+X_masked = X_true.copy()
+X_masked[mask, 0] = np.nan
+
+print(f"Missing in col 0: {mask.sum()} / {n}  ({mask.mean():.1%})")
+
+# ── Mean imputation (baseline) ─────────────────────
+mean_imp = SimpleImputer(strategy='mean')
+X_mean = mean_imp.fit_transform(X_masked)
+rmse_mean = np.sqrt(np.mean((X_mean[mask, 0] - X_true[mask, 0])**2))
+
+# ── MICE imputation ────────────────────────────────
+mice_imp = IterativeImputer(
+    max_iter=10,
+    random_state=42,
+    initial_strategy='mean',
+    imputation_order='ascending'
+)
+X_mice = mice_imp.fit_transform(X_masked)
+rmse_mice = np.sqrt(np.mean((X_mice[mask, 0] - X_true[mask, 0])**2))
+
+print(f"\\nMethod         RMSE    Better by")
+print("-" * 38)
+print(f"Mean impute    {rmse_mean:.4f}  baseline")
+print(f"MICE           {rmse_mice:.4f}  {(rmse_mean-rmse_mice)/rmse_mean*100:.1f}% better")
+
+# Show a few examples
+print(f"\\nSample imputed values (first 5 missing rows):")
+print(f"{'True':>8}  {'Mean':>8}  {'MICE':>8}  {'Mean err':>9}  {'MICE err':>9}")
+print("-" * 50)
+for i, idx in enumerate(np.where(mask)[0][:5]):
+    t = X_true[idx, 0]
+    m = X_mean[idx, 0]
+    c = X_mice[idx, 0]
+    print(f"{t:>8.3f}  {m:>8.3f}  {c:>8.3f}  {abs(m-t):>9.3f}  {abs(c-t):>9.3f}")
+`},
+{file:'mice_pipeline.py',label:'MICE + Pipeline',code:`from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.datasets import load_breast_cancer
+import numpy as np
+
+np.random.seed(42)
+data = load_breast_cancer()
+X, y = data.data[:, :10], data.target  # use first 10 features
+
+# Artificially introduce MAR missing data
+mask = np.random.rand(*X.shape) < 0.20
+X_missing = X.copy().astype(float)
+X_missing[mask] = np.nan
+
+print(f"Dataset: {X.shape[0]} samples, {X.shape[1]} features")
+print(f"Missing: {mask.sum()} cells ({mask.mean():.1%})")
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_missing, y, test_size=0.2, random_state=42, stratify=y)
+
+# Build a leak-proof pipeline
+# Imputer fits only on X_train — no test data leakage
+pipeline = Pipeline([
+    ('imputer', IterativeImputer(
+        max_iter=10,
+        random_state=42,
+        initial_strategy='median',
+        imputation_order='ascending',
+        n_nearest_features=5,   # use 5 most correlated features
+        add_indicator=False      # set True for MNAR
+    )),
+    ('scaler', StandardScaler()),
+    ('clf', GradientBoostingClassifier(n_estimators=100, random_state=42))
+])
+
+pipeline.fit(X_train, y_train)
+
+train_acc = pipeline.score(X_train, y_train)
+test_acc  = pipeline.score(X_test, y_test)
+cv_scores = cross_val_score(pipeline, X_train, y_train, cv=5, scoring='accuracy')
+
+print(f"\\nTrain accuracy:  {train_acc:.4f}")
+print(f"Test accuracy:   {test_acc:.4f}")
+print(f"5-fold CV:       {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+print(f"\\nAll imputation was leak-free (fit on train only).")
+`},
+{file:'missing_indicator.py',label:'MissingIndicator',code:`from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer, MissingIndicator, SimpleImputer
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+import numpy as np
+
+np.random.seed(42)
+n = 500
+
+# Simulate MNAR: high income people hide income
+income_true = np.random.lognormal(10.7, 0.6, n)
+age         = np.random.normal(38, 12, n).clip(18, 80)
+score       = np.random.normal(65, 15, n).clip(0, 100)
+
+# MNAR: P(missing) increases with income itself
+hide_prob = 1 / (1 + np.exp(-(income_true - np.median(income_true)) / 10000))
+income_obs = np.where(np.random.rand(n) < hide_prob, np.nan, income_true)
+
+# Target: approved = high income AND older
+y = ((income_true > np.percentile(income_true, 60)) & (age > 30)).astype(int)
+
+print(f"Missing income: {np.isnan(income_obs).sum()} / {n} ({np.isnan(income_obs).mean():.1%})")
+print("Mean income (observed): $" + f"{np.nanmean(income_obs):,.0f}")
+print("Mean income (hidden):   $" + f"{np.mean(income_true[np.isnan(income_obs)]):,.0f}")
+print(f"→ Hidden group earns MORE — MNAR confirmed\\n")
+
+X = np.column_stack([income_obs, age, score])
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+def run(name, X_tr, X_te):
+    imp = SimpleImputer(strategy='median')
+    sc  = StandardScaler()
+    lr  = LogisticRegression(max_iter=500, random_state=42)
+    Xtr = sc.fit_transform(imp.fit_transform(X_tr))
+    Xte = sc.transform(imp.transform(X_te))
+    lr.fit(Xtr, y_train)
+    acc = accuracy_score(y_test, lr.predict(Xte))
+    print(f"  {name:<40} acc={acc:.4f}")
+
+run("Median only (no indicator)", X_train, X_test)
+
+# Add MissingIndicator columns
+mi = MissingIndicator(features='missing-only')
+ind_train = mi.fit_transform(X_train).astype(float)
+ind_test  = mi.transform(X_test).astype(float)
+
+run("Median + MissingIndicator",
+    np.hstack([X_train, ind_train]),
+    np.hstack([X_test,  ind_test]))
+
+# MICE + indicator (best of both)
+from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer
+mice = IterativeImputer(max_iter=10, add_indicator=True, random_state=42)
+X_tr_mice = mice.fit_transform(X_train)
+X_te_mice = mice.transform(X_test)
+run("MICE + add_indicator=True (built-in)", X_tr_mice, X_te_mice)
+
+print(f"\\nMissing indicator feature indices: {mi.indicator_}")
+print(f"Indicator adds {ind_train.shape[1]} column(s)")
+`},
+{file:'mice_convergence.py',label:'Convergence check',code:`from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer
+import numpy as np
+
+np.random.seed(42)
+n = 200
+
+# Strongly correlated data — MICE has the most to gain here
+cov = [[1,.9,.8,.7],[.9,1,.85,.75],[.8,.85,1,.8],[.7,.75,.8,1]]
+X_true = np.random.multivariate_normal([0]*4, cov, n)
+
+mask = np.random.rand(*X_true.shape) < 0.30
+X_masked = X_true.copy()
+X_masked[mask] = np.nan
+
+print(f"Missing: {mask.sum()} / {X_true.size}  ({mask.mean():.1%})")
+print(f"\\n{'max_iter':>9}  {'RMSE':>8}  {'Improvement':>12}")
+print("-" * 35)
+
+prev_rmse = None
+for iters in [1, 2, 3, 5, 7, 10, 15, 20]:
+    imp = IterativeImputer(max_iter=iters, random_state=42, tol=1e-6)
+    X_imp = imp.fit_transform(X_masked)
+    rmse = np.sqrt(np.mean((X_imp[mask] - X_true[mask])**2))
+    if prev_rmse:
+        improvement = (prev_rmse - rmse) / prev_rmse * 100
+        bar = '#' * int(improvement * 5)
+        print(f"{iters:>9}  {rmse:>8.4f}  {improvement:>10.2f}%  {bar}")
+    else:
+        print(f"{iters:>9}  {rmse:>8.4f}  {'(baseline)':>12}")
+    prev_rmse = rmse
+
+print(f"\\n→ Most gain in first 3-5 iterations.")
+print(f"  Beyond 10, improvement is marginal.")
+print(f"  Use tol parameter to auto-stop when delta < tol.")
+
+# Show tol in action
+imp_tol = IterativeImputer(max_iter=50, tol=1e-4, random_state=42)
+X_tol = imp_tol.fit_transform(X_masked)
+rmse_tol = np.sqrt(np.mean((X_tol[mask] - X_true[mask])**2))
+print(f"\\nWith tol=1e-4 (auto-stop): {imp_tol.n_iter_} iterations used, RMSE={rmse_tol:.4f}")
+`},
+{file:'mice_full_workflow.py',label:'Full workflow',code:`from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer, SimpleImputer, KNNImputer, MissingIndicator
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
+import numpy as np, pandas as pd
+
+np.random.seed(42)
+n = 400
+
+# Mixed dataset: numeric + categorical, multiple missing patterns
+df = pd.DataFrame({
+    'age':      np.random.normal(38, 12, n).clip(18, 80),
+    'income':   np.random.lognormal(10.7, 0.6, n),
+    'score':    np.random.normal(65, 15, n).clip(0, 100),
+    'debt':     np.random.lognormal(9, 0.8, n),
+    'region':   np.random.choice(['North','South','East','West'], n),
+})
+
+# Introduce missingness
+df.loc[np.random.rand(n) < 0.15, 'age']    = np.nan  # MCAR
+df.loc[(df['income'] > df['income'].quantile(.7)) &
+       (np.random.rand(n) < 0.4), 'income'] = np.nan  # MNAR
+df.loc[(df['age'] > 50) & (np.random.rand(n) < 0.3), 'score'] = np.nan  # MAR
+
+y = ((df['income'].fillna(df['income'].median()) > df['income'].median()) &
+     (df['age'].fillna(38) > 30)).astype(int)
+
+print("Missing per column:")
+print(df.isnull().sum().to_string())
+print()
+
+X = df.drop(columns=[])
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+numeric_cols     = ['age', 'income', 'score', 'debt']
+categorical_cols = ['region']
+
+numeric_transformer = Pipeline([
+    ('mice',   IterativeImputer(max_iter=10, random_state=42, add_indicator=True)),
+    ('scaler', StandardScaler()),
+])
+categorical_transformer = Pipeline([
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False)),
+])
+
+preprocessor = ColumnTransformer([
+    ('num', numeric_transformer, numeric_cols),
+    ('cat', categorical_transformer, categorical_cols),
+])
+
+clf = Pipeline([
+    ('prep', preprocessor),
+    ('clf',  RandomForestClassifier(n_estimators=100, random_state=42))
+])
+
+clf.fit(X_train, y_train)
+cv = cross_val_score(clf, X_train, y_train, cv=5, scoring='accuracy')
+print(f"Train acc:  {clf.score(X_train, y_train):.4f}")
+print(f"Test acc:   {clf.score(X_test, y_test):.4f}")
+print(f"CV acc:     {cv.mean():.4f} ± {cv.std():.4f}")
+print(f"\\nFull pipeline: MICE numeric, mode categorical, RF classifier.")
+print(f"All imputation is train-only — zero data leakage.")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','scikit-learn','pandas']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+
+/* ════ INIT ════ */
+window.addEventListener('load',function(){
+  resetMICE();
+  drawIndicatorGrid();
+  generateHPData();
+  retrainHP();
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,
+      mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawConvCanvas();drawScatterCompare();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

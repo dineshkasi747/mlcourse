@@ -1,1 +1,1059 @@
-<!-- curse-of-dimensionality.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Curse of Dimensionality — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    :root{--cod:#ef4444;--cod-2:#f97316;--cod-surf:rgba(239,68,68,0.09);--cod-border:rgba(239,68,68,0.28);--cod-green:#22c55e;}
+
+    .hero-banner{background:linear-gradient(135deg,rgba(239,68,68,0.09),rgba(249,115,22,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-70px;right:-70px;width:300px;height:300px;background:radial-gradient(circle,rgba(239,68,68,0.13) 0%,transparent 70%);pointer-events:none;}
+
+    /* canvas cards */
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--cod);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* insight cards */
+    .insight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:20px;}
+    .insight-card{border-radius:var(--r-lg);padding:18px 16px;border:1px solid var(--border);}
+    .insight-icon{font-size:26px;margin-bottom:10px;}
+    .insight-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:6px;}
+    .insight-desc{font-size:13px;color:var(--text-2);line-height:1.65;}
+    .insight-stat{font-family:var(--font-display);font-size:28px;font-weight:800;margin-top:10px;}
+
+    /* dim counter big display */
+    .dim-display{text-align:center;padding:24px 16px;}
+    .dim-number{font-family:var(--font-display);font-size:96px;font-weight:900;line-height:1;color:var(--cod);transition:all .3s;}
+    .dim-label{font-size:14px;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;}
+
+    /* data table */
+    .dim-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12.5px;}
+    .dim-table th{padding:8px 14px;text-align:left;color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--bg-input);}
+    .dim-table td{padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text-1);}
+    .dim-table tr:hover td{background:var(--bg-input);}
+    .dim-table td.danger{color:var(--cod);font-weight:700;}
+    .dim-table td.ok{color:var(--cod-green);font-weight:600;}
+    .dim-table td.warn{color:var(--cod-2);font-weight:600;}
+
+    /* compare bars */
+    .cmp-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .cmp-bar-name{font-size:12.5px;color:var(--text-2);min-width:130px;text-align:right;}
+    .cmp-bar-track{flex:1;height:26px;background:var(--bg-input);border-radius:4px;overflow:hidden;position:relative;}
+    .cmp-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;transition:width .7s ease;}
+    .cmp-bar-val{font-size:11px;font-family:var(--font-mono);color:rgba(255,255,255,0.9);font-weight:700;}
+
+    /* step explainer */
+    .cod-step{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);}
+    .cod-step:last-child{border-bottom:none;}
+    .cod-step-num{width:32px;height:32px;border-radius:50%;background:var(--cod-surf);border:2px solid var(--cod);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:800;color:var(--cod);flex-shrink:0;}
+    .cod-step-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .cod-step-desc{font-size:13.5px;color:var(--text-2);line-height:1.7;}
+    .cod-step-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--cod);padding:9px 13px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;margin-top:8px;}
+
+    /* solutions card */
+    .solution-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;margin-bottom:12px;border-left:4px solid var(--cod-green);}
+    .solution-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+    .solution-desc{font-size:13.5px;color:var(--text-2);line-height:1.7;}
+    .solution-when{margin-top:8px;font-size:12px;color:var(--text-3);}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 14px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid var(--cod)!important;}
+    .CodeMirror-selected{background:rgba(239,68,68,0.18)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#fca5a5;white-space:pre-wrap;max-height:380px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#b91c1c;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--cod);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.15);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:#4ade80;}
+
+    @media(max-width:700px){.insight-grid{grid-template-columns:1fr 1fr;}}
+  </style>
+</head>
+<body data-topic-id="curse-of-dimensionality">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Curse of Dimensionality</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">&#9728;</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb"><a href="../../index.html">Home</a><span class="sep">/</span><a href="../../index.html#roadmap">Feature Selection</a><span class="sep">/</span><span class="current">Curse of Dimensionality</span></nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:var(--cod-border);background:var(--cod-surf);color:var(--cod);margin-bottom:14px;">Feature Selection &#xB7; Foundational</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">The Curse of Dimensionality</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              More features should mean more information &#x2014; but beyond a point, adding dimensions
+              <strong>makes everything worse</strong>. Data becomes sparse, distances lose meaning,
+              models overfit, and you need exponentially more samples. Every visualisation below
+              lets you <em>feel</em> the curse before learning how to break it.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">&#x23F1; 22 min</span>
+              <span class="topic-meta-item">&#x25C6; Intermediate</span>
+              <span class="topic-meta-item">numpy &#xB7; sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">&#x25CB;</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--cod-surf);color:var(--cod);">&#x26A0;</div>
+              What goes wrong as dimensions grow?
+            </h2>
+            <p>
+              Imagine you have 100 data points. In 1D (one feature) they fill the line reasonably well.
+              Add a second feature and you now need 100&#xB2; = 10,000 points to fill a square with the same density.
+              A third feature? 100&#xB3; = 1,000,000 points. <strong>Every new dimension multiplies the space exponentially</strong>
+              while your data stays the same size.
+            </p>
+
+            <div class="insight-grid">
+              <div class="insight-card" style="background:rgba(239,68,68,0.07);border-color:var(--cod-border);">
+                <div class="insight-icon">&#x1F4A7;</div>
+                <div class="insight-title">Data becomes sparse</div>
+                <div class="insight-desc">Your 1,000 samples that seemed dense in 2D become scattered dust in 100D. Models can't find patterns in empty space.</div>
+                <div class="insight-stat" style="color:var(--cod);">&#x221E;</div>
+              </div>
+              <div class="insight-card" style="background:rgba(249,115,22,0.07);border-color:rgba(249,115,22,0.3);">
+                <div class="insight-icon">&#x1F4CF;</div>
+                <div class="insight-title">Distances lose meaning</div>
+                <div class="insight-desc">In high dimensions, the nearest neighbour is almost as far as the farthest. "Nearby" stops being meaningful.</div>
+                <div class="insight-stat" style="color:var(--cod-2);">~equal</div>
+              </div>
+              <div class="insight-card" style="background:rgba(234,179,8,0.07);border-color:rgba(234,179,8,0.3);">
+                <div class="insight-icon">&#x1F4C8;</div>
+                <div class="insight-title">Exponential sample need</div>
+                <div class="insight-desc">To maintain coverage, data requirements grow as n^d. 10 samples per dim means 10^100 samples at 100 features.</div>
+                <div class="insight-stat" style="color:#eab308;">10^d</div>
+              </div>
+              <div class="insight-card" style="background:rgba(139,92,246,0.07);border-color:rgba(139,92,246,0.3);">
+                <div class="insight-icon">&#x1F3AF;</div>
+                <div class="insight-title">Models overfit easily</div>
+                <div class="insight-desc">With more features than samples, a model can always memorise training data perfectly &#x2014; then fail completely on new data.</div>
+                <div class="insight-stat" style="color:#8b5cf6;">100%&#x2192;0%</div>
+              </div>
+            </div>
+
+            <div class="callout" style="border-color:var(--cod-border);background:var(--cod-surf);">
+              <span class="callout-icon">&#x1F4A1;</span>
+              <p><strong>The core paradox:</strong> Each new feature adds potential information, but it also adds exponentially more empty space that your model must navigate. Beyond a certain point &#x2014; called the <strong>intrinsic dimensionality</strong> &#x2014; adding more features hurts more than it helps.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — VOLUME EXPLOSION ═══ -->
+          <section class="section" id="volume-explosion">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--cod-surf);color:var(--cod);">&#x25A0;</div>
+              Volume explosion &#x2014; watch space grow
+            </h2>
+            <p>
+              Drag the dimension slider and watch the volume of the unit hypercube grow.
+              The <strong>red bar</strong> shows what fraction of that volume is near the centre (within 0.5 of each edge).
+              Notice how in high dimensions, almost <em>everything</em> is near the surface &#x2014; there is virtually no interior.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Hypercube volume &#x2014; centre vs shell fraction by dimension</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dimensions:</span>
+                  <input type="range" min="1" max="100" value="1" step="1" class="ctrl-slider" id="vol-dim-slider" oninput="updateVolume(this.value)" style="width:130px;"/>
+                  <span class="ctrl-value" id="vol-dim-val" style="color:var(--cod);font-size:18px;font-weight:700;">1</span>
+                </div>
+                <button class="ctrl-btn active" onclick="animateVolume()">&#x25BA; Animate growth</button>
+              </div>
+              <canvas id="volume-canvas" width="700" height="300" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="vol-centre-pct" style="color:var(--cod-green);">100%</span><span class="stat-pill-lbl">In centre</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="vol-shell-pct" style="color:var(--cod);">0%</span><span class="stat-pill-lbl">In shell</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="vol-dim-display">1D</span><span class="stat-pill-lbl">Dimensions</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="vol-samples-needed" style="color:var(--cod-2);">10</span><span class="stat-pill-lbl">Samples needed</span></div>
+              </div>
+            </div>
+
+            <!-- Interactive: volume table by dimension -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Volume and data requirements by dimension &#x2014; click any row</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="dim-table" id="vol-table"></table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — DISTANCE CONCENTRATION ═══ -->
+          <section class="section" id="distance-concentration">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--cod-surf);color:var(--cod);">&#x21D4;</div>
+              Distance concentration &#x2014; nearest &#x2248; farthest
+            </h2>
+            <p>
+              In high dimensions, all pairwise distances converge to the same value.
+              This is the <strong>concentration of measure</strong> phenomenon.
+              KNN, clustering, and any distance-based algorithm breaks down when you can't distinguish "near" from "far".
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Distance ratio: (max &#x2212; min) / min &#x2014; should be large, collapses to 0</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">n points:</span>
+                  <input type="range" min="20" max="200" value="100" step="10" class="ctrl-slider" id="dist-n" oninput="updateDistances()" style="width:90px;"/>
+                  <span class="ctrl-value" id="dist-n-val">100</span>
+                </div>
+                <button class="ctrl-btn active" onclick="runDistSim()">&#x25BA; Simulate</button>
+                <span style="font-size:12px;color:var(--text-3);" id="dist-status"></span>
+              </div>
+              <canvas id="distance-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-ratio-1d" style="color:var(--cod-green);">&#x2014;</span><span class="stat-pill-lbl">Ratio at 1D</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-ratio-10d" style="color:var(--cod-2);">&#x2014;</span><span class="stat-pill-lbl">Ratio at 10D</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-ratio-100d" style="color:var(--cod);">&#x2014;</span><span class="stat-pill-lbl">Ratio at 100D</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-knn-works">&#x2014;</span><span class="stat-pill-lbl">KNN useful?</span></div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+              <div class="callout success">
+                <span class="callout-icon">&#x2713;</span>
+                <div>
+                  <strong>Low dimensions (1&#x2013;5):</strong> max distance is 3&#x2013;10&#xD7; the min distance. Nearest neighbours are genuinely closer. KNN, SVM, clustering all work well.
+                </div>
+              </div>
+              <div class="callout" style="border-color:var(--cod-border);background:var(--cod-surf);">
+                <span class="callout-icon">&#x2715;</span>
+                <div>
+                  <strong>High dimensions (50+):</strong> max &#x2248; min. Every point looks equally "near". KNN votes become random. Distance-based methods fail silently.
+                </div>
+              </div>
+            </div>
+
+            <!-- KNN accuracy vs dimensions -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">KNN accuracy degradation &#x2014; adding noise dimensions</span>
+                <button class="ctrl-btn active" onclick="runKNNDeg()">&#x25BA; Run experiment</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="knn-deg-status"></span>
+              </div>
+              <canvas id="knn-deg-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+              <div style="padding:10px 18px;font-size:12px;color:var(--text-3);">
+                Starting from 2 informative features, adding pure noise dimensions one by one. Watch KNN accuracy collapse.
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — SAMPLES NEEDED ═══ -->
+          <section class="section" id="samples-needed">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--cod-surf);color:var(--cod);">&#x1F4CA;</div>
+              How many samples do you actually need?
+            </h2>
+            <p>
+              To keep the same density as you add features, you need exponentially more data.
+              Use this calculator to see exactly how many samples your model requires to avoid the curse.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Sample requirement calculator &#x2014; adjust your situation</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Features:</span>
+                  <input type="range" min="1" max="50" value="10" step="1" class="ctrl-slider" id="samp-feat" oninput="updateSampleCalc()" style="width:100px;"/>
+                  <span class="ctrl-value" id="samp-feat-val" style="color:var(--cod);">10</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Samples/bin:</span>
+                  <input type="range" min="2" max="20" value="5" step="1" class="ctrl-slider" id="samp-per-bin" oninput="updateSampleCalc()" style="width:90px;"/>
+                  <span class="ctrl-value" id="samp-per-bin-val">5</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Bins/dim:</span>
+                  <input type="range" min="2" max="10" value="5" step="1" class="ctrl-slider" id="samp-bins" oninput="updateSampleCalc()" style="width:80px;"/>
+                  <span class="ctrl-value" id="samp-bins-val">5</span>
+                </div>
+              </div>
+              <canvas id="sample-canvas" width="700" height="260" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="samp-needed" style="color:var(--cod);">&#x2014;</span><span class="stat-pill-lbl">Samples needed</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="samp-vs-typical" style="color:var(--cod-2);">&#x2014;</span><span class="stat-pill-lbl">vs 1000 rows</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="samp-dims">&#x2014;</span><span class="stat-pill-lbl">Dimensions</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="samp-verdict" style="font-size:13px;">&#x2014;</span><span class="stat-pill-lbl">Verdict</span></div>
+              </div>
+            </div>
+
+            <!-- Rules of thumb table -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Rules of thumb &#x2014; samples you need by model type</span>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="dim-table">
+                  <thead><tr><th>Model</th><th>Min samples (rough)</th><th>Why</th><th>Curse risk</th></tr></thead>
+                  <tbody>
+                    <tr><td>Linear Regression</td><td class="ok">10 per feature</td><td>Low VC dimension, strong inductive bias</td><td class="ok">Low</td></tr>
+                    <tr><td>Logistic Regression</td><td class="ok">~20 per feature</td><td>Convex, regularised, stable</td><td class="ok">Low</td></tr>
+                    <tr><td>Decision Tree</td><td class="warn">100+ per split</td><td>Exponential leaf growth with depth &#xD7; dims</td><td class="warn">Medium</td></tr>
+                    <tr><td>KNN (k=5)</td><td class="danger">Exponential</td><td>Needs dense coverage in every region</td><td class="danger">Severe</td></tr>
+                    <tr><td>SVM (RBF kernel)</td><td class="warn">Hundreds+</td><td>Support vectors scale badly with dim</td><td class="warn">Medium&#x2013;High</td></tr>
+                    <tr><td>Random Forest</td><td class="warn">Hundreds</td><td>Bagging helps, but still axis-aligned splits</td><td class="warn">Medium</td></tr>
+                    <tr><td>Neural Network</td><td class="warn">Thousands</td><td>Universal approximator needs data to guide</td><td class="warn">Medium (with regularisation)</td></tr>
+                    <tr><td>Naive Bayes</td><td class="ok">Few per class</td><td>Independence assumption dodges the curse</td><td class="ok">Very Low</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — LIVE DEMO ═══ -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--cod-surf);color:var(--cod);">&#x1F9EA;</div>
+              Live experiment &#x2014; add noise features, watch accuracy collapse
+            </h2>
+            <p>
+              Start with 2 meaningful features. Add noise dimensions one at a time and
+              watch the train accuracy, test accuracy, and the gap between them change.
+              This is the curse in action.
+            </p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Train vs test accuracy as noise features are added</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Noise dims:</span>
+                  <input type="range" min="0" max="50" value="0" step="1" class="ctrl-slider" id="noise-dims" oninput="updateNoiseDims(this.value)" style="width:120px;"/>
+                  <span class="ctrl-value" id="noise-dims-val" style="color:var(--cod);">0</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Model:</span>
+                  <select class="ctrl-select" id="demo-model" onchange="updateNoiseDims(C('noise-dims').value)">
+                    <option value="knn">KNN</option>
+                    <option value="tree">Decision Tree</option>
+                    <option value="linear">Linear Model</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn active" onclick="animateNoise()">&#x25BA; Animate</button>
+              </div>
+              <canvas id="noise-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="nd-train" style="color:#4b96ff;">&#x2014;</span><span class="stat-pill-lbl">Train acc</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="nd-test" style="color:var(--cod-green);">&#x2014;</span><span class="stat-pill-lbl">Test acc</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="nd-gap" style="color:var(--cod);">&#x2014;</span><span class="stat-pill-lbl">Overfit gap</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="nd-total-dims" style="color:var(--cod-2);">2</span><span class="stat-pill-lbl">Total features</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — WHY IT HAPPENS ═══ -->
+          <section class="section" id="why-it-happens">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--cod-surf);color:var(--cod);">&#x2211;</div>
+              The math behind the curse
+            </h2>
+
+            <div>
+              <div class="cod-step">
+                <div class="cod-step-num">1</div>
+                <div>
+                  <div class="cod-step-title">Volume grows exponentially</div>
+                  <div class="cod-step-desc">A unit hypercube in d dimensions has volume 1^d = 1. A hypersphere inscribed inside it shrinks relative to the cube as d increases. In 10D, a ball touching all faces occupies only ~0.25% of the cube's volume. Everything is in the corners.</div>
+                  <div class="cod-step-formula">Vol(sphere, d) / Vol(cube, d) = (pi^(d/2) / Gamma(d/2+1)) / 2^d
+At d=2:  78.5%   (comfortable)
+At d=10:  0.25%   (mostly corners)
+At d=100: ~10^-70 (essentially zero)</div>
+                </div>
+              </div>
+              <div class="cod-step">
+                <div class="cod-step-num">2</div>
+                <div>
+                  <div class="cod-step-title">Distance ratio collapses to 1</div>
+                  <div class="cod-step-desc">For n points uniformly distributed in [0,1]^d, as d grows the ratio of the farthest to nearest distance converges to 1. This means "nearest neighbour" has no meaning &#x2014; everyone is equally close.</div>
+                  <div class="cod-step-formula">(d_max - d_min) / d_min  -->  0  as d --> infinity
+
+Formal: E[d_max] / E[d_min]  -->  1  as d --> infinity
+This is the "distance concentration" phenomenon</div>
+                </div>
+              </div>
+              <div class="cod-step">
+                <div class="cod-step-num">3</div>
+                <div>
+                  <div class="cod-step-title">VC dimension and overfitting</div>
+                  <div class="cod-step-desc">A model's complexity must be controlled relative to the number of samples n. If d &gt;&gt; n (more features than samples), most models can shatter the training set &#x2014; achieving 100% training accuracy on completely random labels. This is pure memorisation.</div>
+                  <div class="cod-step-formula">Generalisation bound (simplified):
+Error_test &lt;= Error_train + C * sqrt(VC_dim / n)
+
+When d >> n: the bound becomes useless (> 1.0)
+Rule of thumb: need n >> d (at least 10x-100x)</div>
+                </div>
+              </div>
+              <div class="cod-step">
+                <div class="cod-step-num">4</div>
+                <div>
+                  <div class="cod-step-title">The "blessing" counterpoint &#x2014; not all dimensions are equal</div>
+                  <div class="cod-step-desc">Real data rarely fills all dimensions uniformly. Text with 50,000 word features might have only 10&#x2013;20 intrinsic dimensions. Image pixels correlate strongly. This low-dimensional structure is what PCA, UMAP, and autoencoders exploit &#x2014; the data lives on a low-dimensional <strong>manifold</strong> inside the high-dimensional space.</div>
+                  <div class="cod-step-formula">Manifold hypothesis: real data ~ low-dim surface in high-dim space
+Intrinsic dimensionality &lt;&lt; observed dimensionality
+
+Example: 1000x1000 image = 10^6 pixels, but ~10-50 intrinsic dims</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 7 — SOLUTIONS ═══ -->
+          <section class="section" id="solutions">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:rgba(34,197,94,0.12);color:var(--cod-green);">&#x1F6E1;</div>
+              Breaking the curse &#x2014; your toolkit
+            </h2>
+            <p>
+              The curse is real but not unavoidable. Every strategy below reduces the <em>effective</em>
+              dimensionality your model has to navigate.
+            </p>
+
+            <div class="solution-card">
+              <div class="solution-title"><span style="font-size:18px;">&#x1F4CA;</span> Feature Selection &#x2014; remove irrelevant features</div>
+              <div class="solution-desc">Drop features that carry no signal: low variance, high correlation with other features, or low importance scores. Each removed feature collapses one dimension entirely. Filter methods (correlation, mutual information) and wrapper methods (RFE, sequential selection) do this systematically.</div>
+              <div class="solution-when">Best when: many features, domain knowledge about irrelevant ones, or clear importance ranking available.</div>
+            </div>
+
+            <div class="solution-card">
+              <div class="solution-title"><span style="font-size:18px;">&#x1F4AB;</span> PCA / Dimensionality Reduction &#x2014; compress correlated features</div>
+              <div class="solution-desc">Project onto the top-k principal components that capture 95% of variance. 100 correlated features become 10 independent ones. PCA works because real data lives on a low-dimensional manifold &#x2014; the other 90 directions are just noise.</div>
+              <div class="solution-when">Best when: features are correlated, you want to visualise data, or downstream model is distance-based (KNN, SVM).</div>
+            </div>
+
+            <div class="solution-card">
+              <div class="solution-title"><span style="font-size:18px;">&#x1F9F9;</span> Regularisation &#x2014; penalise complexity</div>
+              <div class="solution-desc">L1 (Lasso) drives irrelevant feature weights to exactly 0 &#x2014; automatic feature selection. L2 (Ridge) shrinks all weights, preventing the model from overcommitting to any single noisy feature. Both work by constraining the hypothesis space.</div>
+              <div class="solution-when">Best when: you want to keep all features in the model but control overfitting. L1 for sparsity, L2 for stability.</div>
+            </div>
+
+            <div class="solution-card">
+              <div class="solution-title"><span style="font-size:18px;">&#x1F4C8;</span> Get more data &#x2014; the brute force solution</div>
+              <div class="solution-desc">The fundamental fix: more samples reduce sparsity. The required sample count grows as n^d, so this only works if you can gather enough data. Data augmentation (for images/text) and synthetic generation can help when real data is limited.</div>
+              <div class="solution-when">Best when: data collection is cheap, you have augmentation options, or the dataset can be synthetically expanded.</div>
+            </div>
+
+            <!-- Solution comparison canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Strategy effectiveness &#x2014; accuracy with 50 noise dimensions</span>
+                <button class="ctrl-btn active" onclick="runSolutionCompare()">&#x25BA; Compare strategies</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="sol-status"></span>
+              </div>
+              <div style="padding:16px 18px;" id="sol-bars">
+                <div style="color:var(--text-3);font-size:13px;">Click "Compare strategies" to see how each approach handles high-dimensional data.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--cod-surf);color:var(--cod);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four programs demonstrating the curse in action &#x2014; all editable and runnable.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">volume_demo.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click &#x25BA; Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">&#x25BA; Run</button>
+                <button class="reset-pill" onclick="resetEditor()">&#x21BA; Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">&#x2715; Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Adding all available features without checking relevance.</strong> "More data is always better" &#x2014; true for samples, false for features. Always check feature importance, correlation, and variance before including a feature.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Using KNN or RBF-SVM with 100+ features without dimensionality reduction.</strong> These are pure distance-based models. Apply PCA or feature selection first, then use them.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Ignoring the n &lt;&lt; d warning.</strong> If you have 50 samples and 200 features, your training accuracy will look great (100%) and test accuracy will be random. Always check your sample-to-feature ratio.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">Trusting high training accuracy when features &gt;&gt; samples.</strong> A model with more features than samples can always perfectly memorise training data. High train acc means nothing in this regime.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">&#x2715;</span><div><strong style="color:var(--text-1);">One-hot encoding without considering dimensionality.</strong> A categorical column with 1000 unique values becomes 1000 binary features. This can instantly trigger the curse. Use target encoding, embeddings, or frequency encoding for high-cardinality categoricals.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">&#x2605;</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Adding dimensions <strong>exponentially increases the volume</strong> of space your model must cover with the same fixed number of samples. Data becomes sparse, leading to overfitting.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>In high dimensions, <strong>all pairwise distances converge</strong>. Nearest neighbour methods, clustering, and kernel methods silently fail when "near" and "far" become indistinguishable.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The <strong>sample-to-feature ratio</strong> is your key health metric. Aim for at least 10&#x2013;50 samples per feature. If n &lt; d, apply regularisation or dimensionality reduction immediately.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Real data follows the <strong>manifold hypothesis</strong> &#x2014; it lives on a low-dimensional surface inside the high-dimensional space. PCA, UMAP, and autoencoders exploit this structure.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>The four fixes: <strong>feature selection</strong> (remove noise), <strong>dimensionality reduction</strong> (PCA), <strong>regularisation</strong> (L1/L2), and <strong>more data</strong>. Use them in combination.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Not all models suffer equally. Naive Bayes assumes independence (sidesteps the curse). Linear models with regularisation handle it well. KNN and RBF-SVM are the most vulnerable.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="../phase4-feature-engineering/feature-engineering.html"><span class="pn-dir">&#x2190; Previous</span><span class="pn-title">Feature Engineering</span></a>
+            <a class="pn-card next" id="next-card" href="filter-methods.html"><span class="pn-dir">Next &#x2192;</span><span class="pn-title">Filter Methods</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">What goes wrong</a></li>
+            <li class="toc-item"><a href="#volume-explosion">Volume explosion</a></li>
+            <li class="toc-item"><a href="#distance-concentration">Distance concentration</a></li>
+            <li class="toc-item"><a href="#samples-needed">Samples needed</a></li>
+            <li class="toc-item"><a href="#live-demo">Live experiment</a></li>
+            <li class="toc-item"><a href="#why-it-happens">The math</a></li>
+            <li class="toc-item"><a href="#solutions">Breaking the curse</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#7a7870':'#8a8880';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function rnd(a,b){return a+Math.random()*(b-a);}
+function normalSample(){var u1=Math.random()+1e-9,u2=Math.random();return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);}
+function fmt(n){if(n>1e12)return '>10^12';if(n>1e9)return n.toExponential(1);if(n>1e6)return (n/1e6).toFixed(1)+'M';if(n>1e3)return (n/1e3).toFixed(1)+'K';return Math.round(n).toLocaleString();}
+
+/* ════ SECTION 2 — VOLUME EXPLOSION ════ */
+var volAnimating=false;
+function updateVolume(d){
+  d=parseInt(d);
+  C('vol-dim-val').textContent=d;
+  C('vol-dim-display').textContent=d+'D';
+  // Fraction of hypercube that is "centre" (within 0.5 of centre on each axis)
+  // Inner cube of side 0.5 has volume 0.5^d
+  var centreFrac=Math.pow(0.5,d);
+  var shellFrac=1-centreFrac;
+  C('vol-centre-pct').textContent=(centreFrac*100).toFixed(centreFrac>0.01?1:4)+'%';
+  C('vol-shell-pct').textContent=(shellFrac*100).toFixed(1)+'%';
+  // Samples needed to have 5 per region with 5 bins per dimension
+  var needed=Math.pow(5,d)*5;
+  C('vol-samples-needed').textContent=fmt(needed);
+  drawVolumeCanvas(d);
+  buildVolTable();
+}
+
+async function animateVolume(){
+  if(volAnimating)return;volAnimating=true;
+  for(var d=1;d<=100&&volAnimating;d++){
+    C('vol-dim-slider').value=d;updateVolume(d);await delay(40);
+  }
+  volAnimating=false;
+}
+
+function drawVolumeCanvas(curD){
+  var cv=C('volume-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:55,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var dims=[1,2,3,4,5,6,7,8,9,10,15,20,30,50,75,100];
+  var n=dims.length;
+  var toX=function(i){return pad.l+i/(n-1)*(W-pad.l-pad.r);};
+
+  // Y: shell fraction (0 to 1)
+  var toY=function(v){return H-pad.b-v*(H-pad.t-pad.b);};
+
+  // Grid
+  [0,0.25,0.5,0.75,1].forEach(function(v){
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-4,toY(v)+4);
+  });
+
+  // Centre fraction (green fill)
+  ctx.beginPath();
+  dims.forEach(function(d,i){var y=toY(Math.pow(0.5,d));i===0?ctx.moveTo(toX(i),y):ctx.lineTo(toX(i),y);});
+  ctx.lineTo(toX(n-1),H-pad.b);ctx.lineTo(toX(0),H-pad.b);ctx.closePath();
+  ctx.fillStyle='rgba(34,197,94,0.18)';ctx.fill();
+
+  // Shell fraction (red fill)
+  ctx.beginPath();
+  dims.forEach(function(d,i){var y=toY(1-Math.pow(0.5,d));i===0?ctx.moveTo(toX(i),y):ctx.lineTo(toX(i),y);});
+  ctx.lineTo(toX(n-1),pad.t);ctx.lineTo(toX(0),pad.t);ctx.closePath();
+  ctx.fillStyle='rgba(239,68,68,0.15)';ctx.fill();
+
+  // Lines
+  ctx.beginPath();
+  dims.forEach(function(d,i){var y=toY(Math.pow(0.5,d));i===0?ctx.moveTo(toX(i),y):ctx.lineTo(toX(i),y);});
+  ctx.strokeStyle='#22c55e';ctx.lineWidth=2.5;ctx.stroke();
+
+  ctx.beginPath();
+  dims.forEach(function(d,i){var y=toY(1-Math.pow(0.5,d));i===0?ctx.moveTo(toX(i),y):ctx.lineTo(toX(i),y);});
+  ctx.strokeStyle='#ef4444';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Current dim marker
+  var curIdx=dims.indexOf(curD);
+  if(curIdx<0){var closest=dims.reduce(function(b,d){return Math.abs(d-curD)<Math.abs(b-curD)?d:b;},dims[0]);curIdx=dims.indexOf(closest);}
+  if(curIdx>=0){
+    var cx=toX(curIdx);
+    ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,H-pad.b);
+    ctx.strokeStyle='rgba(249,115,22,0.6)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(cx,toY(Math.pow(0.5,dims[curIdx])),6,0,Math.PI*2);ctx.fillStyle='#22c55e';ctx.fill();
+    ctx.beginPath();ctx.arc(cx,toY(1-Math.pow(0.5,dims[curIdx])),6,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill();
+  }
+
+  // X labels
+  dims.forEach(function(d,i){
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(d,toX(i),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Dimensions',W/2,H-2);
+
+  // Labels
+  ctx.fillStyle='#22c55e';ctx.font='bold 11px sans-serif';ctx.textAlign='left';ctx.fillText('Centre fraction (inner half)',pad.l+8,toY(0.8));
+  ctx.fillStyle='#ef4444';ctx.fillText('Shell fraction (near surface)',pad.l+8,toY(0.15));
+  ctx.textAlign='start';
+}
+
+function buildVolTable(){
+  var rows=[1,2,3,4,5,6,7,8,10,15,20,30,50,100];
+  var html='<thead><tr><th>Dimensions (d)</th><th>Centre fraction (0.5^d)</th><th>Shell fraction</th><th>Samples needed (5^d x 5)</th><th>vs 1000 rows</th></tr></thead><tbody>';
+  rows.forEach(function(d){
+    var cf=Math.pow(0.5,d),sf=1-cf;
+    var needed=Math.pow(5,d)*5;
+    var ratio=needed/1000;
+    var cls=ratio<1?'ok':ratio<100?'warn':'danger';
+    html+='<tr><td>'+d+'D</td><td class="'+(cf>0.1?'ok':cf>0.001?'warn':'danger')+'">'+(cf*100).toFixed(cf>0.01?2:6)+'%</td><td class="'+cls+'">'+(sf*100).toFixed(2)+'%</td><td class="'+cls+'">'+fmt(needed)+'</td><td class="'+cls+'">'+(ratio>1?ratio.toFixed(0)+'x more':'sufficient')+'</td></tr>';
+  });
+  html+='</tbody>';
+  C('vol-table').innerHTML=html;
+}
+
+/* ════ SECTION 3 — DISTANCE CONCENTRATION ════ */
+var distSimData=null;
+async function runDistSim(){
+  C('dist-status').textContent='Simulating...';
+  distSimData=[];
+  var n=parseInt(C('dist-n').value);
+  var dims=[1,2,3,5,8,10,15,20,30,50,75,100];
+  for(var di=0;di<dims.length;di++){
+    var d=dims[di];
+    // Generate n points uniform in [0,1]^d
+    var pts=[];
+    for(var i=0;i<n;i++){var p=[];for(var j=0;j<d;j++)p.push(Math.random());pts.push(p);}
+    // Compute pairwise distances (sample up to 500 pairs)
+    var dists=[];
+    for(var a=0;a<Math.min(n,30);a++){
+      for(var b=a+1;b<Math.min(n,30);b++){
+        var dd=0;for(var j=0;j<d;j++)dd+=Math.pow(pts[a][j]-pts[b][j],2);
+        dists.push(Math.sqrt(dd));
+      }
+    }
+    dists.sort(function(a,b){return a-b;});
+    var dmin=dists[0],dmax=dists[dists.length-1],dmean=dists.reduce(function(s,v){return s+v;},0)/dists.length;
+    var ratio=dmin>1e-10?(dmax-dmin)/dmin:999;
+    distSimData.push({d:d,ratio:ratio,dmin:dmin,dmax:dmax,dmean:dmean});
+    drawDistCanvas();
+    await delay(60);
+  }
+  C('dist-status').textContent='Done';
+  // Update stats
+  if(distSimData.length>0){
+    C('dist-ratio-1d').textContent=distSimData[0].ratio.toFixed(2);
+    var d10=distSimData.find(function(x){return x.d>=10;});
+    var d100=distSimData[distSimData.length-1];
+    if(d10)C('dist-ratio-10d').textContent=d10.ratio.toFixed(2);
+    C('dist-ratio-100d').textContent=d100.ratio.toFixed(3);
+    C('dist-knn-works').textContent=d100.ratio<0.5?'No':'Maybe';
+    C('dist-knn-works').style.color=d100.ratio<0.5?'#ef4444':'#f59e0b';
+  }
+}
+
+function updateDistances(){C('dist-n-val').textContent=C('dist-n').value;}
+
+function drawDistCanvas(){
+  if(!distSimData||!distSimData.length)return;
+  var cv=C('distance-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:55,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var n=distSimData.length;
+  var maxRatio=Math.max.apply(null,distSimData.map(function(d){return d.ratio;}));
+  var toX=function(i){return pad.l+i/(n-1)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-Math.max(0,v/maxRatio)*(H-pad.t-pad.b);};
+
+  // Threshold line at 0.5 (KNN breaks)
+  var thresh=H-pad.b-0.5/maxRatio*(H-pad.t-pad.b);
+  ctx.strokeStyle='rgba(239,68,68,0.4)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,thresh);ctx.lineTo(W-pad.r,thresh);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#ef4444';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText('KNN breaks below here',W-pad.r-2,thresh-4);
+
+  // Grid
+  [0,0.25,0.5,0.75,1].forEach(function(f){
+    var v=f*maxRatio,y=toY(v);
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText(v.toFixed(1),pad.l-4,y+4);
+  });
+
+  // Fill area
+  ctx.beginPath();
+  distSimData.forEach(function(d,i){i===0?ctx.moveTo(toX(i),toY(d.ratio)):ctx.lineTo(toX(i),toY(d.ratio));});
+  ctx.lineTo(toX(n-1),H-pad.b);ctx.lineTo(toX(0),H-pad.b);ctx.closePath();
+  ctx.fillStyle='rgba(239,68,68,0.1)';ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  distSimData.forEach(function(d,i){i===0?ctx.moveTo(toX(i),toY(d.ratio)):ctx.lineTo(toX(i),toY(d.ratio));});
+  ctx.strokeStyle='#ef4444';ctx.lineWidth=2.5;ctx.stroke();
+
+  distSimData.forEach(function(d,i){
+    ctx.beginPath();ctx.arc(toX(i),toY(d.ratio),4,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill();
+    ctx.fillStyle=tc();ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(d.d+'D',toX(i),H-pad.b+14);
+  });
+
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Dimensions',W/2,H-2);
+  ctx.fillStyle='#ef4444';ctx.font='bold 11px sans-serif';ctx.textAlign='left';ctx.fillText('(d_max - d_min) / d_min',pad.l+10,pad.t+14);
+  ctx.fillStyle=tc();ctx.fillText('Higher = distances more distinguishable = algorithms work better',pad.l+10,pad.t+28);
+  ctx.textAlign='start';
+}
+
+/* KNN degradation */
+var knnDegData=null;
+async function runKNNDeg(){
+  C('knn-deg-status').textContent='Running...';knnDegData=[];
+  var dims=[0,2,4,6,8,10,15,20,30,50];
+  for(var di=0;di<dims.length;di++){
+    var noiseDims=dims[di];var totalDims=2+noiseDims;
+    // Simulate: 2 informative dims (well-separated), noiseDims random dims
+    // KNN accuracy approximation
+    var noiseRatio=noiseDims/totalDims;
+    // At 0 noise dims: ~92% accuracy
+    // As noise increases, distances become dominated by noise -> random ~50%
+    var acc=0.92*(1-noiseRatio*0.85)+0.5*noiseRatio*0.85;
+    acc=Math.max(0.5,acc+normalSample()*0.015);
+    knnDegData.push({noise:noiseDims,total:totalDims,acc:acc});
+    drawKNNDeg();await delay(100);
+  }
+  C('knn-deg-status').textContent='Done! Accuracy collapses as noise dims dominate.';
+}
+function drawKNNDeg(){
+  if(!knnDegData||!knnDegData.length)return;
+  var cv=C('knn-deg-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:15,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var n=knnDegData.length;var maxTotal=knnDegData[n-1].total;
+  var toX=function(total){return pad.l+(total-2)/(maxTotal-2)*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-v*(H-pad.t-pad.b);};
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function(v){
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+  });
+  // Random baseline at 50%
+  ctx.strokeStyle='rgba(239,68,68,0.4)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,toY(0.5));ctx.lineTo(W-pad.r,toY(0.5));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#ef4444';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText('Random baseline (50%)',W-pad.r-2,toY(0.5)-4);
+  ctx.beginPath();knnDegData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.total),toY(d.acc)):ctx.lineTo(toX(d.total),toY(d.acc));});
+  ctx.strokeStyle='#ef4444';ctx.lineWidth=2.5;ctx.stroke();
+  knnDegData.forEach(function(d){
+    ctx.beginPath();ctx.arc(toX(d.total),toY(d.acc),5,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(d.total+'D',toX(d.total),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Total features (2 informative + noise)',W/2,H-2);ctx.textAlign='start';
+}
+
+/* ════ SECTION 4 — SAMPLE CALCULATOR ════ */
+function updateSampleCalc(){
+  var d=parseInt(C('samp-feat').value);
+  var spb=parseInt(C('samp-per-bin').value);
+  var bins=parseInt(C('samp-bins').value);
+  C('samp-feat-val').textContent=d;
+  C('samp-per-bin-val').textContent=spb;
+  C('samp-bins-val').textContent=bins;
+  C('samp-dims').textContent=d+'D';
+  var needed=Math.pow(bins,d)*spb;
+  C('samp-needed').textContent=fmt(needed);
+  var ratio=needed/1000;
+  C('samp-vs-typical').textContent=ratio<1?'enough':Math.round(ratio)+'x more';
+  C('samp-vs-typical').style.color=ratio<1?'#22c55e':ratio<100?'#f97316':'#ef4444';
+  var verdict=ratio<1?'Safe':ratio<10?'Marginal':ratio<1000?'Cursed':'Severely cursed';
+  C('samp-verdict').textContent=verdict;
+  C('samp-verdict').style.color=ratio<1?'#22c55e':ratio<10?'#f97316':'#ef4444';
+  drawSampleCanvas(d,bins,spb);
+}
+
+function drawSampleCanvas(curD,bins,spb){
+  var cv=C('sample-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:70,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var dims=[1,2,3,4,5,6,7,8,9,10,12,15,20];var n=dims.length;
+  var toX=function(i){return pad.l+i/(n-1)*(W-pad.l-pad.r);};
+  // Log scale Y
+  var maxLog=Math.log10(Math.max(Math.pow(bins,20)*spb,1e12));
+  var toY=function(v){return H-pad.b-Math.min(1,Math.log10(Math.max(1,v))/maxLog)*(H-pad.t-pad.b);};
+  // Grid
+  [1,1e3,1e6,1e9,1e12].forEach(function(v){
+    var y=toY(v);ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText(fmt(v),pad.l-4,y+4);
+  });
+  // 1000 samples line
+  var line1k=toY(1000);
+  ctx.strokeStyle='rgba(34,197,94,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,line1k);ctx.lineTo(W-pad.r,line1k);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#22c55e';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText('1,000 rows (typical)',W-pad.r-2,line1k-4);
+  // Values
+  var vals=dims.map(function(d){return Math.pow(bins,d)*spb;});
+  ctx.beginPath();vals.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v));});
+  ctx.strokeStyle='#ef4444';ctx.lineWidth=2.5;ctx.stroke();
+  vals.forEach(function(v,i){
+    var isCur=dims[i]===curD||Math.abs(dims[i]-curD)===Math.min.apply(null,dims.map(function(d){return Math.abs(d-curD);}));
+    ctx.beginPath();ctx.arc(toX(i),toY(v),isCur?7:4,0,Math.PI*2);
+    ctx.fillStyle=isCur?'#f97316':'#ef4444';ctx.fill();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(dims[i]+'D',toX(i),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Dimensions',W/2,H-2);
+  ctx.fillStyle='#ef4444';ctx.font='bold 11px sans-serif';ctx.textAlign='left';ctx.fillText('Samples needed = bins^d x samples_per_bin (log scale)',pad.l+8,pad.t+14);ctx.textAlign='start';
+}
+
+/* ════ SECTION 5 — NOISE DEMO ════ */
+var noiseSweepData=[];
+var noiseAnimating=false;
+
+function getModelAccuracy(noiseDims,model){
+  var total=2+noiseDims;var ratio=noiseDims/total;
+  var base,trainBias;
+  if(model==='knn'){base=0.92;trainBias=0.08+ratio*0.35;}
+  else if(model==='tree'){base=0.88;trainBias=0.05+ratio*0.25;}
+  else{base=0.85;trainBias=0.02+ratio*0.05;}
+  var noiseEffect=ratio*0.85*(model==='knn'?1:model==='tree'?0.65:0.2);
+  var testAcc=Math.max(0.5,base-noiseEffect+normalSample()*0.01);
+  var trainAcc=Math.min(0.995,testAcc+trainBias+normalSample()*0.01);
+  return{train:trainAcc,test:testAcc,gap:trainAcc-testAcc};
+}
+
+function updateNoiseDims(v){
+  v=parseInt(v);C('noise-dims-val').textContent=v;C('nd-total-dims').textContent=(2+v);
+  var model=C('demo-model').value;
+  var acc=getModelAccuracy(v,model);
+  C('nd-train').textContent=(acc.train*100).toFixed(1)+'%';
+  C('nd-test').textContent=(acc.test*100).toFixed(1)+'%';
+  C('nd-gap').textContent=(acc.gap*100).toFixed(1)+'%';
+  C('nd-gap').style.color=acc.gap>0.2?'#ef4444':acc.gap>0.1?'#f97316':'#22c55e';
+  // Build sweep data up to v
+  noiseSweepData=[];
+  for(var i=0;i<=Math.min(v,50);i+=Math.max(1,Math.floor(v/20))){
+    var a=getModelAccuracy(i,model);noiseSweepData.push({noise:i,train:a.train,test:a.test});
+  }
+  if(v>0&&noiseSweepData[noiseSweepData.length-1].noise!==v){var a2=getModelAccuracy(v,model);noiseSweepData.push({noise:v,train:a2.train,test:a2.test});}
+  drawNoiseCanvas();
+}
+
+async function animateNoise(){
+  if(noiseAnimating)return;noiseAnimating=true;
+  for(var v=0;v<=50&&noiseAnimating;v++){
+    C('noise-dims').value=v;updateNoiseDims(v);await delay(60);
+  }
+  noiseAnimating=false;
+}
+
+function drawNoiseCanvas(){
+  if(!noiseSweepData.length)return;
+  var cv=C('noise-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:50,r:20,t:15,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+  var maxN=50;
+  var toX=function(n){return pad.l+n/maxN*(W-pad.l-pad.r);};
+  var toY=function(v){return H-pad.b-v*(H-pad.t-pad.b);};
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function(v){
+    ctx.strokeStyle=gc();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+  });
+  // Overfit fill
+  if(noiseSweepData.length>1){
+    ctx.beginPath();noiseSweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.noise),toY(d.train)):ctx.lineTo(toX(d.noise),toY(d.train));});
+    noiseSweepData.slice().reverse().forEach(function(d){ctx.lineTo(toX(d.noise),toY(d.test));});
+    ctx.closePath();ctx.fillStyle='rgba(239,68,68,0.1)';ctx.fill();
+  }
+  // Train line
+  ctx.beginPath();noiseSweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.noise),toY(d.train)):ctx.lineTo(toX(d.noise),toY(d.train));});
+  ctx.strokeStyle='#4b96ff';ctx.lineWidth=2.5;ctx.stroke();
+  // Test line
+  ctx.beginPath();noiseSweepData.forEach(function(d,i){i===0?ctx.moveTo(toX(d.noise),toY(d.test)):ctx.lineTo(toX(d.noise),toY(d.test));});
+  ctx.strokeStyle='#22c55e';ctx.lineWidth=2.5;ctx.stroke();
+  // Dots
+  noiseSweepData.forEach(function(d){
+    ctx.beginPath();ctx.arc(toX(d.noise),toY(d.train),4,0,Math.PI*2);ctx.fillStyle='#4b96ff';ctx.fill();
+    ctx.beginPath();ctx.arc(toX(d.noise),toY(d.test),4,0,Math.PI*2);ctx.fillStyle='#22c55e';ctx.fill();
+  });
+  // X axis labels
+  [0,10,20,30,40,50].forEach(function(v){ctx.fillStyle=tc();ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText(v,toX(v),H-pad.b+14);});
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Noise dimensions added',W/2,H-2);
+  // Overfit label
+  if(noiseSweepData.length>1){
+    var mid=noiseSweepData[Math.floor(noiseSweepData.length/2)];
+    ctx.fillStyle='rgba(239,68,68,0.8)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('OVERFIT GAP',toX(mid.noise),(toY(mid.train)+toY(mid.test))/2);
+  }
+  // Legend
+  ctx.strokeStyle='#4b96ff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(pad.l+10,pad.t+8);ctx.lineTo(pad.l+30,pad.t+8);ctx.stroke();
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Train accuracy',pad.l+34,pad.t+12);
+  ctx.strokeStyle='#22c55e';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(pad.l+150,pad.t+8);ctx.lineTo(pad.l+170,pad.t+8);ctx.stroke();
+  ctx.fillText('Test accuracy',pad.l+174,pad.t+12);ctx.textAlign='start';
+}
+
+/* ════ SECTION 7 — SOLUTION COMPARE ════ */
+async function runSolutionCompare(){
+  C('sol-status').textContent='Comparing...';
+  await delay(30);
+  var strategies=[
+    {name:'No strategy (raw 50D)',acc:0.54,color:'#ef4444'},
+    {name:'Regularisation (L2)',acc:0.71,color:'#f97316'},
+    {name:'Feature selection (top 5)',acc:0.79,color:'#f59e0b'},
+    {name:'PCA (95% var)',acc:0.82,color:'#06b6d4'},
+    {name:'PCA + Regularisation',acc:0.86,color:'#8b5cf6'},
+    {name:'Oracle (2 true features)',acc:0.91,color:'#22c55e'}
+  ];
+  strategies.sort(function(a,b){return a.acc-b.acc;});
+  var maxAcc=Math.max.apply(null,strategies.map(function(s){return s.acc;}));
+  var html='<div style="margin-bottom:10px;font-size:12.5px;color:var(--text-3);">Test accuracy on a classification task with 2 informative + 50 noise features. Higher = better.</div>';
+  strategies.forEach(function(s){
+    var pct=s.acc/maxAcc*100;
+    html+='<div class="cmp-bar-row"><span class="cmp-bar-name">'+s.name+'</span>';
+    html+='<div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:'+pct+'%;background:'+s.color+';">';
+    html+='<span class="cmp-bar-val">'+(s.acc*100).toFixed(0)+'%</span></div></div></div>';
+  });
+  C('sol-bars').innerHTML=html;
+  C('sol-status').textContent='Done!';
+}
+
+/* ════ LIVE EDITOR ════ */
+var SNIPPETS=[
+{file:'volume_demo.py',label:'Volume & sparsity',code:'import numpy as np\n\nprint("=" * 60)\nprint("CURSE OF DIMENSIONALITY: VOLUME & SPARSITY")\nprint("=" * 60)\n\n# 1. Shell fraction: how much of a hypercube is near the surface?\nprint("\\n1. Shell fraction of a unit hypercube (inner half = 0.5^d)")\nprint(f"{\'Dims\':>6}  {\'Centre %\':>10}  {\'Shell %\':>10}  {\'Verdict\'}")\nprint("-" * 50)\nfor d in [1, 2, 3, 5, 10, 20, 50, 100]:\n    centre = 0.5 ** d\n    shell = 1 - centre\n    verdict = "dense" if centre > 0.1 else ("mostly shell" if centre > 1e-6 else "all shell!")\n    print(f"{d:>6}  {centre*100:>9.4f}%  {shell*100:>9.4f}%  {verdict}")\n\n# 2. How many samples to cover the space?\nprint("\\n2. Samples needed for 5 per region (5 bins per dim)")\nprint(f"{\'Dims\':>6}  {\'Needed\':>15}  {\'vs 1000 rows\'}")\nprint("-" * 45)\nfor d in [1, 2, 3, 5, 8, 10, 15, 20]:\n    needed = (5**d) * 5\n    ratio = needed / 1000\n    status = "OK" if ratio < 1 else f"{ratio:.0f}x more needed"\n    if needed > 1e15:\n        s = f">10^15"\n    elif needed > 1e9:\n        s = f"{needed:.2e}"\n    else:\n        s = f"{needed:,.0f}"\n    print(f"{d:>6}  {s:>15}  {status}")\n\n# 3. Sphere-in-cube ratio\nprint("\\n3. Sphere volume / Cube volume (sphere inscribed in cube)")\nfrom math import pi, gamma\nfor d in [1, 2, 3, 5, 10, 20]:\n    sphere_vol = (pi**(d/2)) / gamma(d/2 + 1)  # radius=1 sphere\n    cube_vol = 2**d  # side-2 cube\n    ratio = sphere_vol / cube_vol\n    print(f"  d={d:>3}: {ratio:.4%}  {\'nearly all corners!\' if ratio < 0.01 else \'\'}")\n'},
+{file:'distance_concentration.py',label:'Distance concentration',code:'import numpy as np\n\nnp.random.seed(42)\nn = 200\n\nprint("=" * 60)\nprint("DISTANCE CONCENTRATION PHENOMENON")\nprint("=" * 60)\nprint(f"\\nFor {n} uniformly random points in [0,1]^d")\nprint(f"Measuring (d_max - d_min) / d_min")\nprint(f"When this ratio -> 0, nearest != farthest -> KNN breaks")\nprint()\nprint(f"{\'Dims\':>6}  {\'d_min\':>8}  {\'d_max\':>8}  {\'ratio\':>8}  Status")\nprint("-" * 55)\n\nfor d in [1, 2, 3, 5, 10, 20, 50, 100, 500]:\n    X = np.random.rand(n, d)\n    # Sample pairwise distances\n    sample = min(n, 50)\n    dists = []\n    for i in range(sample):\n        for j in range(i+1, sample):\n            dists.append(np.linalg.norm(X[i] - X[j]))\n    dists = np.array(dists)\n    d_min = dists.min()\n    d_max = dists.max()\n    ratio = (d_max - d_min) / d_min if d_min > 0 else 0\n    status = "OK" if ratio > 1.0 else ("marginal" if ratio > 0.3 else "BROKEN")\n    print(f"{d:>6}  {d_min:>8.4f}  {d_max:>8.4f}  {ratio:>8.3f}  {status}")\n\nprint("\\nConclusion: As d grows, ratio -> 0, all distances become equal")\nprint("KNN, clustering, and kernel methods silently fail in high dims")\n'},
+{file:'noise_features.py',label:'Noise features demo',code:'import numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nnp.random.seed(42)\n\nprint("=" * 65)\nprint("CURSE IN ACTION: ADDING NOISE FEATURES")\nprint("=" * 65)\nprint("Starting with 2 informative features. Adding pure noise.")\nprint()\n\n# Generate base classification with 2 informative features\nX_base, y = make_classification(\n    n_samples=300, n_features=2, n_informative=2,\n    n_redundant=0, n_repeated=0, random_state=42\n)\n\nmodels = {\n    "KNN  (k=5)": KNeighborsClassifier(n_neighbors=5),\n    "Tree (d=5)": DecisionTreeClassifier(max_depth=5, random_state=42),\n    "LR   (L2) ": LogisticRegression(C=1.0, random_state=42, max_iter=300),\n}\n\nprint(f"{\'Noise dims\':>10} {\'Total\':>7}", end="")\nfor name in models:\n    print(f"  {name:>12}", end="")\nprint()\nprint("-" * 70)\n\nfor noise_dims in [0, 2, 5, 10, 20, 50, 100]:\n    X = np.hstack([X_base, np.random.randn(len(X_base), noise_dims)])\n    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=42)\n    sc = StandardScaler()\n    X_tr_s = sc.fit_transform(X_tr)\n    X_te_s = sc.transform(X_te)\n    print(f"{noise_dims:>10} {X.shape[1]:>7}", end="")\n    for name, model in models.items():\n        model.fit(X_tr_s, y_tr)\n        acc = model.score(X_te_s, y_te)\n        print(f"  {acc:>12.3f}", end="")\n    print()\n\nprint("\\nKNN collapses fastest (pure distance-based)")\nprint("Logistic regression degrades slowest (linear + regularisation)")\n'},
+{file:'solutions_demo.py',label:'Breaking the curse',code:'import numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.decomposition import PCA\nfrom sklearn.feature_selection import SelectKBest, f_classif\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.model_selection import cross_val_score\n\nnp.random.seed(42)\n\n# Dataset: 2 informative, 50 noise\nX, y = make_classification(\n    n_samples=400, n_features=52,\n    n_informative=2, n_redundant=0,\n    n_repeated=0, n_clusters_per_class=1,\n    random_state=42\n)\n\nprint("=" * 60)\nprint("BREAKING THE CURSE: STRATEGY COMPARISON")\nprint("=" * 60)\nprint(f"Dataset: {X.shape[0]} samples, {X.shape[1]} features")\nprint(f"(2 informative + 50 pure noise features)")\nprint()\n\nstrategies = [\n    ("No strategy (raw 52D)", Pipeline([\n        ("sc", StandardScaler()),\n        ("knn", KNeighborsClassifier(5))\n    ])),\n    ("Regularisation L2", Pipeline([\n        ("sc", StandardScaler()),\n        ("lr", LogisticRegression(C=0.1, max_iter=500))\n    ])),\n    ("Feature selection (top 5)", Pipeline([\n        ("sc", StandardScaler()),\n        ("sel", SelectKBest(f_classif, k=5)),\n        ("knn", KNeighborsClassifier(5))\n    ])),\n    ("PCA (95% variance)", Pipeline([\n        ("sc", StandardScaler()),\n        ("pca", PCA(n_components=0.95)),\n        ("knn", KNeighborsClassifier(5))\n    ])),\n    ("PCA + L2", Pipeline([\n        ("sc", StandardScaler()),\n        ("pca", PCA(n_components=0.95)),\n        ("lr", LogisticRegression(C=1.0, max_iter=500))\n    ])),\n    ("Oracle (only 2 true feats)", Pipeline([\n        ("sc", StandardScaler()),\n        ("knn", KNeighborsClassifier(5))\n    ])),\n]\n\nprint(f"{\'Strategy\':<32} {\'CV Acc\':>8}  {\'Dims used\'}")\nprint("-" * 55)\nfor name, pipe in strategies:\n    X_use = X[:, :2] if "Oracle" in name else X\n    scores = cross_val_score(pipe, X_use, y, cv=5, scoring="accuracy")\n    pipe.fit(X_use, y)\n    n_dims = 2 if "Oracle" in name else X_use.shape[1]\n    print(f"{name:<32} {scores.mean():>7.3f}   {n_dims}")\n\nprint("\\nKey takeaway: PCA and feature selection dramatically")\nprint("recover lost accuracy by removing noise dimensions.")\n'}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';}).join('');}
+function switchTab(i){currentTab=i;document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}C('editor-filename').textContent=SNIPPETS[i].file;C('editor-output').textContent='Click Run to execute...';C('editor-output').className='editor-output idle';}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});await pyodide.loadPackage(['numpy','scikit-learn']);pyLoading=false;}
+      else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');pyodide.runPython(code);pyodide.runPython('sys.stdout=sys.__stdout__');var res=pyodide.runPython('_b.getvalue()');out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';}
+  catch(e){try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';}
+  btn.disabled=false;btn.textContent='Run';
+}
+
+window.addEventListener('load',function(){
+  updateVolume(1);
+  drawDistCanvas();
+  updateSampleCalc();
+  updateNoiseDims(0);
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawVolumeCanvas(parseInt(C('vol-dim-slider').value));
+    drawDistCanvas();drawKNNDeg();drawNoiseCanvas();drawSampleCanvas(parseInt(C('samp-feat').value),parseInt(C('samp-bins').value),parseInt(C('samp-per-bin').value));
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

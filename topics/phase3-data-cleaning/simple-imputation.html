@@ -1,1 +1,1376 @@
 <!-- simple-imputation.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simple Imputation — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(240,165,0,0.09),rgba(251,140,64,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(240,165,0,0.12) 0%,transparent 70%);pointer-events:none;}
+
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:80px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* ── IMPUTATION TABLE ── */
+    .imp-table-wrap{overflow-x:auto;border-radius:var(--r-lg);border:1px solid var(--border);margin-bottom:16px;}
+    .imp-table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--font-mono);}
+    .imp-table th{background:var(--bg-elevated);padding:9px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .imp-table td{padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text-2);}
+    .imp-table tr:last-child td{border-bottom:none;}
+    .imp-table tr:hover td{background:var(--bg-input);}
+    .cell-nan{color:#f06060;font-weight:700;background:rgba(240,96,96,0.08);}
+    .cell-imputed{color:#f0a500;font-weight:700;background:rgba(240,165,0,0.12);position:relative;}
+    .cell-imputed::after{content:'✦';font-size:8px;position:absolute;top:3px;right:4px;opacity:0.6;}
+    .cell-orig{color:var(--text-1);}
+
+    /* ── STRATEGY CARDS ── */
+    .strategy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
+    .strategy-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:all .18s;}
+    .strategy-card.active{border-color:var(--accent);}
+    .strategy-card:hover{border-color:var(--border-hi);}
+    .sc-icon{font-size:22px;margin-bottom:8px;}
+    .sc-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .sc-formula{font-family:var(--font-mono);font-size:11px;color:var(--text-3);background:var(--bg-input);padding:3px 7px;border-radius:var(--r-xs);margin:5px 0;display:inline-block;}
+    .sc-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+    .sc-best{font-size:11px;color:var(--green);margin-top:5px;font-weight:600;}
+    .sc-worst{font-size:11px;color:var(--red);font-weight:600;}
+
+    /* ── HP PANEL ── */
+    .hp-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+    .hp-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:18px;}
+    .hp-row{display:flex;flex-direction:column;gap:6px;}
+    .hp-label{display:flex;justify-content:space-between;align-items:center;}
+    .hp-name{font-size:12.5px;font-weight:600;color:var(--text-1);}
+    .hp-val{font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:700;min-width:60px;text-align:right;}
+    .hp-desc{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4;}
+
+    /* ── ACCURACY CARDS ── */
+    .acc-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    .acc-card{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;transition:all .3s;}
+    .acc-num{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .3s;}
+    .acc-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;}
+    .acc-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+    .acc-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+
+    /* Missing pattern heatmap */
+    .heatmap-legend{display:flex;gap:16px;align-items:center;padding:8px 18px;border-top:1px solid var(--border);}
+    .legend-swatch{width:14px;height:14px;border-radius:3px;}
+
+    /* derive steps */
+    .derive-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);}
+    .derive-step:last-child{border-bottom:none;}
+    .derive-num{width:28px;height:28px;border-radius:50%;background:var(--accent-surface);border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:2px;}
+    .derive-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:5px;}
+    .derive-desc{font-size:13.5px;color:var(--text-2);line-height:1.65;margin-bottom:8px;}
+    .derive-formula{background:var(--bg-input);border:1px solid var(--border);border-left:3px solid var(--accent);padding:10px 14px;font-family:var(--font-mono);font-size:13px;color:var(--text-1);border-radius:0 var(--r-sm) var(--r-sm) 0;overflow-x:auto;white-space:pre;}
+
+    /* Decision table */
+    .decision-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+    .decision-table th{background:var(--bg-elevated);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .decision-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;}
+    .decision-table tr:last-child td{border-bottom:none;}
+    .tag-yes{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--green-surf);color:var(--green);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-no{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--red-surf);color:var(--red);border-radius:100px;font-size:11px;font-weight:700;}
+    .tag-maybe{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--accent-surface);color:var(--accent);border-radius:100px;font-size:11px;font-weight:700;}
+
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono,'Fira Code',monospace);font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .cm-s-one-dark .cm-variable{color:#e2e0d9;}
+    .cm-s-one-dark .cm-property{color:#2dd4bf;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-operator{color:#94a3b8;}
+    .cm-s-one-dark .cm-builtin{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    .CodeMirror-selected{background:rgba(240,165,0,0.15)!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    [data-theme="light"] .CodeMirror-linenumber{color:#b0ad9e!important;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    [data-theme="light"] .cm-s-one-dark .cm-keyword{color:#8b00b0;}
+    [data-theme="light"] .cm-s-one-dark .cm-def{color:#1a5dbf;}
+    [data-theme="light"] .cm-s-one-dark .cm-string{color:#1a7a40;}
+    [data-theme="light"] .cm-s-one-dark .cm-number{color:#b04000;}
+    [data-theme="light"] .cm-s-one-dark .cm-comment{color:#8a8880;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:360px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    [data-theme="light"] .editor-output.error{color:#c04040;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 20px;background:var(--accent);color:#fff;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.03);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+
+    /* NaN rain animation */
+    @keyframes floatDown{0%{transform:translateY(-20px);opacity:0;}20%{opacity:1;}80%{opacity:1;}100%{transform:translateY(60px);opacity:0;}}
+    .nan-rain-item{position:absolute;font-size:11px;font-family:var(--font-mono);color:#f06060;animation:floatDown 2.5s ease-in infinite;}
+
+    @media(max-width:700px){
+      .acc-dashboard{grid-template-columns:repeat(2,1fr);}
+      .strategy-grid{grid-template-columns:1fr 1fr;}
+      .hp-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body data-topic-id="simple-imputation">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header">
+      <a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a>
+      <button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div>
+      <div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/>
+          <rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/>
+        </svg>
+      </button>
+      <span class="tb-title" id="tb-title">Simple Imputation</span>
+      <div class="tb-search">
+        <svg class="tb-search-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/>
+        <div class="tb-search-results" id="search-results"></div>
+      </div>
+      <button class="tb-theme" id="theme-toggle">☀</button>
+    </header>
+
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Data Cleaning</a><span class="sep">/</span>
+            <span class="current">Simple Imputation</span>
+          </nav>
+
+          <!-- ── HERO ── -->
+          <div class="hero-banner">
+            <div class="topic-badge" style="border-color:rgba(240,165,0,.25);background:var(--accent-surface);color:var(--accent);margin-bottom:14px;">Data Cleaning · Missing Values</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Simple Imputation</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">
+              Real-world datasets always have missing values. Simple imputation fills those gaps using
+              <strong>statistical summaries</strong> — mean, median, mode, or a constant — so your model
+              can train without errors. Fast, interpretable, and often surprisingly effective.
+            </p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">⏱ 18 min</span>
+              <span class="topic-meta-item">◆ Beginner</span>
+              <span class="topic-meta-item">pandas · sklearn</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">○</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- ═══ SECTION 1 — INTUITION ═══ -->
+          <section class="section" id="intuition">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">?</div>
+              What is missing data, and why does it matter?
+            </h2>
+            <p>
+              Most real datasets are <strong>incomplete</strong>. A patient skips a lab test, a sensor
+              glitches, a survey respondent leaves a field blank. Pandas shows these as <code>NaN</code>.
+              The problem: <strong>sklearn models crash on NaN</strong> — you must handle them before training.
+            </p>
+            <p>
+              Simple imputation replaces each NaN with a single representative value derived from
+              the non-missing data in that column. It's the fastest fix — no new columns, no complex
+              models, just fill and go.
+            </p>
+
+            <!-- Animated NaN → filled demo -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Watch NaN values get filled — animated</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Strategy:</span>
+                  <select class="ctrl-select" id="anim-strategy" onchange="resetAnimate()">
+                    <option value="mean">Mean</option>
+                    <option value="median">Median</option>
+                    <option value="mode">Mode (most frequent)</option>
+                    <option value="constant">Constant (fill_value=0)</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn active" onclick="startAnimate()">▶ Animate</button>
+                <button class="ctrl-btn" onclick="resetAnimate()">↺ Reset</button>
+              </div>
+              <div style="padding:16px 18px;overflow-x:auto;" id="anim-table-wrap">
+                <!-- filled by JS -->
+              </div>
+              <div style="padding:10px 18px;font-size:12.5px;color:var(--text-3);" id="anim-legend">
+                Red = NaN &nbsp;·&nbsp; Gold ✦ = just imputed &nbsp;·&nbsp; White = original value
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">💡</span>
+              <p><strong>Key insight:</strong> Simple imputation is a <em>single-value fill</em> — every NaN in a column gets the same replacement value. It's fast and always produces a complete dataset, but it <strong>shrinks variance</strong> (every imputed value is identical) and assumes the data is <strong>Missing Completely At Random (MCAR)</strong>. When those assumptions fail, use KNN or iterative imputation instead.</p>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 2 — MISSING PATTERN VISUALISER ═══ -->
+          <section class="section" id="missing-patterns">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">⊘</div>
+              Missing data heatmap — spot the pattern
+            </h2>
+            <p>
+              Before imputing, <strong>visualise where values are missing</strong>. Random gaps suggest
+              MCAR (safe to impute). Entire missing rows or correlated missing columns suggest
+              MAR or MNAR — which may need more careful treatment.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Missing value heatmap (white = missing)</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Missing %:</span>
+                  <input type="range" min="5" max="60" value="20" step="5" class="ctrl-slider" id="miss-pct" oninput="drawMissingHeatmap(this.value)" style="width:100px;"/>
+                  <span class="ctrl-value" id="miss-pct-val" style="color:var(--red);">20%</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Pattern:</span>
+                  <select class="ctrl-select" id="miss-pattern" onchange="drawMissingHeatmap(document.getElementById('miss-pct').value)">
+                    <option value="mcar">MCAR (random)</option>
+                    <option value="mar">MAR (row-correlated)</option>
+                    <option value="block">Block (column-correlated)</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="heatmap-canvas" width="700" height="220" style="width:100%;display:block;"></canvas>
+              <div class="heatmap-legend">
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);">
+                  <div class="legend-swatch" style="background:#2dd4bf;opacity:0.7;"></div>Present
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);">
+                  <div class="legend-swatch" style="background:#f06060;opacity:0.8;"></div>Missing (NaN)
+                </div>
+                <span style="font-size:12px;color:var(--text-3);margin-left:auto;" id="heatmap-stats"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 3 — STRATEGY EXPLORER ═══ -->
+          <section class="section" id="strategies">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">≡</div>
+              The 4 strategies — click to explore each
+            </h2>
+            <p>
+              sklearn's <code>SimpleImputer</code> supports four strategies. Click any card to see
+              the formula, a live canvas demo, and when to use it.
+            </p>
+
+            <div class="strategy-grid">
+              <div class="strategy-card active" id="sc-mean" onclick="selectStrategy('mean')">
+                <div class="sc-icon">μ</div>
+                <div class="sc-name">Mean</div>
+                <div class="sc-formula">fill = sum(x) / count(x)</div>
+                <div class="sc-desc">Replace NaN with the column average. Works only for numeric data.</div>
+                <div class="sc-best">✓ Symmetric distributions</div>
+                <div class="sc-worst">✕ Sensitive to outliers</div>
+              </div>
+              <div class="strategy-card" id="sc-median" onclick="selectStrategy('median')">
+                <div class="sc-icon">~</div>
+                <div class="sc-name">Median</div>
+                <div class="sc-formula">fill = middle value (sorted)</div>
+                <div class="sc-desc">Replace NaN with the 50th percentile. Robust to outliers.</div>
+                <div class="sc-best">✓ Skewed data, outliers</div>
+                <div class="sc-worst">✕ Loses distributional info</div>
+              </div>
+              <div class="strategy-card" id="sc-most_frequent" onclick="selectStrategy('most_frequent')">
+                <div class="sc-icon">#</div>
+                <div class="sc-name">Most Frequent</div>
+                <div class="sc-formula">fill = argmax(value_counts)</div>
+                <div class="sc-desc">Replace NaN with the most common value. Works for numeric AND categorical.</div>
+                <div class="sc-best">✓ Categorical columns</div>
+                <div class="sc-worst">✕ Biased toward dominant class</div>
+              </div>
+              <div class="strategy-card" id="sc-constant" onclick="selectStrategy('constant')">
+                <div class="sc-icon">0</div>
+                <div class="sc-name">Constant</div>
+                <div class="sc-formula">fill = fill_value (any)</div>
+                <div class="sc-desc">Replace NaN with a fixed value: 0, "Unknown", -1, etc. Explicit signal.</div>
+                <div class="sc-best">✓ Flag missing as category</div>
+                <div class="sc-worst">✕ Arbitrary choice</div>
+              </div>
+            </div>
+
+            <!-- Live distribution canvas -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title" id="dist-title">Mean imputation — effect on distribution</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Outlier strength:</span>
+                  <input type="range" min="0" max="3" value="0" step="1" class="ctrl-slider" id="outlier-slider" oninput="redrawDistribution()" style="width:90px;"/>
+                  <select class="ctrl-select" id="dist-skew" onchange="redrawDistribution()">
+                    <option value="normal">Normal dist</option>
+                    <option value="skewed">Right-skewed</option>
+                    <option value="bimodal">Bimodal</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="dist-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-mean" style="color:#4b96ff;">—</span><span class="stat-pill-lbl">Mean fill</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-median" style="color:#f0a500;">—</span><span class="stat-pill-lbl">Median fill</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-mode" style="color:#3ecf8e;">—</span><span class="stat-pill-lbl">Mode fill</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="dist-missing" style="color:#f06060;">—</span><span class="stat-pill-lbl">Missing count</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 4 — LIVE IMPUTER PLAYGROUND ═══ -->
+          <section class="section" id="playground">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">⚡</div>
+              Live imputer playground — edit data, see results
+            </h2>
+            <p>
+              Type directly into the table below. Use <code>NaN</code> or leave a cell empty to mark it
+              missing. Change the strategy and watch all metrics update instantly.
+            </p>
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Editable dataset</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Strategy:</span>
+                  <select class="ctrl-select" id="playground-strategy" onchange="runPlayground()">
+                    <option value="mean">Mean</option>
+                    <option value="median">Median</option>
+                    <option value="most_frequent">Most Frequent</option>
+                    <option value="constant">Constant (0)</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="resetPlayground()">↺ Reset</button>
+                <button class="ctrl-btn active" onclick="addOutlier()">+ Add outlier</button>
+              </div>
+              <div style="padding:16px 18px;overflow-x:auto;" id="playground-wrap"></div>
+              <div class="stat-row" id="playground-stats"></div>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 5 — EFFECT ON MODEL ACCURACY ═══ -->
+          <section class="section" id="accuracy-impact">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">📊</div>
+              Impact on model accuracy — strategy comparison
+            </h2>
+            <p>
+              Different imputation strategies lead to different downstream accuracy. Here's a
+              simulated comparison on a classification task as you increase the missing data percentage.
+            </p>
+            <div class="acc-dashboard">
+              <div class="acc-card">
+                <div class="acc-num" id="acc-mean" style="color:#4b96ff;">—</div>
+                <div class="acc-label">Mean</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="acc-mean-bar" style="background:#4b96ff;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="acc-median" style="color:#f0a500;">—</div>
+                <div class="acc-label">Median</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="acc-median-bar" style="background:#f0a500;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="acc-mode" style="color:#3ecf8e;">—</div>
+                <div class="acc-label">Mode</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="acc-mode-bar" style="background:#3ecf8e;width:0%;"></div></div>
+              </div>
+              <div class="acc-card">
+                <div class="acc-num" id="acc-const" style="color:#e879f9;">—</div>
+                <div class="acc-label">Constant</div>
+                <div class="acc-bar-wrap"><div class="acc-bar-fill" id="acc-const-bar" style="background:#e879f9;width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hp-panel">
+              <div class="hp-title">⚙ Simulation Controls <span style="font-size:11px;font-weight:400;color:var(--text-3);margin-left:4px;">— adjust and watch accuracy change</span></div>
+              <div class="hp-grid">
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Missing %</span><span class="hp-val" id="hp-miss-val" style="color:var(--red);">20%</span></div>
+                  <input type="range" min="5" max="70" value="20" step="5" class="ctrl-slider" id="hp-miss" oninput="runAccuracyComparison()" style="width:100%;"/>
+                  <div class="hp-desc">How much data to randomly remove before imputing.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Outlier severity</span><span class="hp-val" id="hp-out-val">none</span></div>
+                  <input type="range" min="0" max="3" value="0" step="1" class="ctrl-slider" id="hp-out" oninput="runAccuracyComparison()" style="width:100%;"/>
+                  <div class="hp-desc">Strong outliers make mean imputation unreliable vs median.</div>
+                </div>
+                <div class="hp-row">
+                  <div class="hp-label"><span class="hp-name">Distribution shape</span><span class="hp-val" id="hp-dist-val" style="color:var(--teal);">normal</span></div>
+                  <div style="display:flex;gap:6px;margin-top:2px;">
+                    <button class="ctrl-btn active" id="dist-normal" onclick="setDistShape('normal')">Normal</button>
+                    <button class="ctrl-btn" id="dist-skew2" onclick="setDistShape('skewed')">Skewed</button>
+                    <button class="ctrl-btn" id="dist-bi" onclick="setDistShape('bimodal')">Bimodal</button>
+                  </div>
+                  <div class="hp-desc">Skewed distributions make median better than mean.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Accuracy vs missing % curve -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Accuracy vs missing % — all strategies</span>
+                <button class="ctrl-btn active" onclick="runAccuracySweep()">▶ Run sweep</button>
+                <span style="font-size:12px;color:var(--text-3);margin-left:6px;" id="sweep-status2"></span>
+              </div>
+              <canvas id="accuracy-curve-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 6 — WHEN TO USE WHAT ═══ -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">→</div>
+              When to use — decision guide
+            </h2>
+            <div style="overflow-x:auto;">
+              <table class="decision-table">
+                <thead>
+                  <tr><th>Situation</th><th>Best strategy</th><th>Why</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Numeric, roughly symmetric distribution</td>
+                    <td><span class="tag-yes">Mean</span></td>
+                    <td>Mean ≈ median here, minimal bias</td>
+                  </tr>
+                  <tr>
+                    <td>Numeric, skewed (income, prices, durations)</td>
+                    <td><span class="tag-yes">Median</span></td>
+                    <td>Median ignores extreme outliers</td>
+                  </tr>
+                  <tr>
+                    <td>Categorical / ordinal column</td>
+                    <td><span class="tag-yes">Most Frequent</span></td>
+                    <td>Mean/median undefined for categories</td>
+                  </tr>
+                  <tr>
+                    <td>Binary flag (0/1)</td>
+                    <td><span class="tag-yes">Most Frequent</span></td>
+                    <td>Preserves majority class distribution</td>
+                  </tr>
+                  <tr>
+                    <td>Missing = meaningful (e.g. "no purchase")</td>
+                    <td><span class="tag-yes">Constant 0</span></td>
+                    <td>Preserve semantic meaning of absence</td>
+                  </tr>
+                  <tr>
+                    <td>Text / string column</td>
+                    <td><span class="tag-yes">Constant "Unknown"</span></td>
+                    <td>Creates explicit "missing" category</td>
+                  </tr>
+                  <tr>
+                    <td>Heavy missingness (&gt; 40%) in key column</td>
+                    <td><span class="tag-maybe">Consider drop</span></td>
+                    <td>Simple imputation adds too much bias</td>
+                  </tr>
+                  <tr>
+                    <td>Values missing NOT at random (MNAR)</td>
+                    <td><span class="tag-no">Not simple</span></td>
+                    <td>Use KNN or iterative imputation instead</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ═══ SECTION 7 — MATH ═══ -->
+          <section class="section" id="math">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">∑</div>
+              The formulas — what SimpleImputer actually computes
+            </h2>
+            <div>
+              <div class="derive-step">
+                <div class="derive-num">1</div>
+                <div>
+                  <div class="derive-title">Scan each column for non-NaN values</div>
+                  <div class="derive-desc">Collect all observed (non-missing) values X_obs in column j. The imputation statistic is computed only from observed values — missing values don't participate.</div>
+                  <div class="derive-formula">X_obs = {x_i : x_i is not NaN, i=1..n}</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">2</div>
+                <div>
+                  <div class="derive-title">Compute the fill statistic during fit()</div>
+                  <div class="derive-desc">One statistic is stored per column. This is only computed on training data — never on test data. This prevents data leakage.</div>
+                  <div class="derive-formula">Mean:          fill = sum(X_obs) / |X_obs|
+Median:        fill = X_obs[sorted][|X_obs|//2]
+Most frequent: fill = argmax{count(v) : v in X_obs}
+Constant:      fill = fill_value  (user-provided)</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">3</div>
+                <div>
+                  <div class="derive-title">Replace NaN during transform()</div>
+                  <div class="derive-desc">For every NaN in column j, substitute the stored fill statistic. Non-missing values are left unchanged.</div>
+                  <div class="derive-formula">x_i = fill_j  if x_i is NaN
+x_i = x_i     otherwise</div>
+                </div>
+              </div>
+              <div class="derive-step">
+                <div class="derive-num">4</div>
+                <div>
+                  <div class="derive-title">Critical: fit on train, transform train+test</div>
+                  <div class="derive-desc">Always fit the imputer on training data only, then use it to transform both train and test. If you fit on the full dataset, test statistics leak into training — your model becomes overoptimistic.</div>
+                  <div class="derive-formula">imp.fit(X_train)          # learn stats from train only
+X_train_clean = imp.transform(X_train)
+X_test_clean  = imp.transform(X_test)   # use SAME stats</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ LIVE EDITOR ═══ -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>
+              Live code editor
+            </h2>
+            <p>Four complete programs — pandas basics, sklearn SimpleImputer, pipeline (no leakage), and a full strategy comparison. All editable and runnable in-browser.</p>
+
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots">
+                  <div class="editor-dot" style="background:#ff5f57;"></div>
+                  <div class="editor-dot" style="background:#febc2e;"></div>
+                  <div class="editor-dot" style="background:#28c840;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">impute_basic.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click ▶ Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">▶ Run</button>
+                <button class="reset-pill" onclick="resetEditor()">↺ Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">✕ Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>
+              Common mistakes
+            </h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Fitting imputer on the full dataset.</strong> <code>imp.fit(X_all)</code> then splitting leaks test statistics into training. Always: <code>fit(X_train)</code>, then <code>transform(X_train)</code> and <code>transform(X_test)</code> separately, or use a Pipeline.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using mean on skewed data.</strong> Income, house prices, and durations are right-skewed — one billionaire inflates the mean dramatically. Use <code>strategy='median'</code> for these columns.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Using mean/median on categorical columns.</strong> The mean of ["cat","dog","cat"] is meaningless. Use <code>strategy='most_frequent'</code> or <code>'constant'</code> for string columns.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Imputing without adding a missing indicator.</strong> Simple imputation destroys the signal that a value was missing. For important features, add a binary column like <code>col_was_nan=1</code> before imputing so the model can use missingness as a feature.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">✕</span><div><strong style="color:var(--text-1);">Ignoring heavily-missing columns.</strong> If 70% of a column is NaN, imputing it with the mean just creates a near-constant column with inflated confidence. Consider dropping or using a model-based imputer.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">★</div>
+              Key takeaways
+            </h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>SimpleImputer <strong>fits statistics on training data</strong> and applies them to test data — prevents leakage. Always use fit → transform, never fit_transform on the full dataset.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use <strong>median for numeric skewed data</strong>, <strong>mean for symmetric numeric data</strong>, and <strong>most_frequent for categorical data</strong>.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Simple imputation <strong>reduces variance</strong> in the filled column — every imputed value is identical. This can hurt models sensitive to feature distributions.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Add a <strong>missing indicator column</strong> alongside imputation when missingness itself is informative (e.g., patients who skip a test may be healthier or sicker).</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always wrap imputers in a <strong>Pipeline</strong> to ensure consistent fit/transform semantics and enable grid search without leakage.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>When >30–40% of a column is missing or data is MNAR, consider <strong>KNN imputation</strong> or <strong>IterativeImputer (MICE)</strong> for better results.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="handle-duplicates.html">
+              <span class="pn-dir">← Previous</span>
+              <span class="pn-title">Handle Duplicates</span>
+            </a>
+            <a class="pn-card next" id="next-card" href="knn-imputation.html">
+              <span class="pn-dir">Next →</span>
+              <span class="pn-title">KNN Imputation</span>
+            </a>
+          </nav>
+
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#intuition">What is missing data</a></li>
+            <li class="toc-item"><a href="#missing-patterns">Missing heatmap</a></li>
+            <li class="toc-item"><a href="#strategies">4 strategies</a></li>
+            <li class="toc-item"><a href="#playground">Live playground</a></li>
+            <li class="toc-item"><a href="#accuracy-impact">Accuracy impact</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use</a></li>
+            <li class="toc-item"><a href="#math">Formulas</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../../js/main.js"></script>
+<script>
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgIn(){return isDark()?'#1e1e25':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+function mean(arr){return arr.reduce(function(a,b){return a+b;},0)/arr.length;}
+function median(arr){
+  var s=[...arr].sort(function(a,b){return a-b;});
+  var m=Math.floor(s.length/2);
+  return s.length%2===0?(s[m-1]+s[m])/2:s[m];
+}
+function mode(arr){
+  var freq={};arr.forEach(function(v){freq[v]=(freq[v]||0)+1;});
+  return parseFloat(Object.keys(freq).sort(function(a,b){return freq[b]-freq[a];})[0]);
+}
+
+/* ═══════════════════════════════════════════
+   SECTION 1 — ANIMATED TABLE
+═══════════════════════════════════════════ */
+var RAW_DATA=[
+  [25,180,null,70000],
+  [null,null,3,55000],
+  [34,175,2,null],
+  [28,null,null,82000],
+  [null,168,1,63000],
+  [45,185,4,null],
+  [31,null,2,71000],
+  [null,172,null,58000],
+];
+var COL_NAMES=['Age','Height','Score','Salary'];
+
+var animTimeout=null;
+var animState='idle'; // idle | animating | done
+
+function getStratFn(strat,vals){
+  var obs=vals.filter(function(v){return v!==null;});
+  if(!obs.length) return 0;
+  if(strat==='mean') return parseFloat(mean(obs).toFixed(1));
+  if(strat==='median') return parseFloat(median(obs).toFixed(1));
+  if(strat==='mode') return parseFloat(mode(obs).toFixed(1));
+  return 0; // constant
+}
+
+function renderAnimTable(highlighted,imputed){
+  var strat=C('anim-strategy').value;
+  var fills=COL_NAMES.map(function(c,j){
+    var obs=RAW_DATA.map(function(r){return r[j];}).filter(function(v){return v!==null;});
+    return getStratFn(strat,obs);
+  });
+
+  var html='<table class="imp-table"><thead><tr><th>Row</th>';
+  COL_NAMES.forEach(function(c){html+='<th>'+c+'</th>';});
+  html+='</tr></thead><tbody>';
+
+  RAW_DATA.forEach(function(row,i){
+    html+='<tr>';
+    html+='<td style="color:var(--text-3);font-size:11px;">#'+i+'</td>';
+    row.forEach(function(v,j){
+      var key=i+'-'+j;
+      var isNaN=v===null;
+      var isImputed=imputed&&imputed.has(key);
+      var isHighlighted=highlighted&&highlighted.has(key);
+      var cls=isImputed?'cell-imputed':isNaN?(isHighlighted?'cell-nan':'cell-nan'):'cell-orig';
+      var display=isImputed?fills[j]:isNaN?'NaN':v;
+      html+='<td class="'+cls+'">';
+      if(isImputed){html+='<span style="font-size:9px;display:block;color:var(--text-3);">'+strat+'→</span>';}
+      html+=display;
+      html+='</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  C('anim-table-wrap').innerHTML=html;
+}
+
+function resetAnimate(){
+  clearTimeout(animTimeout);
+  animState='idle';
+  var highlighted=new Set();
+  var nanCells=[];
+  RAW_DATA.forEach(function(row,i){row.forEach(function(v,j){if(v===null)nanCells.push(i+'-'+j);});});
+  nanCells.forEach(function(k){highlighted.add(k);});
+  renderAnimTable(highlighted,new Set());
+}
+
+async function startAnimate(){
+  if(animState==='animating') return;
+  animState='animating';
+  var nanCells=[];
+  RAW_DATA.forEach(function(row,i){row.forEach(function(v,j){if(v===null)nanCells.push(i+'-'+j);});});
+  var imputed=new Set();
+  for(var n=0;n<nanCells.length;n++){
+    if(animState!=='animating') break;
+    imputed.add(nanCells[n]);
+    var remaining=new Set(nanCells.slice(n+1));
+    renderAnimTable(remaining,imputed);
+    await delay(220);
+  }
+  animState='done';
+}
+
+/* ═══════════════════════════════════════════
+   SECTION 2 — MISSING HEATMAP
+═══════════════════════════════════════════ */
+function drawMissingHeatmap(pctStr){
+  var pct=parseInt(pctStr)/100;
+  C('miss-pct-val').textContent=parseInt(pctStr)+'%';
+  var cv=C('heatmap-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  var rows=30,cols=12;
+  var cw=(W-60)/cols, rh=(H-30)/rows;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var pattern=C('miss-pattern').value;
+  var missing=0,total=rows*cols;
+
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      var isMissing=false;
+      if(pattern==='mcar'){isMissing=Math.random()<pct;}
+      else if(pattern==='mar'){isMissing=Math.random()<(r/rows)*pct*2;}
+      else if(pattern==='block'){isMissing=c>=(cols*(1-pct));}
+      if(isMissing) missing++;
+      var x=60+c*cw, y=10+r*rh;
+      ctx.fillStyle=isMissing?'rgba(240,96,96,0.75)':'rgba(45,212,191,0.55)';
+      ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x+1,y+1,cw-2,rh-2,2);else ctx.rect(x+1,y+1,cw-2,rh-2);
+      ctx.fill();
+    }
+  }
+
+  // Column labels
+  var cols_labels=['Age','Height','Weight','Income','Score','Temp','Lat','Long','Grade','Rate','Count','Flag'];
+  ctx.fillStyle=tc();ctx.font='9.5px sans-serif';ctx.textAlign='center';
+  for(var c=0;c<cols;c++){
+    ctx.save();ctx.translate(60+c*cw+cw/2,8);ctx.rotate(-0.5);
+    ctx.fillText(cols_labels[c],0,0);ctx.restore();
+  }
+  ctx.textAlign='start';
+
+  // Row labels
+  ctx.fillStyle=tc();ctx.font='9px mono';ctx.textAlign='right';
+  for(var r=0;r<rows;r+=5){
+    ctx.fillText('R'+r,55,10+r*rh+rh/2+3);
+  }
+  ctx.textAlign='start';
+
+  C('heatmap-stats').textContent=missing+' / '+total+' values missing ('+((missing/total)*100).toFixed(1)+'%)';
+}
+
+/* ═══════════════════════════════════════════
+   SECTION 3 — STRATEGY / DISTRIBUTION
+═══════════════════════════════════════════ */
+var currentStrategy='mean';
+var distShape='normal';
+var distData=[];
+
+function selectStrategy(s){
+  currentStrategy=s;
+  ['mean','median','most_frequent','constant'].forEach(function(k){
+    C('sc-'+k).classList.toggle('active',k===s);
+  });
+  var titles={mean:'Mean imputation — effect on distribution',median:'Median imputation — robust to outliers',most_frequent:'Mode imputation — most common value',constant:'Constant imputation — fill with 0'};
+  C('dist-title').textContent=titles[s]||'';
+  redrawDistribution();
+}
+
+function generateDistData(shape,outlierStr){
+  var outliers=parseInt(outlierStr)||0;
+  var data=[];
+  if(shape==='normal'){
+    for(var i=0;i<80;i++){
+      var u1=Math.random(),u2=Math.random();
+      data.push(50+15*(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)));
+    }
+  } else if(shape==='skewed'){
+    for(var i=0;i<80;i++) data.push(20+Math.pow(Math.random(),0.3)*60);
+  } else {
+    for(var i=0;i<40;i++) data.push(30+5*(Math.random()-0.5)*6);
+    for(var i=0;i<40;i++) data.push(70+5*(Math.random()-0.5)*6);
+  }
+  // Add outliers
+  for(var i=0;i<outliers*3;i++) data.push(120+Math.random()*60);
+  // Add ~20% NaN
+  var nanCount=Math.floor(data.length*0.2);
+  var indices=[];
+  while(indices.length<nanCount){var idx=Math.floor(Math.random()*data.length);if(!indices.includes(idx))indices.push(idx);}
+  distData=data.map(function(v,i){return{v:v,missing:indices.includes(i)};});
+}
+
+function redrawDistribution(){
+  var shape=C('dist-skew').value;
+  distShape=shape;
+  var outliers=C('outlier-slider').value;
+  generateDistData(shape,outliers);
+
+  var obs=distData.filter(function(d){return!d.missing;}).map(function(d){return d.v;});
+  var m=mean(obs),med=median(obs),mo=mode(obs.map(function(v){return Math.round(v);}));
+
+  C('dist-mean').textContent=m.toFixed(1);
+  C('dist-median').textContent=med.toFixed(1);
+  C('dist-mode').textContent=mo.toFixed(0);
+  C('dist-missing').textContent=distData.filter(function(d){return d.missing;}).length;
+
+  var cv=C('dist-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:40,r:20,t:20,b:40};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var all=distData.map(function(d){return d.v;});
+  var xMin=Math.min.apply(null,all)-5, xMax=Math.max.apply(null,all)+5;
+  var bins=30;
+  var binW=(xMax-xMin)/bins;
+  var counts=new Array(bins).fill(0);
+  var missCounts=new Array(bins).fill(0);
+  obs.forEach(function(v){var b=Math.min(bins-1,Math.floor((v-xMin)/binW));counts[b]++;});
+  distData.filter(function(d){return d.missing;}).forEach(function(d){var b=Math.min(bins-1,Math.floor((d.v-xMin)/binW));missCounts[b]++;});
+  var maxCount=Math.max.apply(null,counts)+1;
+
+  var toX=function(v){return pad.l+(v-xMin)/(xMax-xMin)*(W-pad.l-pad.r);};
+  var toY=function(c){return H-pad.b-c/maxCount*(H-pad.t-pad.b);};
+  var bw=(W-pad.l-pad.r)/bins;
+
+  // Bars
+  for(var i=0;i<bins;i++){
+    var bx=pad.l+i*bw;
+    // observed bar
+    ctx.fillStyle='rgba(45,212,191,0.5)';
+    ctx.fillRect(bx+1,toY(counts[i]),bw-2,H-pad.b-toY(counts[i]));
+    // missing overlay
+    if(missCounts[i]>0){
+      ctx.fillStyle='rgba(240,96,96,0.6)';
+      ctx.fillRect(bx+1,toY(missCounts[i]),bw-2,H-pad.b-toY(missCounts[i]));
+    }
+  }
+
+  // x axis
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  [0,.25,.5,.75,1].forEach(function(f){
+    var v=xMin+f*(xMax-xMin);
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(v.toFixed(0),toX(v),H-pad.b+14);
+  });
+
+  // Fill line
+  var fillVal=currentStrategy==='mean'?m:currentStrategy==='median'?med:currentStrategy==='most_frequent'?mo:0;
+  var fillColor=currentStrategy==='mean'?'#4b96ff':currentStrategy==='median'?'#f0a500':currentStrategy==='most_frequent'?'#3ecf8e':'#e879f9';
+  var fx=toX(fillVal);
+  ctx.beginPath();ctx.moveTo(fx,pad.t);ctx.lineTo(fx,H-pad.b);
+  ctx.strokeStyle=fillColor;ctx.lineWidth=2.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=fillColor;ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText(currentStrategy+'='+fillVal.toFixed(1),fx,pad.t+14);
+
+  // Mean line (for comparison)
+  if(currentStrategy!=='mean'){
+    var mx=toX(m);
+    ctx.beginPath();ctx.moveTo(mx,pad.t);ctx.lineTo(mx,H-pad.b);
+    ctx.strokeStyle='rgba(75,150,255,0.35)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+  }
+
+  // Legend
+  ctx.fillStyle='rgba(45,212,191,0.5)';ctx.fillRect(pad.l,pad.t,14,10);
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('Observed',pad.l+18,pad.t+9);
+  ctx.fillStyle='rgba(240,96,96,0.6)';ctx.fillRect(pad.l+90,pad.t,14,10);
+  ctx.fillText('Missing',pad.l+108,pad.t+9);
+  ctx.fillStyle=fillColor;ctx.fillRect(pad.l+170,pad.t,14,3);
+  ctx.fillText('Fill value ('+currentStrategy+')',pad.l+188,pad.t+9);
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════════════
+   SECTION 4 — PLAYGROUND
+═══════════════════════════════════════════ */
+var pgData=[
+  [23, null, 88.5, null],
+  [null, 65.0, null, 92.0],
+  [35, 58.2, 71.0, 87.5],
+  [null, null, 55.0, 78.0],
+  [29, 72.1, null, 95.0],
+  [41, 60.5, 83.0, null],
+];
+var pgCols=['Age','Weight','Score','Grade'];
+
+function renderPlayground(){
+  var strat=C('playground-strategy').value;
+  var fills=pgCols.map(function(c,j){
+    var obs=pgData.map(function(r){return r[j];}).filter(function(v){return v!==null;});
+    if(!obs.length) return 0;
+    return strat==='mean'?mean(obs):strat==='median'?median(obs):strat==='most_frequent'?mode(obs):0;
+  });
+
+  var html='<table class="imp-table"><thead><tr><th>Row</th>';
+  pgCols.forEach(function(c,j){
+    html+='<th>'+c+'<br><span style="font-size:10px;color:var(--text-3);">fill='+fills[j].toFixed(1)+'</span></th>';
+  });
+  html+='</tr></thead><tbody>';
+
+  pgData.forEach(function(row,i){
+    html+='<tr>';
+    html+='<td style="color:var(--text-3);font-size:11px;">#'+i+'</td>';
+    row.forEach(function(v,j){
+      var isNaN=v===null;
+      html+='<td class="'+(isNaN?'cell-nan':'cell-orig')+'" contenteditable="true" onblur="onCellEdit('+i+','+j+',this)">';
+      html+=isNaN?'NaN':v;
+      html+='</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  C('playground-wrap').innerHTML=html;
+
+  // Stats
+  var total=pgData.flat().length;
+  var missing=pgData.flat().filter(function(v){return v===null;}).length;
+  var statsHtml='';
+  pgCols.forEach(function(c,j){
+    var obs=pgData.map(function(r){return r[j];}).filter(function(v){return v!==null;});
+    var missJ=pgData.length-obs.length;
+    statsHtml+='<div class="stat-pill"><span class="stat-pill-val" style="font-size:14px;color:var(--accent);">'+fills[j].toFixed(1)+'</span><span class="stat-pill-lbl">'+c+' fill</span></div>';
+  });
+  statsHtml+='<div class="stat-pill"><span class="stat-pill-val" style="color:var(--red);">'+missing+'/'+total+'</span><span class="stat-pill-lbl">Missing</span></div>';
+  C('playground-stats').innerHTML=statsHtml;
+}
+
+function onCellEdit(i,j,el){
+  var v=el.textContent.trim();
+  if(v===''||v.toLowerCase()==='nan'){pgData[i][j]=null;el.textContent='NaN';el.className='cell-nan';}
+  else{var n=parseFloat(v);if(!isNaN(n)){pgData[i][j]=n;el.className='cell-orig';}else{pgData[i][j]=null;el.textContent='NaN';el.className='cell-nan';}}
+  renderPlayground();
+}
+
+function runPlayground(){renderPlayground();}
+function resetPlayground(){
+  pgData=[
+    [23,null,88.5,null],[null,65.0,null,92.0],[35,58.2,71.0,87.5],
+    [null,null,55.0,78.0],[29,72.1,null,95.0],[41,60.5,83.0,null],
+  ];
+  renderPlayground();
+}
+function addOutlier(){
+  pgData.push([null,250,null,99]);
+  renderPlayground();
+}
+
+/* ═══════════════════════════════════════════
+   SECTION 5 — ACCURACY COMPARISON
+═══════════════════════════════════════════ */
+var distShape2='normal';
+var sweepData2=null;
+
+function setDistShape(s){
+  distShape2=s;
+  ['normal','skew2','bi'].forEach(function(k){
+    var el=C('dist-'+k);
+    if(el) el.classList.toggle('active',k===s||(k==='skew2'&&s==='skewed'));
+  });
+  C('hp-dist-val').textContent=s;
+  runAccuracyComparison();
+}
+
+function simulateAccuracy(strat,missPct,outlierSev,shape){
+  // Simulate accuracy degradation: simple logistic model on synthetic data
+  var base=shape==='bimodal'?0.82:0.90;
+  var outPenalty=strat==='mean'?outlierSev*0.04:outlierSev*0.01;
+  var missPenalty=missPct/100*0.35;
+  var stratBonus={mean:shape==='skewed'?-0.04:0.01,median:shape==='skewed'?0.04:0,most_frequent:0.01,constant:-0.02};
+  var noise=(Math.random()-0.5)*0.02;
+  return Math.max(0.4,Math.min(0.99,base-missPenalty-outPenalty+(stratBonus[strat]||0)+noise));
+}
+
+function runAccuracyComparison(){
+  var miss=parseInt(C('hp-miss').value);
+  var out=parseInt(C('hp-out').value);
+  C('hp-miss-val').textContent=miss+'%';
+  C('hp-out-val').textContent=['none','mild','strong','extreme'][out]||'none';
+  C('hp-dist-val').textContent=distShape2;
+
+  var strats=['mean','median','most_frequent','constant'];
+  var cols={'mean':'#4b96ff','median':'#f0a500','most_frequent':'#3ecf8e','constant':'#e879f9'};
+  var ids={'mean':'acc-mean','median':'acc-median','most_frequent':'acc-mode','constant':'acc-const'};
+  strats.forEach(function(s){
+    var acc=simulateAccuracy(s,miss,out,distShape2);
+    C(ids[s]).textContent=(acc*100).toFixed(0)+'%';
+    C(ids[s]).style.color=cols[s];
+    C(ids[s]+'-bar').style.width=(acc*100)+'%';
+  });
+}
+
+async function runAccuracySweep(){
+  C('sweep-status2').textContent='Running...';
+  sweepData2={mean:[],median:[],most_frequent:[],constant:[]};
+  var missRange=[5,10,15,20,25,30,40,50,60,70];
+  var out=parseInt(C('hp-out').value)||0;
+
+  for(var mi=0;mi<missRange.length;mi++){
+    var mp=missRange[mi];
+    sweepData2.mean.push({x:mp,y:simulateAccuracy('mean',mp,out,distShape2)});
+    sweepData2.median.push({x:mp,y:simulateAccuracy('median',mp,out,distShape2)});
+    sweepData2.most_frequent.push({x:mp,y:simulateAccuracy('most_frequent',mp,out,distShape2)});
+    sweepData2.constant.push({x:mp,y:simulateAccuracy('constant',mp,out,distShape2)});
+    drawAccuracyCurve();
+    await delay(80);
+  }
+  C('sweep-status2').textContent='Done!';
+}
+
+function drawAccuracyCurve(){
+  if(!sweepData2) return;
+  var cv=C('accuracy-curve-canvas'),ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,pad={l:45,r:20,t:10,b:35};
+  ctx.clearRect(0,0,W,H);ctx.fillStyle=bg();ctx.fillRect(0,0,W,H);
+
+  var xVals=[5,10,15,20,25,30,40,50,60,70];
+  var toX=function(v){return pad.l+(v-5)/65*(W-pad.l-pad.r);};
+  var toY=function(v){return (1-v)*(H-pad.t-pad.b)+pad.t;};
+
+  ctx.strokeStyle=gc();ctx.lineWidth=0.5;
+  [0.5,0.6,0.7,0.8,0.9,1.0].forEach(function(v){
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='right';ctx.fillText((v*100).toFixed(0)+'%',pad.l-3,toY(v)+4);
+  });
+  xVals.forEach(function(x){
+    ctx.fillStyle=tc();ctx.font='10px mono';ctx.textAlign='center';ctx.fillText(x+'%',toX(x),H-pad.b+14);
+  });
+  ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Missing data %',W/2,H-2);
+
+  var stratDefs=[
+    {key:'mean',col:'#4b96ff',label:'Mean'},
+    {key:'median',col:'#f0a500',label:'Median'},
+    {key:'most_frequent',col:'#3ecf8e',label:'Mode'},
+    {key:'constant',col:'#e879f9',label:'Constant'},
+  ];
+  stratDefs.forEach(function(s){
+    var pts=sweepData2[s.key];
+    if(!pts||!pts.length) return;
+    ctx.beginPath();
+    pts.forEach(function(p,i){i===0?ctx.moveTo(toX(p.x),toY(p.y)):ctx.lineTo(toX(p.x),toY(p.y));});
+    ctx.strokeStyle=s.col;ctx.lineWidth=2.5;ctx.stroke();
+    pts.forEach(function(p){ctx.beginPath();ctx.arc(toX(p.x),toY(p.y),4,0,Math.PI*2);ctx.fillStyle=s.col;ctx.fill();});
+  });
+
+  // Legend
+  var lx=pad.l+10;
+  stratDefs.forEach(function(s,i){
+    ctx.strokeStyle=s.col;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(lx,pad.t+8);ctx.lineTo(lx+20,pad.t+8);ctx.stroke();
+    ctx.fillStyle=tc();ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(s.label,lx+24,pad.t+12);
+    lx+=70;
+  });
+  ctx.textAlign='start';
+}
+
+/* ═══════════════════════════════════════════
+   LIVE EDITOR
+═══════════════════════════════════════════ */
+var SNIPPETS=[
+{file:'impute_basic.py',label:'Pandas basics',code:`import pandas as pd
+import numpy as np
+
+# ── Create a DataFrame with missing values ──────────
+df = pd.DataFrame({
+    'Age':    [25, np.nan, 34, 28, np.nan, 45, 31, np.nan],
+    'Height': [180, np.nan, 175, np.nan, 168, 185, np.nan, 172],
+    'Score':  [np.nan, 3, 2, np.nan, 1, 4, 2, np.nan],
+    'Salary': [70000, 55000, np.nan, 82000, 63000, np.nan, 71000, 58000],
+})
+
+print("── Original DataFrame ──")
+print(df.to_string())
+
+print("\\n── Missing value counts ──")
+print(df.isnull().sum())
+
+print("\\n── Missing % per column ──")
+print((df.isnull().mean() * 100).round(1).astype(str) + '%')
+
+# ── Fill using pandas methods ───────────────────────
+df_mean    = df.fillna(df.mean(numeric_only=True))
+df_median  = df.fillna(df.median(numeric_only=True))
+df_const   = df.fillna(0)
+
+print("\\n── After mean fill ──")
+print(df_mean.to_string())
+
+print("\\n── After median fill ──")
+print(df_median.round(1).to_string())
+
+# ── Compare fill values for 'Age' column ────────────
+age_obs = df['Age'].dropna()
+print("\\nAge  mean:   ", age_obs.mean().round(2))
+print("Age  median: ", age_obs.median())
+print("Age  mode:   ", age_obs.mode()[0])
+`},
+{file:'impute_sklearn.py',label:'SimpleImputer',code:`from sklearn.impute import SimpleImputer
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# ── Load data and inject missing values ─────────────
+iris = load_iris()
+X, y = iris.data.copy(), iris.target
+
+rng = np.random.default_rng(42)
+mask = rng.random(X.shape) < 0.20   # 20% missing
+X[mask] = np.nan
+
+print(f"Total missing: {np.isnan(X).sum()} / {X.size}")
+print(f"Per column:    {np.isnan(X).sum(axis=0)}")
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# ── Try all 4 strategies ─────────────────────────────
+for strategy in ['mean', 'median', 'most_frequent', 'constant']:
+    imp = SimpleImputer(strategy=strategy, fill_value=0)
+    imp.fit(X_train)                    # fit on TRAIN only
+    X_tr = imp.transform(X_train)
+    X_te = imp.transform(X_test)
+
+    print(f"\\n[{strategy}]  statistics_: {np.round(imp.statistics_, 2)}")
+    print(f"  Remaining NaN train: {np.isnan(X_tr).sum()}")
+    print(f"  Remaining NaN test:  {np.isnan(X_te).sum()}")
+
+# ── Add missing indicator columns ───────────────────
+from sklearn.impute import MissingIndicator
+imp2 = SimpleImputer(strategy='mean', add_indicator=True)
+imp2.fit(X_train)
+X_with_indicators = imp2.transform(X_train)
+print(f"\\nWith indicators — shape: {X_with_indicators.shape}")
+print(f"(original 4 features + {X_with_indicators.shape[1]-4} indicator columns)")
+`},
+{file:'impute_pipeline.py',label:'No-leakage Pipeline',code:`from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import cross_val_score, train_test_split
+import numpy as np
+
+# Load data + inject 15% missing
+data = load_breast_cancer()
+X, y = data.data.copy(), data.target
+rng = np.random.default_rng(0)
+X[rng.random(X.shape) < 0.15] = np.nan
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42)
+
+# ── BAD: fit imputer on all data → leakage ───────────
+# imp = SimpleImputer().fit(X)         <-- WRONG!
+
+# ── GOOD: imputer inside Pipeline ────────────────────
+# Pipeline calls fit_transform on train, transform on test
+# automatically — no leakage possible
+for strategy in ['mean', 'median']:
+    pipe = Pipeline([
+        ('impute', SimpleImputer(strategy=strategy)),
+        ('scale',  StandardScaler()),
+        ('clf',    LogisticRegression(max_iter=200)),
+    ])
+    # cross_val_score respects the pipeline boundary
+    cv_scores = cross_val_score(pipe, X_train, y_train,
+                                 cv=5, scoring='accuracy')
+    pipe.fit(X_train, y_train)
+    test_acc = pipe.score(X_test, y_test)
+    print(f"Strategy: {strategy:<12} "
+          f"CV: {cv_scores.mean():.4f}±{cv_scores.std():.4f}  "
+          f"Test: {test_acc:.4f}")
+`},
+{file:'impute_compare.py',label:'Full comparison',code:`from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.datasets import load_wine
+import numpy as np
+
+data = load_wine()
+X, y = data.data.copy(), data.target
+
+results = []
+for miss_pct in [0.05, 0.15, 0.30, 0.50]:
+    # Inject missingness
+    rng = np.random.default_rng(42)
+    X_miss = X.copy()
+    X_miss[rng.random(X.shape) < miss_pct] = np.nan
+
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X_miss, y, test_size=0.2, stratify=y, random_state=42)
+
+    row = {'miss_pct': f"{miss_pct:.0%}"}
+    for strategy, kw in [
+        ('mean',         {}),
+        ('median',       {}),
+        ('most_frequent',{}),
+        ('constant',     {'fill_value': 0}),
+    ]:
+        pipe = Pipeline([
+            ('imp', SimpleImputer(strategy=strategy, **kw)),
+            ('clf', RandomForestClassifier(n_estimators=50, random_state=42)),
+        ])
+        pipe.fit(X_tr, y_tr)
+        row[strategy] = pipe.score(X_te, y_te)
+
+    results.append(row)
+
+# Print comparison table
+print(f"{'miss %':>7} | {'mean':>6} | {'median':>7} | {'mode':>6} | {'const':>6}")
+print("-" * 46)
+for r in results:
+    print(f"{r['miss_pct']:>7} | {r['mean']:>6.2%} | "
+          f"{r['median']:>7.2%} | {r['most_frequent']:>6.2%} | "
+          f"{r['constant']:>6.2%}")
+`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);cmEditor.refresh();}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click ▶ Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output');
+  var code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';
+  out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;
+        var sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn']);
+        pyLoading=false;
+      } else {while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='● Python ready';st.className='py-status ready';
+    }catch(e){out.textContent='Failed to load Python.';out.className='editor-output error';btn.disabled=false;btn.textContent='▶ Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';
+    C('run-time').textContent=(Date.now()-t0)+'ms';
+  }catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(ignored){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='▶ Run';
+}
+
+/* ═══ INIT ═══ */
+window.addEventListener('load',function(){
+  resetAnimate();
+  drawMissingHeatmap(20);
+  generateDistData('normal',0);
+  redrawDistribution();
+  renderPlayground();
+  runAccuracyComparison();
+
+  (function trySetupEditor(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetupEditor,60);return;}
+    buildTabs();
+    var mount=C('cm-editor-mount');
+    if(!mount)return;
+    cmEditor=CodeMirror(mount,{
+      value:SNIPPETS[0].code,mode:'python',theme:'one-dark',
+      lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}
+    });
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);
+    setTimeout(function(){cmEditor.refresh();},500);
+  })();
+
+  new MutationObserver(function(){
+    drawMissingHeatmap(C('miss-pct').value);
+    redrawDistribution();
+    drawAccuracyCurve();
+    if(cmEditor)cmEditor.refresh();
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

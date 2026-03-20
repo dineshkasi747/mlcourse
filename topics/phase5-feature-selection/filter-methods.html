@@ -1,1 +1,919 @@
 <!-- filter-methods.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Filter Methods — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(62,207,142,0.09),rgba(75,150,255,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(62,207,142,0.1) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    .method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;}
+    .method-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:16px;cursor:pointer;transition:all .18s;}
+    .method-card:hover,.method-card.active{transform:translateY(-2px);}
+    .method-card-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .method-card-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:100px;display:inline-block;margin-bottom:8px;}
+    .method-card-desc{font-size:12px;color:var(--text-3);line-height:1.5;}
+    .fi-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+    .fi-bar-label{width:130px;font-size:12px;color:var(--text-2);text-align:right;flex-shrink:0;font-family:var(--font-mono);}
+    .fi-bar-track{flex:1;height:24px;background:var(--bg-input);border-radius:3px;overflow:hidden;position:relative;}
+    .fi-bar-fill{height:100%;border-radius:3px;transition:width .5s ease;display:flex;align-items:center;padding:0 8px;}
+    .fi-bar-val{width:55px;font-family:var(--font-mono);font-size:11.5px;color:var(--text-1);text-align:right;flex-shrink:0;}
+    .fi-bar-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;margin-left:4px;flex-shrink:0;}
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--green);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:700px){.method-grid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body data-topic-id="filter-methods">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Filter Methods</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Feature Selection</a><span class="sep">/</span>
+            <span class="current">Filter Methods</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge" style="background:rgba(62,207,142,0.12);border:1px solid rgba(62,207,142,0.3);color:var(--green);margin-bottom:14px;border-radius:100px;padding:4px 14px;font-size:12px;font-weight:700;display:inline-block;">Phase 5 &middot; Feature Selection</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Filter Methods</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Score each feature independently of the model using statistical tests. Fast, scalable, and model-agnostic. The first line of defence against irrelevant and redundant features.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">22 min</span>
+              <span class="topic-meta-item">Intermediate</span>
+              <span class="topic-meta-item">sklearn &middot; scipy</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: METHOD EXPLORER -->
+          <section class="section" id="method-explorer">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">6</div>
+              Filter method explorer &mdash; click to compare
+            </h2>
+            <p>Six filter methods, each scoring features by a different criterion. Click any method — the ranked bar chart updates instantly. See how the same features rank completely differently across methods.</p>
+
+            <div class="method-grid">
+              <div class="method-card active" id="mc-variance" onclick="selectMethod('variance')" style="border-color:var(--green);background:var(--green-surf);">
+                <div class="method-card-name">Variance Threshold</div>
+                <div class="method-card-tag" style="background:rgba(62,207,142,0.2);color:var(--green);">Univariate</div>
+                <div class="method-card-desc">Removes features with variance below a threshold. Catches constant or near-constant columns that have no predictive signal.</div>
+              </div>
+              <div class="method-card" id="mc-correlation" onclick="selectMethod('correlation')">
+                <div class="method-card-name">Correlation with Target</div>
+                <div class="method-card-tag" style="background:rgba(75,150,255,0.15);color:var(--blue);">Pearson / Spearman</div>
+                <div class="method-card-desc">Ranks features by absolute Pearson or Spearman correlation with the target. Fast but only captures linear relationships.</div>
+              </div>
+              <div class="method-card" id="mc-chi2" onclick="selectMethod('chi2')">
+                <div class="method-card-name">Chi-Squared Test</div>
+                <div class="method-card-tag" style="background:rgba(240,165,0,0.15);color:var(--accent);">Categorical target</div>
+                <div class="method-card-desc">Tests statistical dependence between feature and target. Only valid for non-negative features and classification problems.</div>
+              </div>
+              <div class="method-card" id="mc-ftest" onclick="selectMethod('ftest')">
+                <div class="method-card-name">ANOVA F-test</div>
+                <div class="method-card-tag" style="background:rgba(167,139,250,0.15);color:var(--purple);">Classification</div>
+                <div class="method-card-desc">Tests if feature means differ significantly across classes. Assumes normal distribution within classes. sklearn's f_classif.</div>
+              </div>
+              <div class="method-card" id="mc-mi" onclick="selectMethod('mi')">
+                <div class="method-card-name">Mutual Information</div>
+                <div class="method-card-tag" style="background:rgba(45,212,191,0.15);color:var(--teal);">Non-linear</div>
+                <div class="method-card-desc">Measures dependency regardless of relationship shape. Captures non-linear associations that Pearson misses. More expensive to compute.</div>
+              </div>
+              <div class="method-card" id="mc-vif" onclick="selectMethod('vif')">
+                <div class="method-card-name">VIF (Redundancy)</div>
+                <div class="method-card-tag" style="background:rgba(240,96,96,0.15);color:var(--red);">Anti-collinearity</div>
+                <div class="method-card-desc">Variance Inflation Factor detects multicollinearity. Drop features with VIF &gt; 10. Complements relevance-based methods.</div>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+                <div>
+                  <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);" id="ranking-title">Variance Threshold — feature scores</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:3px;" id="ranking-subtitle">Higher = more variance (more signal potential)</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="font-size:12px;color:var(--text-3);">Dataset:</span>
+                  <select class="ctrl-select" id="fi-dataset" onchange="selectMethod(currentMethod)">
+                    <option value="classification">Classification (10 features)</option>
+                    <option value="regression">Regression (10 features)</option>
+                    <option value="highdim">High-dim (20 features)</option>
+                  </select>
+                  <span style="font-size:12px;color:var(--text-3);">Top k:</span>
+                  <input type="range" min="1" max="15" value="5" class="ctrl-slider" id="topk-slider" style="width:80px;" oninput="C('topk-val').textContent=this.value;selectMethod(currentMethod)"/>
+                  <span class="ctrl-value" id="topk-val" style="color:var(--green);">5</span>
+                </div>
+              </div>
+              <div id="fi-bars-container"></div>
+            </div>
+
+            <div class="stat-row" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:0;">
+              <div class="stat-pill"><span class="stat-pill-val" id="fi-total">-</span><span class="stat-pill-lbl">Total features</span></div>
+              <div class="stat-pill"><span class="stat-pill-val" id="fi-selected" style="color:var(--green);">-</span><span class="stat-pill-lbl">Selected</span></div>
+              <div class="stat-pill"><span class="stat-pill-val" id="fi-removed" style="color:var(--red);">-</span><span class="stat-pill-lbl">Removed</span></div>
+              <div class="stat-pill"><span class="stat-pill-val" id="fi-method-name" style="font-size:12px;color:var(--green);">Variance</span><span class="stat-pill-lbl">Method</span></div>
+              <div class="stat-pill"><span class="stat-pill-val" id="fi-best-feat" style="font-size:12px;">-</span><span class="stat-pill-lbl">Top feature</span></div>
+            </div>
+          </section>
+
+          <!-- SECTION 2: LIVE THRESHOLD TUNER -->
+          <section class="section" id="threshold-tuner">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--blue-surf);color:var(--blue);">t</div>
+              Threshold tuner &mdash; see the selection boundary move
+            </h2>
+            <p>Drag the threshold slider and watch selected vs rejected features update in real time. See the tradeoff: a tighter threshold selects fewer but higher-quality features.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Feature score distribution + selection threshold</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Threshold:</span>
+                  <input type="range" min="0" max="100" value="30" class="ctrl-slider" id="thresh-slider" style="width:120px;" oninput="updateThresholdViz(this.value)"/>
+                  <span class="ctrl-value" id="thresh-val" style="color:var(--blue);">30%</span>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Scoring:</span>
+                  <select class="ctrl-select" id="thresh-method" onchange="updateThresholdViz(document.getElementById('thresh-slider').value)">
+                    <option value="mi">Mutual Info</option>
+                    <option value="corr">Correlation</option>
+                    <option value="ftest">F-test</option>
+                  </select>
+                </div>
+              </div>
+              <canvas id="thresh-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="th-selected" style="color:var(--green);">-</span><span class="stat-pill-lbl">Selected</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="th-rejected" style="color:var(--red);">-</span><span class="stat-pill-lbl">Rejected</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="th-mean-sel" style="color:var(--green);">-</span><span class="stat-pill-lbl">Avg score (sel)</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="th-mean-rej" style="color:var(--red);">-</span><span class="stat-pill-lbl">Avg score (rej)</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 3: METHOD COMPARISON CANVAS -->
+          <section class="section" id="method-comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">≠</div>
+              Method comparison &mdash; same features, different scores
+            </h2>
+            <p>The same 10 features scored by three different filter methods simultaneously. Lines crossing between methods = the feature's rank changes drastically. <strong>Unstable rankings mean the feature's signal is method-sensitive.</strong></p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Parallel ranking across filter methods</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="cmp-dataset" onchange="drawMethodComparison()">
+                    <option value="mixed">Mixed (linear + nonlinear)</option>
+                    <option value="linear">Purely linear</option>
+                    <option value="nonlinear">Nonlinear relationships</option>
+                  </select>
+                </div>
+                <button class="ctrl-btn" onclick="drawMethodComparison()">Regenerate</button>
+              </div>
+              <canvas id="cmp-canvas" width="700" height="320" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-agree">-</span><span class="stat-pill-lbl">Methods agree on top</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-disagree" style="color:var(--orange);">-</span><span class="stat-pill-lbl">Methods disagree</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-stable" style="color:var(--green);">-</span><span class="stat-pill-lbl">Stable top-3</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="cmp-unstable" style="color:var(--red);">-</span><span class="stat-pill-lbl">Unstable features</span></div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <span class="callout-icon">i</span>
+              <p><strong>Tip — use ensemble filter scoring:</strong> If two or more methods agree that a feature is in the top k, it is very likely useful. If methods disagree wildly, investigate whether the relationship is linear, non-linear, or simply noisy.</p>
+            </div>
+          </section>
+
+          <!-- SECTION 4: VARIANCE THRESHOLD DEMO -->
+          <section class="section" id="variance-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">0</div>
+              Variance threshold &mdash; catching near-constant features
+            </h2>
+            <p>Near-constant features look useful but carry no signal. Drag the variance threshold slider and see which features get eliminated. The violin plot shows each feature's distribution.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Feature distributions + variance threshold</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Variance threshold:</span>
+                  <input type="range" min="0" max="50" value="5" class="ctrl-slider" id="var-thresh" style="width:110px;" oninput="updateVarianceDemo()"/>
+                  <span class="ctrl-value" id="var-thresh-val" style="color:var(--teal);">5%</span>
+                </div>
+              </div>
+              <canvas id="var-canvas" width="700" height="280" style="width:100%;display:block;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="var-kept" style="color:var(--green);">-</span><span class="stat-pill-lbl">Features kept</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-removed" style="color:var(--red);">-</span><span class="stat-pill-lbl">Removed</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-max-var">-</span><span class="stat-pill-lbl">Max variance</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="var-min-var">-</span><span class="stat-pill-lbl">Min variance</span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <p>Four tabs: all filter methods combined, SelectKBest pipeline, mutual information deep-dive, and ensemble filter scoring.</p>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">filter_methods.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using only Pearson correlation for non-linear features.</strong> Pearson scores a sinusoidal feature as near 0. Always pair it with mutual information to catch non-linear relationships.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Applying filter methods to the full dataset before train-test split.</strong> The scores are computed from data the model hasn't seen yet — this is leakage. Fit filter scores only on training data.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using chi-squared on negative or continuous features.</strong> sklearn's chi2 requires non-negative values. Standardise and min-max scale first, or use f_classif/mutual_info_classif instead.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Relying on a single filter method.</strong> Each method has blind spots. Use 2-3 methods and keep features that rank well on at least two — this is ensemble filter scoring and is much more robust.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Ignoring feature interactions.</strong> Filter methods score each feature independently. A feature with a low individual score might be critical in combination with another feature. Wrapper or embedded methods handle this better.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Summary</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Filter methods score features independently of any model — fast and scalable to thousands of features.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always start with VarianceThreshold to remove constant/near-constant features before anything else.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Pearson correlation: fast, linear only. Mutual information: slower, captures non-linear. Use both.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Use f_classif for classification, f_regression for regression, chi2 only for non-negative features.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Ensemble scoring: keep features that rank well across 2+ methods — much more robust than a single method.</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div>Always fit filter scores on training data only — computing them on the full dataset is data leakage.</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="curse-of-dimensionality.html"><span class="pn-dir">Previous</span><span class="pn-title">Curse of Dimensionality</span></a>
+            <a class="pn-card next" id="next-card" href="wrapper-methods.html"><span class="pn-dir">Next</span><span class="pn-title">Wrapper Methods</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#method-explorer">Method explorer</a></li>
+            <li class="toc-item"><a href="#threshold-tuner">Threshold tuner</a></li>
+            <li class="toc-item"><a href="#method-comparison">Method comparison</a></li>
+            <li class="toc-item"><a href="#variance-demo">Variance threshold</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function gc(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function normalRand(mu,sigma){var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return(mu||0)+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ══════════════════════════════════════
+   DATA GENERATION
+══════════════════════════════════════ */
+var METHOD_COLORS={
+  variance:'var(--green)',correlation:'var(--blue)',chi2:'var(--accent)',
+  ftest:'var(--purple)',mi:'var(--teal)',vif:'var(--red)'
+};
+var METHOD_NAMES={
+  variance:'Variance Threshold',correlation:'Correlation with Target',
+  chi2:'Chi-Squared Test',ftest:'ANOVA F-test',mi:'Mutual Information',vif:'VIF (Redundancy)'
+};
+var METHOD_SUBTITLES={
+  variance:'Higher variance = more spread = more signal potential',
+  correlation:'Higher |r| with target = stronger linear relationship',
+  chi2:'Higher chi2 score = stronger dependence with target',
+  ftest:'Higher F-statistic = means differ more across classes',
+  mi:'Higher MI = more mutual information with target (linear + nonlinear)',
+  vif:'Lower VIF = less multicollinearity (higher VIF = redundant)'
+};
+
+var DATASETS={
+  classification:{
+    features:['glucose','bmi','age','insulin','bp','pregnancies','skin','pedigree','height','const_col'],
+    variance: [0.89,0.74,0.68,0.61,0.52,0.44,0.38,0.29,0.12,0.01],
+    correlation:[0.47,0.29,0.24,0.13,0.17,0.22,0.07,0.18,0.04,0.01],
+    chi2:     [0.82,0.54,0.41,0.39,0.28,0.30,0.18,0.22,0.08,0.01],
+    ftest:    [0.78,0.51,0.38,0.35,0.31,0.28,0.21,0.19,0.06,0.01],
+    mi:       [0.52,0.35,0.28,0.19,0.22,0.25,0.12,0.22,0.09,0.01],
+    vif:      [0.92,0.78,0.65,0.55,0.44,0.38,0.32,0.28,0.18,0.01]  // inverted for VIF
+  },
+  regression:{
+    features:['size','rooms','age','distance','income','crime','schools','noise','garage','id_col'],
+    variance: [0.92,0.78,0.64,0.72,0.88,0.55,0.48,0.38,0.29,0.02],
+    correlation:[0.82,0.71,0.41,0.62,0.69,0.68,0.55,0.22,0.39,0.02],
+    chi2:     [0.75,0.62,0.38,0.55,0.71,0.60,0.48,0.20,0.35,0.02],
+    ftest:    [0.88,0.75,0.45,0.68,0.72,0.65,0.52,0.18,0.38,0.02],
+    mi:       [0.79,0.65,0.42,0.60,0.74,0.62,0.55,0.30,0.40,0.02],
+    vif:      [0.55,0.62,0.78,0.65,0.52,0.44,0.48,0.80,0.70,0.02]
+  },
+  highdim:{
+    features:['F01','F02','F03','F04','F05','F06','F07','F08','F09','F10','F11','F12','F13','F14','F15','F16','F17','F18','F19','F20'],
+    variance: [0.95,0.88,0.82,0.76,0.70,0.65,0.60,0.55,0.50,0.44,0.38,0.32,0.26,0.20,0.15,0.10,0.07,0.04,0.02,0.01],
+    correlation:[0.72,0.65,0.48,0.38,0.55,0.28,0.18,0.62,0.14,0.42,0.22,0.08,0.35,0.12,0.05,0.18,0.09,0.03,0.02,0.01],
+    chi2:     [0.68,0.58,0.44,0.35,0.52,0.25,0.15,0.58,0.12,0.38,0.20,0.07,0.32,0.10,0.04,0.16,0.08,0.03,0.02,0.01],
+    ftest:    [0.75,0.62,0.50,0.40,0.58,0.30,0.20,0.65,0.16,0.45,0.24,0.09,0.38,0.13,0.06,0.20,0.10,0.04,0.02,0.01],
+    mi:       [0.80,0.70,0.55,0.42,0.60,0.32,0.22,0.68,0.18,0.48,0.28,0.10,0.42,0.15,0.07,0.22,0.12,0.05,0.03,0.01],
+    vif:      [0.88,0.75,0.62,0.50,0.42,0.38,0.32,0.28,0.25,0.22,0.80,0.72,0.65,0.55,0.48,0.18,0.12,0.08,0.05,0.02]
+  }
+};
+
+var currentMethod='variance';
+
+/* ══ SECTION 1: METHOD EXPLORER ══ */
+function selectMethod(m){
+  currentMethod=m;
+  var col=METHOD_COLORS[m]||'var(--green)';
+
+  // Update card styles
+  Object.keys(METHOD_COLORS).forEach(function(k){
+    var el=C('mc-'+k);if(!el)return;
+    el.classList.toggle('active',k===m);
+    if(k===m){
+      el.style.borderColor=col;
+      el.style.background=col.replace('var(','').replace(')','');
+    } else {
+      el.style.borderColor='var(--border)';
+      el.style.background='var(--bg-card)';
+    }
+  });
+
+  C('ranking-title').textContent=METHOD_NAMES[m]+' — feature scores';
+  C('ranking-subtitle').textContent=METHOD_SUBTITLES[m]||'';
+
+  var key=C('fi-dataset').value;
+  var ds=DATASETS[key];
+  var scores=ds[m]||ds.variance;
+  var features=ds.features;
+  var topk=parseInt(C('topk-slider').value)||5;
+  var isVIF=m==='vif';
+
+  // Sort by score descending (for VIF, sort ascending = less collinearity first)
+  var indexed=scores.map(function(s,i){return{score:s,feat:features[i],idx:i};});
+  indexed.sort(function(a,b){return isVIF?a.score-b.score:b.score-a.score;});
+  var maxScore=Math.max.apply(null,scores)||1;
+
+  C('fi-bars-container').innerHTML=indexed.map(function(item,rank){
+    var pct=(item.score/maxScore*100);
+    var isSelected=rank<topk;
+    var barCol=isSelected?col:'rgba(120,120,120,0.4)';
+    var badge=isSelected?
+      '<span class="fi-bar-badge" style="background:'+col+'22;color:'+col+';">selected</span>':
+      '<span class="fi-bar-badge" style="background:rgba(120,120,120,0.1);color:var(--text-3);">removed</span>';
+    return '<div class="fi-bar-row">'+
+      '<div class="fi-bar-label">'+item.feat+'</div>'+
+      '<div class="fi-bar-track"><div class="fi-bar-fill" style="width:'+pct+'%;background:'+barCol+';"></div></div>'+
+      '<div class="fi-bar-val">'+item.score.toFixed(3)+'</div>'+
+      badge+'</div>';
+  }).join('');
+
+  C('fi-total').textContent=features.length;
+  C('fi-selected').textContent=topk;
+  C('fi-removed').textContent=features.length-topk;
+  C('fi-method-name').textContent=METHOD_NAMES[m].split(' ')[0];
+  C('fi-best-feat').textContent=indexed[0].feat;
+  C('fi-best-feat').style.color=col;
+}
+
+/* ══ SECTION 2: THRESHOLD TUNER ══ */
+var THC=C('thresh-canvas'),THX=THC.getContext('2d');
+
+var THRESH_DATA={
+  mi:[0.82,0.75,0.68,0.62,0.55,0.48,0.42,0.36,0.31,0.26,0.20,0.15,0.10,0.07,0.04],
+  corr:[0.88,0.79,0.71,0.64,0.58,0.50,0.44,0.38,0.32,0.26,0.20,0.14,0.09,0.05,0.02],
+  ftest:[0.92,0.84,0.76,0.69,0.62,0.55,0.48,0.42,0.36,0.30,0.24,0.18,0.12,0.07,0.03]
+};
+var THRESH_LABELS=['F01','F02','F03','F04','F05','F06','F07','F08','F09','F10','F11','F12','F13','F14','F15'];
+
+function updateThresholdViz(v){
+  var thresh=parseInt(v)/100;
+  C('thresh-val').textContent=parseInt(v)+'%';
+  var method=C('thresh-method').value;
+  var scores=THRESH_DATA[method]||THRESH_DATA.mi;
+
+  var W=THC.width,H=THC.height,pad={l:40,r:20,t:25,b:50};
+  THX.clearRect(0,0,W,H);THX.fillStyle=bg();THX.fillRect(0,0,W,H);
+
+  var n=scores.length,bw=(W-pad.l-pad.r)/n,iH=H-pad.t-pad.b;
+  var maxS=Math.max.apply(null,scores);
+
+  // Grid
+  THX.strokeStyle=gc();THX.lineWidth=0.5;
+  [0,0.25,0.5,0.75,1.0].forEach(function(v2){
+    var y=pad.t+(1-v2)*iH;
+    THX.beginPath();THX.moveTo(pad.l,y);THX.lineTo(W-pad.r,y);THX.stroke();
+    THX.fillStyle=tc();THX.font='9px monospace';THX.textAlign='right';THX.fillText((v2*100).toFixed(0)+'%',pad.l-3,y+3);
+  });
+
+  // Threshold line
+  var thY=pad.t+(1-thresh)*iH;
+  THX.beginPath();THX.strokeStyle='rgba(240,165,0,0.8)';THX.lineWidth=2;THX.setLineDash([6,4]);
+  THX.moveTo(pad.l,thY);THX.lineTo(W-pad.r,thY);THX.stroke();THX.setLineDash([]);
+  THX.fillStyle='rgba(240,165,0,0.9)';THX.font='bold 11px sans-serif';THX.textAlign='right';
+  THX.fillText('Threshold = '+parseInt(v)+'%',W-pad.r,thY-4);
+
+  var sel=0,rej=0,selSum=0,rejSum=0;
+  scores.forEach(function(s,i){
+    var x=pad.l+i*bw,bh=(s/maxS)*iH;
+    var isSelected=s>=thresh;
+    if(isSelected){sel++;selSum+=s;}else{rej++;rejSum+=s;}
+    THX.fillStyle=isSelected?'rgba(62,207,142,0.75)':'rgba(240,96,96,0.45)';
+    THX.fillRect(x+bw*0.1,H-pad.b-bh,bw*0.8,bh);
+    THX.strokeStyle=isSelected?'var(--green)':'var(--red)';THX.lineWidth=1.5;
+    THX.strokeRect(x+bw*0.1,H-pad.b-bh,bw*0.8,bh);
+    THX.fillStyle=tc();THX.font='9px sans-serif';THX.textAlign='center';
+    THX.fillText(THRESH_LABELS[i],x+bw/2,H-pad.b+14);
+    THX.fillStyle=isSelected?'var(--green)':'var(--text-3)';THX.font='bold 9px monospace';
+    THX.fillText(s.toFixed(2),x+bw/2,H-pad.b-bh-4);
+  });
+
+  C('th-selected').textContent=sel;C('th-rejected').textContent=rej;
+  C('th-mean-sel').textContent=sel?( selSum/sel).toFixed(3):'--';
+  C('th-mean-rej').textContent=rej?(rejSum/rej).toFixed(3):'--';
+}
+
+/* ══ SECTION 3: METHOD COMPARISON ══ */
+var CMPC=C('cmp-canvas'),CMPX=CMPC.getContext('2d');
+
+var CMP_DATA={
+  mixed:{
+    features:['F_linear_strong','F_nonlin_strong','F_linear_weak','F_noise1','F_interaction','F_linear_med','F_nonlin_med','F_noise2','F_corr_tgt','F_redundant'],
+    corr: [0.85,0.08,0.42,0.05,0.28,0.55,0.12,0.03,0.70,0.45],
+    ftest:[0.88,0.10,0.44,0.06,0.30,0.56,0.14,0.04,0.72,0.46],
+    mi:   [0.82,0.75,0.40,0.07,0.55,0.52,0.68,0.04,0.68,0.42]
+  },
+  linear:{
+    features:['F01','F02','F03','F04','F05','F06','F07','F08','F09','F10'],
+    corr: [0.90,0.82,0.74,0.65,0.55,0.44,0.33,0.22,0.11,0.05],
+    ftest:[0.88,0.80,0.71,0.62,0.53,0.42,0.31,0.20,0.10,0.04],
+    mi:   [0.85,0.78,0.70,0.60,0.52,0.40,0.29,0.18,0.09,0.04]
+  },
+  nonlinear:{
+    features:['F01','F02','F03','F04','F05','F06','F07','F08','F09','F10'],
+    corr: [0.05,0.08,0.78,0.04,0.06,0.62,0.03,0.55,0.07,0.48],
+    ftest:[0.06,0.10,0.80,0.05,0.07,0.64,0.04,0.57,0.08,0.50],
+    mi:   [0.82,0.75,0.78,0.68,0.60,0.62,0.55,0.55,0.48,0.48]
+  }
+};
+
+function drawMethodComparison(){
+  var key=C('cmp-dataset').value;
+  var ds=CMP_DATA[key];
+  var W=CMPC.width,H=CMPC.height,pad={l:110,r:110,t:30,b:30};
+  CMPX.clearRect(0,0,W,H);CMPX.fillStyle=bg();CMPX.fillRect(0,0,W,H);
+
+  var methods=['corr','ftest','mi'];
+  var mColors=['#4b96ff','#a78bfa','#2dd4bf'];
+  var mLabels=['Correlation','F-test','Mutual Info'];
+  var n=ds.features.length;
+  var iW=W-pad.l-pad.r;
+
+  // Rank features for each method
+  var ranks={};
+  methods.forEach(function(m){
+    var scored=ds[m].map(function(s,i){return{s:s,i:i};});
+    scored.sort(function(a,b){return b.s-a.s;});
+    ranks[m]=new Array(n);
+    scored.forEach(function(item,r){ranks[m][item.i]=r;});
+  });
+
+  // Draw rank axes (3 vertical axes)
+  var axX=[pad.l, pad.l+iW/2, pad.l+iW];
+  var yForRank=function(r){return pad.t+r*(H-pad.t-pad.b)/(n-1);};
+
+  axX.forEach(function(ax,ai){
+    CMPX.strokeStyle=isDark()?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.15)';CMPX.lineWidth=2;
+    CMPX.beginPath();CMPX.moveTo(ax,pad.t);CMPX.lineTo(ax,H-pad.b);CMPX.stroke();
+    CMPX.fillStyle=mColors[ai];CMPX.font='bold 12px sans-serif';CMPX.textAlign='center';
+    CMPX.fillText(mLabels[ai],ax,pad.t-8);
+    for(var r=0;r<n;r++){
+      CMPX.fillStyle=tc();CMPX.font='9px monospace';CMPX.textAlign='center';
+      CMPX.fillText('#'+(r+1),ax,yForRank(r)+3);
+    }
+  });
+
+  // Draw feature lines
+  var topK=4;
+  var agree=0,disagree=0,stableTop=0,unstable=0;
+
+  ds.features.forEach(function(feat,fi){
+    var r0=ranks.corr[fi],r1=ranks.ftest[fi],r2=ranks.mi[fi];
+    var isTopAny=r0<topK||r1<topK||r2<topK;
+    var rankSpread=Math.max(r0,r1,r2)-Math.min(r0,r1,r2);
+
+    CMPX.beginPath();
+    CMPX.globalAlpha=isTopAny?0.8:0.25;
+    var lineCol=rankSpread>3?'#f06060':rankSpread>1?'#f0a500':'#3ecf8e';
+    CMPX.strokeStyle=lineCol;CMPX.lineWidth=isTopAny?2:1;
+    CMPX.moveTo(axX[0],yForRank(r0));
+    CMPX.lineTo(axX[1],yForRank(r1));
+    CMPX.lineTo(axX[2],yForRank(r2));
+    CMPX.stroke();
+    CMPX.globalAlpha=1;
+
+    // Feature label on left + right
+    if(isTopAny){
+      CMPX.fillStyle=lineCol;CMPX.font='bold 10px sans-serif';
+      CMPX.textAlign='right';CMPX.fillText(feat,axX[0]-6,yForRank(r0)+4);
+      CMPX.textAlign='left';CMPX.fillText(feat,axX[2]+6,yForRank(r2)+4);
+    }
+
+    if(r0<topK&&r1<topK&&r2<topK){agree++;if(rankSpread<2)stableTop++;}
+    else if(r0<topK||r1<topK||r2<topK){disagree++;if(rankSpread>3)unstable++;}
+  });
+
+  C('cmp-agree').textContent=agree;C('cmp-disagree').textContent=disagree;
+  C('cmp-stable').textContent=stableTop;C('cmp-unstable').textContent=unstable;
+}
+
+/* ══ SECTION 4: VARIANCE DEMO ══ */
+var VARC=C('var-canvas'),VARX=VARC.getContext('2d');
+
+var VAR_FEATURES=[
+  {name:'glucose',variance:0.89,color:'#4b96ff'},
+  {name:'bmi',variance:0.74,color:'#3ecf8e'},
+  {name:'age',variance:0.68,color:'#f0a500'},
+  {name:'insulin',variance:0.55,color:'#a78bfa'},
+  {name:'bp',variance:0.42,color:'#2dd4bf'},
+  {name:'skin',variance:0.28,color:'#fb8c40'},
+  {name:'near_zero',variance:0.08,color:'#f06060'},
+  {name:'constant_1',variance:0.02,color:'#f06060'},
+  {name:'constant_2',variance:0.01,color:'#f06060'},
+  {name:'zero_var',variance:0.0,color:'#f06060'}
+];
+
+function updateVarianceDemo(){
+  var thresh=parseInt(C('var-thresh').value)/100;
+  C('var-thresh-val').textContent=parseInt(C('var-thresh').value)+'%';
+
+  var W=VARC.width,H=VARC.height,pad={l:40,r:20,t:25,b:40};
+  VARX.clearRect(0,0,W,H);VARX.fillStyle=bg();VARX.fillRect(0,0,W,H);
+
+  var n=VAR_FEATURES.length,bw=(W-pad.l-pad.r)/n,iH=H-pad.t-pad.b;
+  var maxV=Math.max.apply(null,VAR_FEATURES.map(function(f){return f.variance;}));
+
+  VARX.strokeStyle=gc();VARX.lineWidth=0.5;
+  [0,0.25,0.5,0.75,1.0].forEach(function(v){
+    var y=pad.t+(1-v)*iH;
+    VARX.beginPath();VARX.moveTo(pad.l,y);VARX.lineTo(W-pad.r,y);VARX.stroke();
+    VARX.fillStyle=tc();VARX.font='9px monospace';VARX.textAlign='right';VARX.fillText((v*100).toFixed(0)+'%',pad.l-3,y+3);
+  });
+
+  // Threshold line
+  var thY=pad.t+(1-thresh)*iH;
+  VARX.beginPath();VARX.strokeStyle='rgba(240,165,0,0.8)';VARX.lineWidth=2;VARX.setLineDash([6,4]);
+  VARX.moveTo(pad.l,thY);VARX.lineTo(W-pad.r,thY);VARX.stroke();VARX.setLineDash([]);
+  VARX.fillStyle='rgba(240,165,0,0.9)';VARX.font='bold 11px sans-serif';VARX.textAlign='right';
+  VARX.fillText('Threshold = '+(thresh*100).toFixed(0)+'%',W-pad.r,thY-5);
+
+  var kept=0,removed=0;
+  VAR_FEATURES.forEach(function(f,i){
+    var x=pad.l+i*bw,bh=(f.variance/maxV||0)*iH;
+    var isKept=f.variance>thresh;
+    if(isKept)kept++;else removed++;
+    var col=isKept?f.color:'rgba(120,120,120,0.35)';
+    VARX.fillStyle=col;VARX.fillRect(x+bw*0.1,H-pad.b-bh,bw*0.8,Math.max(bh,1));
+    if(isKept){VARX.strokeStyle=f.color;VARX.lineWidth=1.5;VARX.strokeRect(x+bw*0.1,H-pad.b-bh,bw*0.8,bh);}
+    VARX.fillStyle=tc();VARX.font='9px sans-serif';VARX.textAlign='center';VARX.fillText(f.name,x+bw/2,H-pad.b+13);
+    if(!isKept){
+      VARX.fillStyle='var(--red)';VARX.font='bold 14px sans-serif';
+      VARX.fillText('✕',x+bw/2,H-pad.b-Math.max(bh,10)-2);
+    }
+  });
+
+  var variances=VAR_FEATURES.map(function(f){return f.variance;});
+  C('var-kept').textContent=kept;C('var-removed').textContent=removed;
+  C('var-max-var').textContent=(Math.max.apply(null,variances)*100).toFixed(0)+'%';
+  C('var-min-var').textContent=(Math.min.apply(null,variances)*100).toFixed(0)+'%';
+}
+
+/* ══ LIVE EDITOR ══ */
+var SNIPPETS=[
+{file:'filter_methods.py',label:'All filter methods',code:`import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.feature_selection import (VarianceThreshold, SelectKBest,
+    f_classif, chi2, mutual_info_classif)
+from sklearn.preprocessing import MinMaxScaler
+
+np.random.seed(42)
+X, y = make_classification(n_samples=500, n_features=15,
+    n_informative=6, n_redundant=3, n_repeated=2, random_state=42)
+
+feature_names = [f'F{i+1:02d}' for i in range(15)]
+
+print("=" * 60)
+print("FILTER METHOD COMPARISON")
+print("=" * 60)
+
+# 1. Variance Threshold
+vt = VarianceThreshold(threshold=0.1)
+vt.fit(X)
+print(f"\\n1. Variance Threshold (>0.1):")
+print(f"   Kept: {vt.get_support().sum()} / {X.shape[1]}")
+kept = [f for f,k in zip(feature_names, vt.get_support()) if k]
+print(f"   Features: {kept}")
+
+# 2. ANOVA F-test
+selector_f = SelectKBest(f_classif, k=6).fit(X, y)
+scores_f = selector_f.scores_
+print(f"\\n2. ANOVA F-test — top 6:")
+ranked_f = sorted(zip(feature_names, scores_f), key=lambda x: -x[1])
+for name, score in ranked_f[:6]:
+    print(f"   {name}: F={score:.2f}")
+
+# 3. Mutual Information
+selector_mi = SelectKBest(mutual_info_classif, k=6).fit(X, y)
+scores_mi = selector_mi.scores_
+print(f"\\n3. Mutual Information — top 6:")
+ranked_mi = sorted(zip(feature_names, scores_mi), key=lambda x: -x[1])
+for name, score in ranked_mi[:6]:
+    print(f"   {name}: MI={score:.4f}")
+
+# 4. Chi-squared (needs non-negative features)
+X_scaled = MinMaxScaler().fit_transform(X)
+selector_chi2 = SelectKBest(chi2, k=6).fit(X_scaled, y)
+print(f"\\n4. Chi-squared — top 6:")
+ranked_chi2 = sorted(zip(feature_names, selector_chi2.scores_), key=lambda x:-x[1])
+for name, score in ranked_chi2[:6]:
+    print(f"   {name}: chi2={score:.2f}")`},
+{file:'filter_pipeline.py',label:'SelectKBest pipeline',code:`from sklearn.datasets import make_classification
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+import numpy as np
+
+np.random.seed(42)
+X, y = make_classification(n_samples=500, n_features=20,
+    n_informative=6, n_redundant=4, random_state=42)
+
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+# Build pipeline with filter selection INSIDE cross-validation
+# This prevents data leakage - filter is fitted only on training folds
+results = {}
+for k in [3, 5, 8, 10, 15, 20]:
+    pipe = Pipeline([
+        ('scaler', StandardScaler()),
+        ('selector', SelectKBest(mutual_info_classif, k=min(k, 20))),
+        ('clf', LogisticRegression(random_state=42, max_iter=1000))
+    ])
+    scores = cross_val_score(pipe, X, y, cv=cv, scoring='accuracy')
+    results[k] = scores.mean()
+    print(f"k={k:2d}: acc={scores.mean():.4f} (+/-{scores.std():.4f})")
+
+best_k = max(results, key=results.get)
+print(f"\\nBest k={best_k} (acc={results[best_k]:.4f})")
+print()
+print("Key insight: SelectKBest INSIDE the pipeline ensures")
+print("feature selection uses only training fold data.")`},
+{file:'filter_mi_deep.py',label:'Mutual information',code:`import numpy as np
+import pandas as pd
+from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
+
+np.random.seed(42)
+n = 500
+
+# Create features with different relationship types
+x_base = np.random.uniform(-3, 3, n)
+df = pd.DataFrame({
+    'linear_strong'  : x_base + np.random.normal(0, 0.3, n),
+    'linear_weak'    : x_base * 0.3 + np.random.normal(0, 1.5, n),
+    'quadratic'      : x_base**2 + np.random.normal(0, 0.5, n),
+    'sinusoidal'     : np.sin(x_base * 2) + np.random.normal(0, 0.3, n),
+    'threshold'      : (x_base > 0).astype(float) + np.random.normal(0, 0.2, n),
+    'pure_noise'     : np.random.normal(0, 1, n),
+})
+y = (x_base > 0).astype(int)
+
+# Pearson correlation (linear only)
+pearson = df.corrwith(pd.Series(y.astype(float))).abs()
+
+# Mutual information (any relationship)
+mi = mutual_info_classif(df.values, y, discrete_features=False, random_state=42)
+mi_series = pd.Series(mi, index=df.columns)
+
+print(f"{'Feature':<20} {'Pearson r':>10} {'MI score':>10} {'Winner'}")
+print("-" * 55)
+for feat in df.columns:
+    p = pearson[feat]
+    m = mi_series[feat]
+    winner = "TIE" if abs(p-m)<0.05 else ("Pearson" if p>m else "MI")
+    print(f"{feat:<20} {p:>10.4f} {m:>10.4f}  {winner}")
+
+print()
+print("Key insight: Pearson fails on quadratic/sinusoidal features.")
+print("MI correctly identifies non-linear relationships.")`},
+{file:'filter_ensemble.py',label:'Ensemble scoring',code:`import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.feature_selection import (SelectKBest, f_classif,
+    mutual_info_classif, VarianceThreshold)
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
+np.random.seed(42)
+X, y = make_classification(n_samples=600, n_features=15,
+    n_informative=6, n_redundant=3, random_state=42)
+
+feature_names = [f'Feature_{i+1:02d}' for i in range(15)]
+
+# Step 1: Remove zero/near-zero variance
+vt = VarianceThreshold(threshold=0.05)
+X_vt = vt.fit_transform(X)
+surviving = [f for f,k in zip(feature_names, vt.get_support()) if k]
+print(f"After VarianceThreshold: {len(surviving)}/{len(feature_names)} features remain")
+
+# Step 2: Compute three filter scores
+scaler = StandardScaler()
+X_s = scaler.fit_transform(X_vt)
+
+scores_f  = SelectKBest(f_classif,           k='all').fit(X_s, y).scores_
+scores_mi = SelectKBest(mutual_info_classif, k='all').fit(X_s, y).scores_
+
+# Normalise to [0, 1]
+def norm(arr): return (arr - arr.min()) / (arr.max() - arr.min() + 1e-10)
+
+norm_f  = norm(scores_f)
+norm_mi = norm(scores_mi)
+
+# Ensemble: average rank
+ensemble = (norm_f + norm_mi) / 2
+
+df_scores = pd.DataFrame({
+    'Feature' : surviving,
+    'F-test'  : norm_f,
+    'MI'      : norm_mi,
+    'Ensemble': ensemble
+}).sort_values('Ensemble', ascending=False)
+
+print()
+print(f"{'Feature':<14} {'F-test':>7} {'MI':>7} {'Ensemble':>10} {'Rank'}")
+print("-" * 48)
+for i, row in df_scores.iterrows():
+    rank = df_scores.index.get_loc(i) + 1
+    star = " <-- top 5" if rank <= 5 else ""
+    print(f"{row.Feature:<14} {row['F-test']:>7.3f} {row.MI:>7.3f} {row.Ensemble:>10.3f}{star}")`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scipy','scikit-learn']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  selectMethod('variance');
+  updateThresholdViz(30);
+  drawMethodComparison();
+  updateVarianceDemo();
+  initEditor();
+  new MutationObserver(function(){
+    selectMethod(currentMethod);
+    updateThresholdViz(document.getElementById('thresh-slider').value);
+    drawMethodComparison();
+    updateVarianceDemo();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>

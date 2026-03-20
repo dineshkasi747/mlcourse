@@ -1,1 +1,835 @@
 <!-- minmax-scaling.html - to build -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Min-Max Scaling — ML-Learn</title>
+  <link rel="stylesheet" href="../../css/main.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/one-dark.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <style>
+    .hero-banner{background:linear-gradient(135deg,rgba(62,207,142,0.1),rgba(75,150,255,0.05));border:1px solid var(--border-md);border-radius:var(--r-xl);padding:32px 36px;margin-bottom:40px;position:relative;overflow:hidden;}
+    .hero-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(62,207,142,0.12) 0%,transparent 70%);pointer-events:none;}
+    .canvas-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;background:var(--bg-input);border-bottom:1px solid var(--border);}
+    .canvas-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-2);}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+    .stat-pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;background:var(--bg-input);border-radius:var(--r-md);min-width:90px;}
+    .stat-pill-val{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-pill-lbl{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;}
+    /* ruler/bar visual */
+    .ruler-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;margin-bottom:20px;}
+    .ruler-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);margin-bottom:10px;}
+    .ruler-track{height:34px;background:var(--bg-input);border-radius:6px;position:relative;margin-bottom:6px;}
+    .ruler-fill{height:100%;border-radius:6px;transition:width .4s ease;position:relative;}
+    .ruler-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+    .ruler-axis{display:flex;justify-content:space-between;font-size:10px;font-family:var(--font-mono);color:var(--text-3);padding:0 2px;}
+    /* concept cards */
+    .concept-row{display:flex;gap:14px;margin-bottom:22px;align-items:stretch;}
+    .concept-box{flex:1;background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-xl);padding:20px;text-align:center;}
+    .concept-box.ok{border-color:var(--green);}
+    .concept-box.bad{border-color:var(--red);}
+    .concept-box-icon{font-size:30px;margin-bottom:8px;}
+    .concept-box-val{font-family:var(--font-display);font-size:24px;font-weight:800;line-height:1.1;margin-bottom:6px;}
+    .concept-box-desc{font-size:12px;color:var(--text-3);line-height:1.5;}
+    .arrow-box{display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--text-3);flex-shrink:0;width:36px;}
+    /* formula */
+    .formula-block{background:var(--bg-card);border:1px solid var(--border-md);border-left:5px solid var(--green);border-radius:0 var(--r-lg) var(--r-lg) 0;padding:18px 22px;margin-bottom:20px;}
+    .formula-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:10px;}
+    .formula-math{font-family:var(--font-mono);font-size:15px;color:var(--text-1);line-height:2;margin-bottom:8px;}
+    .formula-explain{font-size:13px;color:var(--text-2);line-height:1.6;}
+    /* compare table */
+    .compare-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;}
+    .compare-table th{padding:10px 14px;background:var(--bg-card);border-bottom:2px solid var(--border-md);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);text-align:left;}
+    .compare-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;line-height:1.5;}
+    .compare-table tr:hover td{background:var(--bg-hover);}
+    .compare-table tr:last-child td{border-bottom:none;}
+    /* step cards */
+    .step-card{display:flex;gap:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:10px;}
+    .step-num{width:36px;height:36px;border-radius:50%;background:var(--green-surf);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--green);flex-shrink:0;}
+    .step-body{flex:1;}
+    .step-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+    .step-desc{font-size:13.5px;color:var(--text-2);line-height:1.6;}
+    .step-code{font-family:var(--font-mono);font-size:12px;background:var(--bg-input);border-left:3px solid var(--green);padding:8px 12px;border-radius:0 var(--r-sm) var(--r-sm) 0;margin-top:8px;line-height:1.7;color:var(--text-1);}
+    /* editor */
+    .editor-wrap{border:1px solid var(--border-md);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+    .editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);}
+    .editor-dots{display:flex;gap:6px;}
+    .editor-dot{width:11px;height:11px;border-radius:50%;}
+    .editor-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap;}
+    .editor-tab{padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .editor-tab.active{background:#0f0f14;border-color:var(--border-md);color:var(--text-2);font-weight:600;}
+    [data-theme="light"] .editor-tab.active{background:#eeece6;}
+    .CodeMirror{font-family:var(--font-mono),monospace;font-size:13.5px;line-height:1.75;height:auto!important;background:#0f0f14;color:#e2e0d9;border:none;}
+    [data-theme="light"] .CodeMirror{background:#eeece6;color:#1a1916;}
+    .CodeMirror-scroll{overflow:visible!important;min-height:unset!important;}
+    .CodeMirror-sizer{min-height:unset!important;}
+    .CodeMirror-lines{padding:16px 0;}
+    .CodeMirror pre.CodeMirror-line{padding:0 20px;}
+    .cm-s-one-dark .cm-keyword{color:#e879f9;font-weight:500;}
+    .cm-s-one-dark .cm-string{color:#4ade80;}
+    .cm-s-one-dark .cm-number{color:#fb923c;}
+    .cm-s-one-dark .cm-comment{color:#4b4f5e;font-style:italic;}
+    .cm-s-one-dark .cm-def{color:#60a5fa;}
+    .CodeMirror-gutters{background:#0f0f14!important;border-right:1px solid rgba(255,255,255,0.07)!important;}
+    .CodeMirror-linenumber{color:#3a3a50!important;font-size:12px;}
+    .CodeMirror-cursor{border-left:2px solid #f0a500!important;}
+    [data-theme="light"] .CodeMirror-gutters{background:#eeece6!important;}
+    .editor-output{background:#080810;border-top:1px solid var(--border);padding:14px 20px;font-family:var(--font-mono);font-size:13px;line-height:1.65;color:#7ec8a0;white-space:pre-wrap;max-height:400px;overflow-y:auto;min-height:52px;}
+    .editor-output.idle{color:var(--text-3);}
+    .editor-output.error{color:#f06060;}
+    [data-theme="light"] .editor-output{background:#e8e6e0;color:#1a7a40;}
+    .editor-actions{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-elevated);border-top:1px solid var(--border);}
+    .run-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 22px;background:var(--green);color:#000;border:none;border-radius:100px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .run-pill:hover{filter:brightness(1.1);transform:scale(1.02);}
+    .run-pill:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .reset-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:none;border:1px solid var(--border-md);border-radius:100px;font-size:12px;color:var(--text-3);cursor:pointer;transition:all .15s;}
+    .reset-pill:hover{border-color:var(--border-hi);color:var(--text-2);}
+    .py-status{font-size:11px;color:var(--text-3);}
+    .py-status.ready{color:var(--green);}
+    @media(max-width:640px){.concept-row{flex-direction:column;}}
+  </style>
+</head>
+<body data-topic-id="minmax-scaling">
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-header"><a class="sb-logo" href="../../index.html"><em>ML</em>Learn</a><button class="tb-toggle" onclick="Sidebar.toggle()" style="width:26px;height:26px;font-size:13px;">x</button></div>
+    <div class="sb-progress"><div class="sb-progress-label">Progress <span id="sb-progress-label">0/76</span></div><div class="sb-bar"><div class="sb-bar-fill" id="sb-bar-fill" style="width:0%"></div></div></div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+  <div id="main">
+    <header id="topbar">
+      <button class="tb-toggle" id="sb-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="7.25" width="14" height="1.5" rx=".75" fill="currentColor"/><rect x="1" y="11.5" width="14" height="1.5" rx=".75" fill="currentColor"/></svg></button>
+      <span class="tb-title" id="tb-title">Min-Max Scaling</span>
+      <div class="tb-search"><svg class="tb-search-icon" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="search-input" placeholder="Search topics..." autocomplete="off"/><div class="tb-search-results" id="search-results"></div></div>
+      <button class="tb-theme" id="theme-toggle">sun</button>
+    </header>
+    <main id="content">
+      <div class="topic-grid">
+        <article>
+          <nav class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="sep">/</span>
+            <a href="../../index.html#roadmap">Feature Engineering</a><span class="sep">/</span>
+            <span class="current">Min-Max Scaling</span>
+          </nav>
+
+          <div class="hero-banner">
+            <div class="topic-badge phase-4" style="border-color:rgba(62,207,142,.25);margin-bottom:14px;">Phase 4 &middot; Feature Engineering</div>
+            <h1 class="topic-h1" style="margin-bottom:10px;">Min-Max Scaling</h1>
+            <p class="topic-tagline" style="margin-bottom:20px;">Think of it like a percentage bar. The lowest value becomes 0%, the highest becomes 100%, and everything else sits proportionally in between. Simple, visual, and perfect for neural networks and image data.</p>
+            <div class="topic-meta">
+              <span class="topic-meta-item">12 min</span>
+              <span class="topic-meta-item">Beginner</span>
+              <span class="topic-meta-item">sklearn &middot; pandas</span>
+              <button class="complete-btn" id="complete-btn"><span class="check">o</span> Mark Complete</button>
+            </div>
+          </div>
+
+          <!-- THE BIG IDEA: RULER METAPHOR -->
+          <section class="section" id="ruler-idea">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">%</div>
+              The idea — a progress bar for your data
+            </h2>
+            <p>Min-Max scaling is like turning your data into <strong>percentage bars</strong>. The minimum value maps to 0 (empty bar), the maximum maps to 1 (full bar), and every other value sits proportionally in between.</p>
+
+            <!-- Interactive ruler -->
+            <div class="ruler-wrap">
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:16px;">Drag the slider to see Min-Max scaling in action</div>
+
+              <div class="ctrl-group" style="margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:13px;color:var(--text-2);">Original value:</span>
+                <input type="range" min="20" max="80" value="45" class="ctrl-slider" id="ruler-slider" style="width:200px;" oninput="updateRuler(this.value)"/>
+                <span class="ctrl-value" id="ruler-orig" style="font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--text-1);">45</span>
+                <span style="font-size:13px;color:var(--text-3);">&nbsp;(Range: 20 to 80)</span>
+              </div>
+
+              <div class="ruler-label">Original scale (20 – 80)</div>
+              <div class="ruler-track" style="background:var(--bg-input);">
+                <div id="ruler-orig-fill" class="ruler-fill" style="background:rgba(240,165,0,0.5);width:41.7%;">
+                  <div class="ruler-dot" id="ruler-orig-dot" style="right:-11px;background:#f0a500;">45</div>
+                </div>
+              </div>
+              <div class="ruler-axis" style="margin-bottom:18px;"><span>20 (min)</span><span>50 (mid)</span><span>80 (max)</span></div>
+
+              <div class="ruler-label">After Min-Max scaling (0 – 1)</div>
+              <div class="ruler-track" style="background:var(--bg-input);">
+                <div id="ruler-scaled-fill" class="ruler-fill" style="background:rgba(62,207,142,0.6);width:41.7%;">
+                  <div class="ruler-dot" id="ruler-scaled-dot" style="right:-11px;background:var(--green);" id="ruler-dot">0.42</div>
+                </div>
+              </div>
+              <div class="ruler-axis"><span>0.0 (was 20)</span><span>0.5 (was 50)</span><span>1.0 (was 80)</span></div>
+
+              <div style="margin-top:16px;padding:12px 16px;background:var(--bg-input);border-radius:var(--r-md);font-family:var(--font-mono);font-size:14px;color:var(--text-1);" id="ruler-formula-show">
+                (45 − 20) ÷ (80 − 20) = 25 ÷ 60 = <span style="color:var(--green);font-weight:800;">0.417</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- FORMULA -->
+          <section class="section" id="formula">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">f</div>
+              The formula
+            </h2>
+            <div class="formula-block">
+              <div class="formula-name">Min-Max scaling formula</div>
+              <div class="formula-math">x_scaled = (x − min) ÷ (max − min)</div>
+              <div class="formula-explain">
+                <strong>x</strong> = the original value &nbsp;|&nbsp;
+                <strong>min</strong> = smallest value in the column &nbsp;|&nbsp;
+                <strong>max</strong> = largest value in the column<br><br>
+                <strong>Result:</strong> Every value is now between 0 and 1. The minimum value becomes exactly 0. The maximum becomes exactly 1. All others land proportionally in between.
+              </div>
+            </div>
+
+            <!-- Worked example -->
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;">
+              <div style="padding:12px 20px;background:var(--bg-input);border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green);">Worked example — pixel values (0 to 255)</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+                <div style="padding:14px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Raw pixel</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);line-height:2.2;">0<br>64<br>128<br>192<br>255</div>
+                </div>
+                <div style="padding:14px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">− min (0)</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);line-height:2.2;">0<br>64<br>128<br>192<br>255</div>
+                </div>
+                <div style="padding:14px;border-right:1px solid var(--border);">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">÷ (max−min) = 255</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-1);line-height:2.2;">0÷255<br>64÷255<br>128÷255<br>192÷255<br>255÷255</div>
+                </div>
+                <div style="padding:14px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:8px;">Scaled ✓</div>
+                  <div style="font-family:var(--font-mono);font-size:14px;line-height:2.2;"><span style="color:var(--text-3);">0.000</span><br>0.251<br>0.502<br>0.753<br><span style="color:var(--green);">1.000</span></div>
+                </div>
+              </div>
+              <div style="padding:10px 20px;background:var(--bg-input);border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);">
+                <strong>Notice:</strong> Minimum (0) → 0.0 &nbsp;|&nbsp; Maximum (255) → 1.0 &nbsp;|&nbsp; All values stay proportional &nbsp;|&nbsp; Shape of data is perfectly preserved
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE DEMO CANVAS -->
+          <section class="section" id="live-demo">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--green-surf);color:var(--green);">~</div>
+              Live demo — see what happens to outliers!
+            </h2>
+            <p>The big weakness of Min-Max: <strong>one extreme outlier compresses all other values</strong> into a tiny range. Click <strong>Add outlier</strong> to see this happen — then compare with Standardization.</p>
+
+            <div class="canvas-card">
+              <div class="canvas-toolbar">
+                <span class="canvas-title">Before &amp; After Min-Max Scaling</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Dataset:</span>
+                  <select class="ctrl-select" id="demo-dataset" onchange="loadDataset(this.value)">
+                    <option value="ages">Ages (18–80)</option>
+                    <option value="pixels">Image pixels (0–255)</option>
+                    <option value="scores">Exam scores (0–100)</option>
+                    <option value="custom">Custom (click to add)</option>
+                  </select>
+                </div>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Range:</span>
+                  <input type="range" min="0" max="1" value="1" step="1" class="ctrl-slider" id="range-sel" style="width:50px;" oninput="C('range-val').textContent=['[0,1]','[-1,+1]'][this.value];drawAll()"/>
+                  <span class="ctrl-value" id="range-val" style="color:var(--green);">[0,1]</span>
+                </div>
+                <button class="ctrl-btn" onclick="loadDataset(document.getElementById('demo-dataset').value)">Reset</button>
+                <button class="ctrl-btn" style="color:var(--red);" onclick="addOutlier()">+ Add outlier ⚠</button>
+              </div>
+              <canvas id="mm-canvas" width="700" height="360" style="width:100%;display:block;cursor:crosshair;"></canvas>
+              <div class="stat-row">
+                <div class="stat-pill"><span class="stat-pill-val" id="mm-min" style="color:var(--red);">-</span><span class="stat-pill-lbl">Original min</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mm-max" style="color:var(--green);">-</span><span class="stat-pill-lbl">Original max</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mm-scaled-min" style="color:var(--green);">0.0</span><span class="stat-pill-lbl">Scaled min</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mm-scaled-max" style="color:var(--green);">1.0</span><span class="stat-pill-lbl">Scaled max</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" id="mm-spread" style="font-size:12px;">-</span><span class="stat-pill-lbl">Data spread</span></div>
+              </div>
+            </div>
+
+            <div class="callout danger">
+              <span class="callout-icon">!</span>
+              <p><strong>The outlier problem:</strong> If ages are 20–45 but one person is 120 years old, everyone else gets compressed into a tiny range (0.0 to 0.2). The single outlier "steals" the whole 0–1 range. This is why <strong>Min-Max is sensitive to outliers</strong>. Use Robust Scaling when outliers are present.</p>
+            </div>
+          </section>
+
+          <!-- MIN-MAX vs STANDARDIZATION COMPARISON -->
+          <section class="section" id="comparison">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--purple-surf);color:var(--purple);">vs</div>
+              Min-Max vs Standardization — which one to pick?
+            </h2>
+
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;">
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>Property</th>
+                    <th style="color:var(--green);">Min-Max (MinMaxScaler)</th>
+                    <th style="color:var(--blue);">Standardization (StandardScaler)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Output range</strong></td>
+                    <td>Always <strong>[0, 1]</strong> (or custom range)</td>
+                    <td>Usually −3 to +3, no fixed bound</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Formula</strong></td>
+                    <td>(x − min) / (max − min)</td>
+                    <td>(x − mean) / std</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Outlier effect</strong></td>
+                    <td style="color:var(--red);">Very sensitive — one outlier compresses everything</td>
+                    <td style="color:var(--orange);">Moderately sensitive — outliers shift mean/std</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Preserves zeros?</strong></td>
+                    <td style="color:var(--green);">Only if min=0</td>
+                    <td style="color:var(--red);">No — zero becomes (0−mean)/std</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Best for</strong></td>
+                    <td>Neural networks, image pixel values, bounded inputs</td>
+                    <td>Linear/Logistic Regression, SVM, PCA</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Distribution shape</strong></td>
+                    <td>Preserved (no normalization)</td>
+                    <td>Preserved (no normalization)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Visual side-by-side of same data -->
+            <div class="canvas-card">
+              <div class="canvas-toolbar" style="padding:8px 14px;">
+                <span class="canvas-title">Same data — Min-Max vs Standardization side by side</span>
+                <div class="ctrl-group">
+                  <span class="ctrl-label">With outlier:</span>
+                  <input type="checkbox" id="show-outlier" onchange="drawComparison()" style="width:16px;height:16px;"/>
+                </div>
+              </div>
+              <canvas id="cmp-canvas" width="700" height="240" style="width:100%;display:block;"></canvas>
+            </div>
+          </section>
+
+          <!-- WHEN TO USE -->
+          <section class="section" id="when-to-use">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">?</div>
+              When to use Min-Max scaling
+            </h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+              <div style="background:var(--bg-card);border:2px solid rgba(62,207,142,0.4);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;">✓ Use Min-Max when</div>
+                <div style="font-size:13px;color:var(--text-2);line-height:1.8;">
+                  ✓ <strong>Neural networks</strong> — inputs between 0 and 1 help activation functions<br>
+                  ✓ <strong>Image pixels</strong> — natural 0–255 range maps cleanly to 0–1<br>
+                  ✓ <strong>Bounded features</strong> — age, percentage, rating with known min/max<br>
+                  ✓ <strong>Algorithms needing [0,1]</strong> — some algorithms require non-negative inputs<br>
+                  ✓ <strong>No outliers present</strong> — data is clean with no extreme values
+                </div>
+              </div>
+              <div style="background:var(--bg-card);border:2px solid rgba(240,96,96,0.3);border-radius:var(--r-lg);padding:16px;">
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px;">✗ Avoid Min-Max when</div>
+                <div style="font-size:13px;color:var(--text-2);line-height:1.8;">
+                  ✗ <strong>Outliers exist</strong> — use Robust Scaling instead<br>
+                  ✗ <strong>Future data may exceed training range</strong> — values &gt;1 or &lt;0 will appear<br>
+                  ✗ <strong>Highly skewed distributions</strong> — consider log transform first<br>
+                  ✗ <strong>For SVM or Linear Regression</strong> — Standardization is usually better<br>
+                  ✗ <strong>When you don't know the true min/max</strong> — use Standardization
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- HOW TO CODE -->
+          <section class="section" id="how-to-code">
+            <h2 class="section-h2">
+              <div class="section-icon" style="background:var(--teal-surf);color:var(--teal);">{}</div>
+              How to code it
+            </h2>
+            <div class="step-card">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Basic usage</div>
+                <div class="step-desc">MinMaxScaler compresses everything into [0, 1] by default. You can change the range with feature_range.</div>
+                <div class="step-code">from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()                     # default: [0, 1]
+scaler = MinMaxScaler(feature_range=(0,1))  # same
+scaler = MinMaxScaler(feature_range=(-1,1)) # for [-1, 1] range</div>
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Always split first, then scale</div>
+                <div class="step-desc">Just like StandardScaler — fit on training data only. The scaler learns min and max from training, then applies those to test data.</div>
+                <div class="step-code">X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)  # learns min/max
+X_test_scaled  = scaler.transform(X_test)        # uses train min/max</div>
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Best practice: use a Pipeline</div>
+                <div class="step-code">from sklearn.pipeline import Pipeline
+from sklearn.neural_network import MLPClassifier
+pipe = Pipeline([
+    ('scaler', MinMaxScaler()),
+    ('nn', MLPClassifier(hidden_layer_sizes=(100,), max_iter=500))
+])</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- LIVE EDITOR -->
+          <section class="section" id="live-editor">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--green-surf);color:var(--green);">{}</div>Live code editor</h2>
+            <div class="editor-tab-bar" id="editor-tabs"></div>
+            <div class="editor-wrap" style="border-radius:0 var(--r-lg) var(--r-lg) var(--r-lg);">
+              <div class="editor-topbar">
+                <div class="editor-dots"><div class="editor-dot" style="background:#ff5f57;"></div><div class="editor-dot" style="background:#febc2e;"></div><div class="editor-dot" style="background:#28c840;"></div></div>
+                <span style="font-size:11px;color:var(--text-3);font-family:var(--font-mono);" id="editor-filename">minmax_basics.py</span>
+                <span class="py-status" id="py-status">Python not loaded</span>
+              </div>
+              <div id="cm-editor-mount"></div>
+              <div class="editor-output idle" id="editor-output">Click Run to execute...</div>
+              <div class="editor-actions">
+                <button class="run-pill" id="run-btn" onclick="runEditor()">Run</button>
+                <button class="reset-pill" onclick="resetEditor()">Reset</button>
+                <button class="reset-pill" onclick="clearOutput()">Clear</button>
+                <span class="py-status" id="run-time" style="margin-left:auto;"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- MISTAKES -->
+          <section class="section" id="common-mistakes">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--red-surf);color:var(--red);">!</div>Common mistakes</h2>
+            <div class="mistake-list">
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Not checking for outliers before Min-Max scaling.</strong> A single extreme value ruins the scale for everyone else. Always check for outliers first with IQR or Z-score, handle them, then scale.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Production data going outside the training range.</strong> If training ages are 18–65 but a user is 75, the scaled value is &gt;1.0. Min-Max doesn't handle out-of-range data well. Standardization is safer for open-ended ranges.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Fitting on test data.</strong> The scaler must learn min and max from training data only. Never call fit_transform on test data — use transform only.</div></div>
+              <div class="mistake-item"><span class="mistake-icon">x</span><div><strong style="color:var(--text-1);">Using Min-Max for SVM or Logistic Regression.</strong> These algorithms work better with Standardization (zero mean, unit variance) than with Min-Max bounded data.</div></div>
+            </div>
+          </section>
+
+          <!-- TAKEAWAYS -->
+          <section class="section" id="key-takeaways">
+            <h2 class="section-h2"><div class="section-icon" style="background:var(--accent-surface);color:var(--accent);">*</div>Key takeaways</h2>
+            <div class="takeaways">
+              <div class="takeaways-title">Remember these 5 things</div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Formula:</strong> (x − min) ÷ (max − min) → result always in [0, 1]</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Best for:</strong> neural networks, image pixels, bounded data with no outliers</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Big weakness:</strong> one outlier compresses all other values — use Robust Scaling if outliers exist</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>Always split first:</strong> fit scaler on training data, transform both train and test</div></div>
+              <div class="takeaway-item"><div class="takeaway-bullet"></div><div><strong>vs Standardization:</strong> Min-Max gives [0,1] range; Standardization gives mean=0, std=1 — no fixed range</div></div>
+            </div>
+          </section>
+
+          <nav class="prev-next">
+            <a class="pn-card" id="prev-card" href="standardization.html"><span class="pn-dir">Previous</span><span class="pn-title">Standardization</span></a>
+            <a class="pn-card next" id="next-card" href="robust-scaling.html"><span class="pn-dir">Next</span><span class="pn-title">Robust Scaling</span></a>
+          </nav>
+        </article>
+
+        <aside class="toc-wrap">
+          <div class="toc-label">On this page</div>
+          <ul class="toc-list">
+            <li class="toc-item"><a href="#ruler-idea">The idea</a></li>
+            <li class="toc-item"><a href="#formula">The formula</a></li>
+            <li class="toc-item"><a href="#live-demo">Live demo</a></li>
+            <li class="toc-item"><a href="#comparison">vs Standardization</a></li>
+            <li class="toc-item"><a href="#when-to-use">When to use</a></li>
+            <li class="toc-item"><a href="#how-to-code">Code steps</a></li>
+            <li class="toc-item"><a href="#live-editor">Live editor</a></li>
+            <li class="toc-item"><a href="#common-mistakes">Mistakes</a></li>
+            <li class="toc-item"><a href="#key-takeaways">Takeaways</a></li>
+          </ul>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../../js/main.js"></script>
+<script>
+function C(id){return document.getElementById(id);}
+function isDark(){return document.documentElement.getAttribute('data-theme')!=='light';}
+function bg(){return isDark()?'#18181d':'#e9e7e1';}
+function bgCard(){return isDark()?'#1e1e26':'#e2e0d9';}
+function gc(){return isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';}
+function tc(){return isDark()?'#a09e98':'#5c5a54';}
+
+function normalRand(mu,sigma){
+  var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return(mu||0)+(sigma||1)*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+/* ═══ RULER ═══ */
+function updateRuler(v){
+  var val=parseInt(v), mn=20, mx=80;
+  var pct=(val-mn)/(mx-mn)*100;
+  C('ruler-orig').textContent=val;
+  C('ruler-orig-fill').style.width=pct+'%';
+  C('ruler-orig-dot').textContent=val;
+  C('ruler-scaled-fill').style.width=pct+'%';
+  C('ruler-scaled-dot').textContent=((val-mn)/(mx-mn)).toFixed(3);
+  C('ruler-formula-show').innerHTML=
+    '('+val+' \u2212 '+mn+') \u00f7 ('+mx+' \u2212 '+mn+') = '+(val-mn)+' \u00f7 '+(mx-mn)+' = <span style="color:var(--green);font-weight:800;">'+((val-mn)/(mx-mn)).toFixed(3)+'</span>';
+}
+
+/* ═══ DEMO CANVAS ═══ */
+var MC=C('mm-canvas'), MX=MC.getContext('2d');
+var data=[];
+
+var DATASETS={
+  ages:    function(){var d=[];for(var i=0;i<40;i++)d.push(Math.max(18,Math.min(80,Math.round(normalRand(38,12)))));return d;},
+  pixels:  function(){var d=[];for(var i=0;i<40;i++)d.push(Math.round(Math.max(0,Math.min(255,normalRand(128,60)))));return d;},
+  scores:  function(){var d=[];for(var i=0;i<40;i++)d.push(Math.max(0,Math.min(100,Math.round(normalRand(72,15)))));return d;},
+  custom:  function(){return[20,35,45,55,70];}
+};
+
+function loadDataset(key){
+  data=DATASETS[key]?DATASETS[key]():DATASETS.ages();
+  drawAll();
+}
+
+function addOutlier(){
+  var max=Math.max.apply(null,data);
+  data.push(max*3.5);
+  drawAll();
+}
+
+MC.addEventListener('click',function(e){
+  if(C('demo-dataset').value!=='custom')return;
+  var r=MC.getBoundingClientRect(),sx=MC.width/r.width;
+  var x=(e.clientX-r.left)*sx;
+  var leftW=MC.width/2-10;
+  if(x<leftW){var frac=x/leftW;data.push(frac*100);drawAll();}
+});
+
+function minMaxScale(arr,a,b){
+  a=a||0;b=b||1;
+  var mn=Math.min.apply(null,arr),mx=Math.max.apply(null,arr),range=mx-mn||1;
+  return arr.map(function(v){return a+(v-mn)/range*(b-a);});
+}
+
+function drawAll(){
+  if(!data.length)return;
+  var rangeMode=parseInt(C('range-sel').value);
+  var a=rangeMode===0?0:-1, b=rangeMode===0?1:1;
+  var scaled=minMaxScale(data,a,b);
+  C('mm-min').textContent=Math.min.apply(null,data).toFixed(0);
+  C('mm-max').textContent=Math.max.apply(null,data).toFixed(0);
+  C('mm-scaled-min').textContent=a.toFixed(0);
+  C('mm-scaled-max').textContent=b.toFixed(0);
+  var range=Math.max.apply(null,data)-Math.min.apply(null,data);
+  var med=data.slice().sort(function(a,b){return a-b;})[Math.floor(data.length/2)];
+  var scaledMed=minMaxScale([med],a,b)[0];
+  C('mm-spread').textContent=range<20?'Very tight':'Range='+range.toFixed(0);
+  C('mm-spread').style.color=range<20?'var(--red)':'var(--green)';
+  drawCanvas(data,scaled,a,b);
+}
+
+function drawCanvas(orig,scaled,a,b){
+  var W=MC.width,H=MC.height,pad={l:50,r:15,t:35,b:50};
+  MX.clearRect(0,0,W,H);MX.fillStyle=bg();MX.fillRect(0,0,W,H);
+  var halfW=(W-20)/2;
+
+  function drawHist(vals,xOff,label,color,xLabel){
+    if(!vals||!vals.length)return;
+    var n=vals.length,nb=12;
+    var mnV=Math.min.apply(null,vals),mxV=Math.max.apply(null,vals),range=mxV-mnV||1;
+    var bw=range/nb,counts=new Array(nb).fill(0);
+    vals.forEach(function(v){var bi=Math.min(Math.floor((v-mnV)/bw),nb-1);counts[bi]++;});
+    var mc=Math.max.apply(null,counts)||1;
+    var iW=halfW-pad.l-pad.r,iH=H-pad.t-pad.b;
+    var xC=function(v){return xOff+pad.l+(v-mnV)/range*iW;};
+
+    MX.strokeStyle=gc();MX.lineWidth=0.5;
+    for(var gi=0;gi<=4;gi++){var gy=pad.t+gi*iH/4;MX.beginPath();MX.moveTo(xOff+pad.l,gy);MX.lineTo(xOff+halfW-pad.r,gy);MX.stroke();}
+
+    counts.forEach(function(c,i){
+      if(c===0)return;
+      var x=xOff+pad.l+i*(iW/nb),bh=(c/mc)*iH*0.85;
+      MX.fillStyle=color+'55';MX.fillRect(x+1,H-pad.b-bh,iW/nb-2,bh);
+      MX.strokeStyle=color;MX.lineWidth=1.5;MX.strokeRect(x+1,H-pad.b-bh,iW/nb-2,bh);
+    });
+
+    // Min/max markers
+    var mnX=xC(mnV),mxX=xC(mxV);
+    MX.beginPath();MX.strokeStyle=color;MX.lineWidth=2;MX.setLineDash([4,3]);
+    MX.moveTo(mnX,pad.t);MX.lineTo(mnX,H-pad.b);MX.stroke();
+    MX.moveTo(mxX,pad.t);MX.lineTo(mxX,H-pad.b);MX.stroke();
+    MX.setLineDash([]);
+    MX.fillStyle=color;MX.font='bold 9px monospace';MX.textAlign='center';
+    MX.fillText('min',mnX,pad.t-5);MX.fillText('max',mxX,pad.t-5);
+
+    MX.fillStyle=tc();MX.font='9px monospace';MX.textAlign='center';
+    for(var xi=0;xi<=4;xi++){MX.fillText((mnV+xi/4*range).toFixed(1),xOff+pad.l+xi/4*iW,H-pad.b+14);}
+
+    MX.fillStyle=color;MX.font='bold 13px sans-serif';MX.textAlign='center';MX.fillText(label,xOff+halfW/2,22);
+    MX.fillStyle=tc();MX.font='11px sans-serif';MX.fillText(xLabel,xOff+halfW/2,H-pad.b+28);
+  }
+
+  drawHist(orig, 0, 'BEFORE', '#4b96ff', 'Original values (min='+Math.min.apply(null,orig).toFixed(0)+', max='+Math.max.apply(null,orig).toFixed(0)+')');
+  drawHist(scaled, halfW+20, 'AFTER', '#3ecf8e', 'Min-Max scaled (range: '+a+' to '+b+')');
+
+  MX.strokeStyle=gc();MX.lineWidth=2;MX.beginPath();MX.moveTo(halfW+10,20);MX.lineTo(halfW+10,H-20);MX.stroke();
+  MX.fillStyle=isDark()?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.12)';
+  MX.font='22px sans-serif';MX.textAlign='center';MX.fillText('→',halfW+10,H/2+8);
+  MX.fillStyle=tc();MX.font='bold 9px monospace';MX.fillText('(x\u2212min)/(max\u2212min)',halfW+10,H/2+22);
+}
+
+/* ═══ COMPARISON CANVAS ═══ */
+var CC=C('cmp-canvas'),CX=CC.getContext('2d');
+
+function drawComparison(){
+  var withOutlier=C('show-outlier').checked;
+  var vals=[22,31,28,45,39,33,42,38,35,41];
+  if(withOutlier) vals.push(120);
+
+  var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),range=mx-mn||1;
+  var mean=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+  var std=Math.sqrt(vals.reduce(function(s,v){return s+(v-mean)**2;},0)/vals.length)||1;
+
+  var mmScaled=vals.map(function(v){return(v-mn)/range;});
+  var zScaled=vals.map(function(v){return(v-mean)/std;});
+
+  var W=CC.width,H=CC.height,pad={l:15,r:15,t:35,b:30};
+  CX.clearRect(0,0,W,H);CX.fillStyle=bg();CX.fillRect(0,0,W,H);
+
+  function drawDots(scaledVals,y,label,color,mn2,mx2){
+    var iW=W-2*pad.l;
+    CX.fillStyle=color;CX.font='bold 11px sans-serif';CX.textAlign='left';CX.fillText(label,pad.l,y-14);
+    // Track
+    CX.fillStyle=isDark()?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
+    CX.fillRect(pad.l,y-10,iW,20);
+    // Axis labels
+    CX.fillStyle=tc();CX.font='9px monospace';CX.textAlign='center';
+    for(var xi=0;xi<=4;xi++){
+      var v=mn2+xi/4*(mx2-mn2);
+      CX.fillText(v.toFixed(1),pad.l+xi/4*iW,y+22);
+    }
+    // Dots
+    scaledVals.forEach(function(sv,i){
+      var x=pad.l+(sv-mn2)/(mx2-mn2)*iW;
+      var isOut=withOutlier&&i===vals.length-1;
+      CX.beginPath();CX.arc(Math.max(pad.l,Math.min(W-pad.r,x)),y,isOut?9:6,0,Math.PI*2);
+      CX.fillStyle=isOut?'rgba(240,96,96,0.9)':color+'bb';CX.fill();
+      CX.strokeStyle=isOut?'var(--red)':color;CX.lineWidth=1.5;CX.stroke();
+    });
+    // Highlight compression for MinMax with outlier
+    if(withOutlier&&label.indexOf('Min-Max')>-1){
+      var allX=mmScaled.slice(0,-1).map(function(sv){return pad.l+sv*iW;});
+      var minX=Math.min.apply(null,allX),maxX=Math.max.apply(null,allX);
+      CX.fillStyle='rgba(240,165,0,0.15)';CX.fillRect(minX-3,y-10,maxX-minX+6,20);
+      CX.fillStyle='#f0a500';CX.font='bold 9px sans-serif';CX.textAlign='center';
+      CX.fillText('Compressed!',( minX+maxX)/2,y-14);
+    }
+  }
+
+  drawDots(mmScaled,H/3,'Min-Max scaled','#3ecf8e',0,1);
+  drawDots(zScaled,H*2/3,'Standardized (Z-score)','#4b96ff',-3,3);
+
+  CX.fillStyle=tc();CX.font='11px sans-serif';CX.textAlign='left';
+  if(withOutlier){
+    CX.fillStyle='rgba(240,96,96,0.8)';CX.beginPath();CX.arc(W-50,H/3,9,0,Math.PI*2);CX.fill();
+    CX.fillStyle=tc();CX.font='10px sans-serif';CX.textAlign='right';CX.fillText('= outlier (age 120)',W-60,H/3+4);
+  }
+}
+
+/* ═══ LIVE EDITOR ═══ */
+var SNIPPETS=[
+{file:'minmax_basics.py',label:'Basics',code:`import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+
+# Example with different feature scales
+data = pd.DataFrame({
+    'age'       : [22, 35, 28, 45, 52, 31, 60, 25],
+    'salary'    : [35000, 72000, 48000, 95000, 110000, 58000, 130000, 42000],
+    'score'     : [7.2, 8.5, 6.8, 9.1, 8.8, 7.5, 9.5, 6.5],
+})
+
+print("BEFORE Min-Max scaling:")
+print(data)
+print()
+
+scaler = MinMaxScaler()  # default: [0, 1]
+scaled = scaler.fit_transform(data)
+df_scaled = pd.DataFrame(scaled, columns=data.columns)
+
+print("AFTER Min-Max scaling [0, 1]:")
+print(df_scaled.round(4))
+print()
+print("Every column now between 0 and 1:")
+print(f"  Min: {df_scaled.min().round(4).values}")
+print(f"  Max: {df_scaled.max().round(4).values}")
+print()
+print("Scaler stored these values:")
+for feat, mn, mx in zip(data.columns, scaler.data_min_, scaler.data_max_):
+    print(f"  {feat:10}: min={mn:.0f}  max={mx:.0f}")`},
+{file:'minmax_outlier.py',label:'Outlier problem',code:`import numpy as np
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
+
+# Normal ages: 22 to 52
+ages_clean = np.array([22, 28, 31, 35, 38, 42, 45, 49, 52]).reshape(-1,1)
+
+# Same data but with one extreme outlier
+ages_outlier = np.append(ages_clean, [[120]]).reshape(-1,1)
+
+print("WITHOUT outlier:")
+mm = MinMaxScaler().fit_transform(ages_clean)
+print(f"  Min-Max range: {mm.min():.3f} to {mm.max():.3f}")
+print(f"  Most values span: {mm.min():.3f} to {mm.max():.3f}")
+print()
+
+print("WITH outlier (age=120 added):")
+scalers = {
+    'MinMaxScaler':   MinMaxScaler(),
+    'StandardScaler': StandardScaler(),
+    'RobustScaler':   RobustScaler(),
+}
+for name, sc in scalers.items():
+    scaled = sc.fit_transform(ages_outlier)
+    non_outlier = scaled[:-1]  # all except the outlier
+    print(f"  {name}:")
+    print(f"    Non-outlier range: {non_outlier.min():.3f} to {non_outlier.max():.3f}")
+    print(f"    Outlier value:     {scaled[-1][0]:.3f}")
+    print()`},
+{file:'minmax_neural.py',label:'For neural networks',code:`import numpy as np
+from sklearn.datasets import load_digits
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import Pipeline
+
+# Image classification: pixel values 0-16
+digits = load_digits()
+X, y = digits.data, digits.target
+
+print("Feature (pixel) range without scaling:")
+print(f"  Min: {X.min():.0f}  Max: {X.max():.0f}")
+print()
+
+results = {}
+for name, scaler in [
+    ('No scaling',    None),
+    ('Min-Max [0,1]', MinMaxScaler()),
+    ('Standardize',   StandardScaler()),
+]:
+    if scaler:
+        pipe = Pipeline([('s', scaler), ('nn', MLPClassifier(max_iter=200, random_state=42))])
+    else:
+        pipe = MLPClassifier(max_iter=200, random_state=42)
+    scores = cross_val_score(pipe, X, y, cv=5)
+    print(f"{name:20}: acc = {scores.mean():.4f} +/- {scores.std():.4f}")`},
+{file:'minmax_custom_range.py',label:'Custom range',code:`import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+
+data = np.array([20., 35., 45., 55., 70., 80.]).reshape(-1,1)
+
+print("Original:       ", data.flatten())
+print()
+
+# [0, 1] - default, most common
+s1 = MinMaxScaler(feature_range=(0, 1)).fit_transform(data)
+print("Scaled [0, 1]:  ", s1.flatten().round(3))
+
+# [-1, +1] - useful for tanh activation functions
+s2 = MinMaxScaler(feature_range=(-1, 1)).fit_transform(data)
+print("Scaled [-1, +1]:", s2.flatten().round(3))
+
+# [0, 255] - convert float back to image pixels
+s3 = MinMaxScaler(feature_range=(0, 255)).fit_transform(data)
+print("Scaled [0, 255]:", s3.flatten().round(0))
+
+print()
+print("Inverse transform (back to original):")
+s_back = MinMaxScaler(feature_range=(0, 1)).fit(data).inverse_transform(s1)
+print("Recovered:      ", s_back.flatten())`}
+];
+
+var currentTab=0,pyodide=null,pyLoading=false,cmEditor=null;
+function buildTabs(){
+  C('editor-tabs').innerHTML=SNIPPETS.map(function(s,i){
+    return '<button class="editor-tab'+(i===0?' active':'')+'" onclick="switchTab('+i+')">'+s.label+'</button>';
+  }).join('');
+}
+function switchTab(i){
+  currentTab=i;
+  document.querySelectorAll('.editor-tab').forEach(function(b,j){b.classList.toggle('active',j===i);});
+  if(cmEditor){cmEditor.setValue(SNIPPETS[i].code);setTimeout(function(){cmEditor.refresh();},30);}
+  C('editor-filename').textContent=SNIPPETS[i].file;
+  C('editor-output').textContent='Click Run to execute...';
+  C('editor-output').className='editor-output idle';
+}
+function resetEditor(){if(cmEditor)cmEditor.setValue(SNIPPETS[currentTab].code);}
+function clearOutput(){C('editor-output').textContent='';C('editor-output').className='editor-output idle';}
+async function runEditor(){
+  var btn=C('run-btn'),out=C('editor-output'),code=cmEditor?cmEditor.getValue():'';
+  btn.disabled=true;btn.textContent='Running...';out.className='editor-output';out.textContent='Loading Python...';
+  var t0=Date.now();
+  if(!pyodide){
+    var st=C('py-status');st.textContent='Loading...';
+    try{
+      if(!pyLoading){
+        pyLoading=true;var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';document.head.appendChild(sc);
+        await new Promise(function(r,j){sc.onload=r;sc.onerror=j;});
+        pyodide=await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'});
+        await pyodide.loadPackage(['numpy','pandas','scikit-learn']);pyLoading=false;
+      } else{while(pyLoading)await new Promise(function(r){setTimeout(r,100);});}
+      st.textContent='Python ready';st.className='py-status ready';
+    } catch(e){out.textContent='Failed to load Pyodide.';out.className='editor-output error';btn.disabled=false;btn.textContent='Run';return;}
+  }
+  out.textContent='Running...';
+  try{
+    pyodide.runPython('import sys,io as _io;_b=_io.StringIO();sys.stdout=_b');
+    pyodide.runPython(code);
+    pyodide.runPython('sys.stdout=sys.__stdout__');
+    var res=pyodide.runPython('_b.getvalue()');
+    out.textContent=res||'(no output)';out.className='editor-output';C('run-time').textContent=(Date.now()-t0)+'ms';
+  } catch(e){
+    try{pyodide.runPython('import sys;sys.stdout=sys.__stdout__');}catch(x){}
+    out.textContent='Error: '+(e.message||String(e));out.className='editor-output error';
+  }
+  btn.disabled=false;btn.textContent='Run';
+}
+function initEditor(){
+  (function trySetup(){
+    if(typeof CodeMirror==='undefined'){setTimeout(trySetup,60);return;}
+    buildTabs();var mount=C('cm-editor-mount');if(!mount)return;
+    cmEditor=CodeMirror(mount,{value:SNIPPETS[0].code,mode:'python',theme:'one-dark',lineNumbers:true,indentUnit:4,tabSize:4,lineWrapping:false,
+      extraKeys:{Tab:function(cm){if(cm.somethingSelected())cm.indentSelection('add');else cm.replaceSelection('    ','end');}}});
+    cmEditor.setSize('100%',null);
+    setTimeout(function(){cmEditor.refresh();},100);setTimeout(function(){cmEditor.refresh();},500);
+  })();
+}
+
+window.addEventListener('load',function(){
+  updateRuler(45);
+  loadDataset('ages');
+  drawComparison();
+  initEditor();
+  new MutationObserver(function(){
+    updateRuler(document.getElementById('ruler-slider').value);
+    drawAll();drawComparison();
+    if(cmEditor)setTimeout(function(){cmEditor.refresh();},30);
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+});
+</script>
+</body>
+</html>
